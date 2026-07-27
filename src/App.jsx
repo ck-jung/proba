@@ -26,7 +26,7 @@ import { FQA_SECTIONS, INIT_FQA_CASES, INIT_FQA_SUITES, INIT_FQA_SYSTEMS, INIT_F
 import { NQA_SECTIONS, NQA_SUBTYPES, INIT_NQA_SYSTEMS, INIT_NQA_SCENARIOS, INIT_NQA_RUNS } from "./nqa/data.js";
 import { NqaScreen, NqaDashboardScreen, NqaTargetScreen, NqaScenarioScreen, NqaRunScreen, NqaHistoryScreen } from "./nqa/screens.jsx";
 import { PQA_SECTIONS, INIT_PERF_APPS, INIT_PERF_SCENARIOS, INIT_PERF_PLANS, INIT_PERF_RUNS } from "./pqa/data.js";
-import { PqaTargetScreen, PqaScenarioScreen, PqaPlanScreen, PqaRunScreen, PqaHistoryScreen, PqaTrendScreen, PqaDashboardScreen, PqaSoon } from "./pqa/screens.jsx";
+import { PqaTargetScreen, PqaScenarioScreen, PqaPlanScreen, PqaRunScreen, PqaHistoryScreen, PqaTrendScreen, PqaDashboardScreen } from "./pqa/screens.jsx";
 import { NewPlanForm, AiGenForm, NewCaseForm, JiraForm, AddPromptForm, PlanCasesForm, JiraConfigForm, AddChatbotForm, Targets, Dashboard, Plans, RunHistory, CategoryManager, ImportCasesForm, Cases, Run, Compare, Defects, Report, Settings, InviteMemberForm, MembersView } from "./lqa/screens.jsx";
 
 /* ============================ context ============================ */
@@ -45,6 +45,7 @@ export default function App() {
   const [view, setView] = useState("dashboard");
   const [fqaTab, setFqaTab] = useState("상세");
   const [env, setEnv] = useState("전체");
+  const [reportCfg, setReportCfg] = useState({ ch: { slack: true, teams: false, email: true }, cond: "fail", scope: "통합 (전체 도메인)", rsched: { on: true, freq: "weekly", time: "09:00", dow: 1, dom: 1 } });
   const [toasts, setToasts] = useState([]);
   const [notifs, setNotifs] = useState([
     { icon: "play", text: "요금/청구 평가 완료 — PASS율 79%", t: "14:36" },
@@ -89,7 +90,7 @@ export default function App() {
   const [role, setRole] = useState("admin");
   const [space, setSpace] = useState("product");
   const [domain, setDomain] = useState("LQA");
-  const [nqaWs, setNqaWs] = useState(null);   // 성능 QA 워크스페이스: null(미선택) / perf(앱 성능·준비중) / load(부하) — 드롭다운에서 고를 때 확정
+  const [nqaWs, setNqaWs] = useState(null);   // 성능 QA 워크스페이스: null(미선택) / perf(앱 성능) / load(부하) — 드롭다운에서 고를 때 확정
   const [nqaMenu, setNqaMenu] = useState(false);   // '성능 QA' 상단 버튼 하위 드롭다운 열림
   const [tenants, setTenants] = useState(INIT_TENANTS);
   const [tenantId, setTenantId] = useState("t1");
@@ -116,7 +117,7 @@ export default function App() {
   });
   const api = {
     currentUser,
-    goto: setView, env, setEnv, toast, notify, openModal: (type, data) => setModal({ type, data }),
+    goto: setView, env, setEnv, reportCfg, setReportCfg, toast, notify, openModal: (type, data) => setModal({ type, data }),
     cases, addCases: (arr) => setCases((c) => [...arr.map(withCreate), ...c]),
     setCaseStatus: (id, status) => setCases((c) => c.map((x) => (x.id === id ? { ...x, ...withUpdate({ status }) } : x))),
     updateCase: (id, patch) => setCases((c) => c.map((x) => (x.id === id ? { ...x, ...withUpdate(patch) } : x))),
@@ -214,7 +215,7 @@ export default function App() {
                   <div key={d.id} className="relative shrink-0">
                     <button onClick={() => setNqaMenu((v) => !v)} className={"rounded-lg px-3 py-1.5 text-sm font-semibold " + (domain === "NQA" ? "bg-teal-600 text-white" : nqaMenu ? "bg-slate-800 text-slate-100" : "text-slate-300 hover:bg-slate-800")}>{d.label}</button>
                     {nqaMenu && (
-                      <div className="absolute left-0 top-full z-30 mt-1 w-32 rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-lg">
+                      <div className="absolute left-0 top-full z-30 mt-1 w-24 rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-lg">
                         {NQA_SUBTYPES.map((s) => { const on = domain === "NQA" && nqaWs === s.id; return s.ready ? (
                           <button key={s.id} onClick={() => { setDomain("NQA"); setNqaWs(s.id); setView(s.id === "load" ? "nqa-dashboard" : "perf-dashboard"); setNqaMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (on ? "bg-slate-800 text-teal-300 font-semibold" : "text-slate-300 hover:bg-slate-800")}>{s.label}</button>
                         ) : (

@@ -412,7 +412,6 @@ export function PqaPlanScreen() {
   );
 }
 
-/* ═══════════ 실행·분석 / 대시보드 — 준비 중(다음 단계) ═══════════ */
 /* ═══════════ 측정 실행 (단일 러너 FIFO 큐 · 시나리오×단말 매트릭스) ═══════════ */
 const PRUN_MBASE = { e2e: 1500, frame: 20, jank: 6, mem: 380, batt: 300 };
 export function PqaRunScreen() {
@@ -912,18 +911,6 @@ export function PqaTrendScreen() {
           </div>
         </Card>
       </>)}
-    </div>
-  );
-}
-
-export function PqaSoon({ label }) {
-  return (
-    <div className="flex h-full items-center justify-center p-10 text-center">
-      <div>
-        <Package size={28} className="mx-auto mb-3 text-slate-600" />
-        <div className="text-lg font-bold text-slate-200">{label} — 준비 중</div>
-        <div className="mt-2 text-sm text-slate-500">준비·설계(대상 앱 / 측정 시나리오 / 측정 계획)를 먼저 구성하세요.</div>
-      </div>
     </div>
   );
 }

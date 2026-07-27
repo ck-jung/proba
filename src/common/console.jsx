@@ -39,7 +39,7 @@ const INIT_AUDIT = [
   { t: "2026-06-10 17:02", actor: "한도윤", tenant: "-", action: "모델 등록", target: "Gemini 2.0 Flash" },
   { t: "2026-06-10 15:48", actor: "최서연", tenant: "t1", action: "기능 실행", target: "회원가입 스위트 (32 TC)" },
   { t: "2026-06-10 09:15", actor: "한도윤", tenant: "t3", action: "조직 정지", target: "데모 조직" },
-  { t: "2026-06-09 16:40", actor: "박지영", tenant: "t2", action: "멤버 초대", target: "newuser@skt.com" },
+  { t: "2026-06-09 16:40", actor: "박지영", tenant: "t2", action: "멤버 초대", target: "newuser@onmarket.io" },
   { t: "2026-06-09 13:30", actor: "이민준", tenant: "t1", action: "측정 시나리오 생성", target: "커머스 조회 혼합 부하" },
   { t: "2026-06-09 10:05", actor: "최서연", tenant: "t1", action: "평가 계획 생성", target: "주문/멤버십 안내" },
   { t: "2026-06-08 18:22", actor: "한도윤", tenant: "-", action: "계정 정지", target: "오현태 (demo.com)" },
@@ -293,7 +293,7 @@ export function NewTenantForm({ close }) {
       <Field label="플랜"><Select value={plan} onChange={(e) => setPlan(e.target.value)}><option>Trial</option><option>Team</option><option>Enterprise</option></Select></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="조직 관리자 이름"><Input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="예: 홍길동" /></Field>
-        <Field label="관리자 이메일"><Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="예: gildong@kt.com" /></Field>
+        <Field label="관리자 이메일"><Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="예: gildong@company.com" /></Field>
       </div>
       <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">조직 관리자에게 초대 메일이 발송되며, 관리자가 멤버를 초대·권한을 부여합니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Plus} onClick={submit}>추가</Btn></div>

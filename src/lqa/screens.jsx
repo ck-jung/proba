@@ -3,7 +3,7 @@
 // App.jsx에서 분리(2026-07-01).
 // ============================================================
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, Bug, Calendar, Copy, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, FileDown, FileText, Ghost, History, Link2, Lock, Mail, Megaphone, Play, Plus, RefreshCw, Search, Send, Server, ShieldCheck, Slack, SlidersHorizontal, Sparkles, Tag, TrendingDown, TrendingUp, Upload, Wrench, X, XCircle, Trash2 } from "lucide-react";
+import { ChevronLeft, Bug, Calendar, Copy, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, FileDown, FileText, Ghost, History, Link2, Lock, Mail, Megaphone, Play, Plus, RefreshCw, Search, Send, Server, ShieldCheck, Slack, SlidersHorizontal, Sparkles, Tag, TrendingDown, TrendingUp, Upload, Wrench, X, XCircle, Trash2, Save } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
@@ -464,7 +464,7 @@ export function JiraConfigForm({ close }) {
       <Field label="Base URL"><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={deploy === "Cloud" ? "https://회사.atlassian.net" : "https://jira.회사.com"} /></Field>
       {deploy === "Cloud" ? (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="계정 이메일"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="qa@skt.com" /></Field>
+          <Field label="계정 이메일"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="qa@onmarket.io" /></Field>
           <Field label="API 토큰"><Input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="직접 입력 또는 ${키} 참조" /></Field>
         </div>
       ) : (
@@ -1788,12 +1788,14 @@ export function Defects() {
   );
 }
 export function Report() {
-  const { toast, notify, openModal } = useApp();
-  const [ch, setCh] = useState({ slack: true, teams: false, email: true });
-  const [cond, setCond] = useState("fail");
+  const { toast, notify, openModal, reportCfg, setReportCfg } = useApp();
+  const [ch, setCh] = useState(reportCfg.ch);
+  const [cond, setCond] = useState(reportCfg.cond);
   const [autoJira, setAutoJira] = useState(true);
-  const [scope, setScope] = useState("통합 (전체 도메인)");
-  const [rsched, setRsched] = useState({ on: true, freq: "weekly", time: "09:00", dow: 1, dom: 1 });
+  const [scope, setScope] = useState(reportCfg.scope);
+  const [rsched, setRsched] = useState(reportCfg.rsched);
+  const dirty = JSON.stringify({ ch, cond, scope, rsched }) !== JSON.stringify({ ch: reportCfg.ch, cond: reportCfg.cond, scope: reportCfg.scope, rsched: reportCfg.rsched });
+  const saveCfg = () => { setReportCfg({ ch, cond, scope, rsched }); toast("리포트·알림 설정 저장됨", "ok"); };
   const dowK = ["일", "월", "화", "수", "목", "금", "토"];
   const nextRun = () => rsched.freq === "daily" ? "매일 " + rsched.time : rsched.freq === "monthly" ? "매월 " + rsched.dom + "일 " + rsched.time : "매주 " + dowK[rsched.dow] + "요일 " + rsched.time;
   const [hist, setHist] = useState([
@@ -1808,11 +1810,14 @@ export function Report() {
   const chCfg = [
     { key: "slack", label: "Slack", icon: Slack, ph: "https://hooks.slack.com/services/...", desc: "채널 Incoming Webhook · 지정 채널에 게시" },
     { key: "teams", label: "Microsoft Teams", icon: Megaphone, ph: "Teams Workflow(Power Automate) URL", desc: "채널 Webhook · 최신 연동 방식 확인 필요" },
-    { key: "email", label: "Email", icon: Mail, ph: "qa-team@skt.com, lead@skt.com", desc: "수신자 목록으로 발송" },
+    { key: "email", label: "Email", icon: Mail, ph: "qa@onmarket.io, lead@onmarket.io", desc: "수신자 목록으로 발송" },
   ];
   return (
     <div className="space-y-4">
-      <PageToolbar desc="평가 결과 리포트 생성 및 알림 채널 설정" />
+      <PageToolbar desc="평가 결과 리포트 생성 및 알림 채널 설정">
+        {dirty && <span className="text-xs text-amber-300">미저장 변경</span>}
+        <Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>변경 저장</Btn>
+      </PageToolbar>
       <div>
         <div className="text-sm font-semibold text-slate-200 mb-1">알림 채널</div>
         <div className="text-xs text-slate-500 mb-2">Slack · Teams는 워크스페이스의 <span className="text-slate-300">지정 채널에 메시지를 게시</span>합니다(단방향 Incoming Webhook). 멘션·스레드·다중 채널 분기는 Bot 연동이 필요합니다.</div>
@@ -1857,7 +1862,7 @@ export function Report() {
           <div className="-mt-1 text-xs text-slate-500">선택 범위 대시보드 지표를 <span className="text-slate-300">기간 스냅샷 + 직전 대비 델타 + 주요 실패·회귀·신규 결함 하이라이트</span>로 취합해 지정된 알림 채널로 발송합니다.</div>
           {rsched.on && (
             <div className="space-y-3">
-              <Field label="범위"><Select value={scope} onChange={(e) => setScope(e.target.value)}><option>AI 품질</option><option>기능 QA</option><option>성능 QA · 부하</option><option>통합 (전체 도메인)</option></Select></Field>
+              <Field label="범위"><Select value={scope} onChange={(e) => setScope(e.target.value)}><option>AI 품질</option><option>기능 QA</option><option>앱 성능</option><option>부하</option><option>통합 (전체 도메인)</option></Select></Field>
               <Field label="형식"><div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">HTML <span className="text-xs text-slate-500">· PDF·Excel은 후속 지원</span></div></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="주기"><Select value={rsched.freq} onChange={(e) => setRsched({ ...rsched, freq: e.target.value })}><option value="daily">매일</option><option value="weekly">매주</option><option value="monthly">매월</option></Select></Field>
@@ -1970,7 +1975,7 @@ export function MembersView() {
     { id: "COM", label: "공통", menus: ["결함", "리포트·알림", "데이터셋", "변수"] },
   ];
   // QA 엔지니어 기본 조회: 설정성/민감 메뉴 + 부하 실행(위험 작업) + 변수(시크릿)
-  const readOnlyForQA = new Set(["Judge · Prompt", "챗봇 연결", "대상·환경", "측정 실행", "변수"]);
+  const readOnlyForQA = new Set(["Judge · Prompt", "챗봇 연결", "대상·환경", "대상 앱", "환경", "측정 실행", "변수"]);
   const ROLES = ["조직관리자", "QA 엔지니어", "Viewer"];
   const adminCount = members.filter((m) => m.role === "조직관리자").length;
   const changeRole = (u, role) => {
