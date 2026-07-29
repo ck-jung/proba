@@ -848,7 +848,7 @@ export function NqaRunScreen({ nav }) {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={() => { setObsId(null); setErrRow(null); }}>
             <div className="flex w-full max-w-4xl flex-col gap-4 rounded-xl border border-slate-700 bg-slate-900 p-5" style={{ height: "82vh" }} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <div><div className="text-base font-semibold text-slate-100">실시간 관측 · {p.name || "부하"}</div><div className="text-xs text-slate-500">Prometheus 집계(5s) · 자동 새로고침</div></div>
+                <div><div className="text-base font-semibold text-slate-100">실시간 관측 · {p.name || "부하"}</div><div className="text-xs text-slate-500">실시간 집계(5s) · 자동 새로고침</div></div>
                 <div className="flex items-center gap-3"><span className="flex items-center gap-1 text-xs text-teal-400"><span className="h-1.5 w-1.5 rounded-full bg-teal-400" />LIVE</span><button onClick={() => { setObsId(null); setErrRow(null); }} className="text-slate-500 hover:text-red-400"><X size={16} /></button></div>
               </div>
               <div className="grid shrink-0 grid-cols-2 gap-3">
