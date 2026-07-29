@@ -1713,7 +1713,7 @@ export function Defects() {
   const resN = list.filter((d) => d.status === "Resolved").length;
   return (
     <div className="space-y-4">
-      <PageToolbar desc="GitLab / Jira 연계 · 전 도메인 공통">
+      <PageToolbar desc="Jira 연계 · 전 도메인 공통">
         <div style={{ width: 140 }}><Select value={dom} onChange={(e) => setDom(e.target.value)}><option value="전체">전체</option><option value="LQA">AI 품질</option><option value="FQA">기능 QA</option><option value="PQA">앱 성능</option><option value="NQA">부하</option></Select></div>
         <div style={{ width: 130 }}><Select value={stf} onChange={(e) => setStf(e.target.value)}><option value="전체">전체 상태</option><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option></Select></div>
         <Btn icon={SlidersHorizontal} onClick={() => openModal("jiraConfig")}>Jira 연동</Btn>
