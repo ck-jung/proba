@@ -1894,7 +1894,11 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const _nameOf = (id) => { const t = [...((runB && runB.tcs) || []), ...((runA && runA.tcs) || [])].find((x) => x.id === id); return t ? t.name : id; };
   const mapA = Object.fromEntries(((runA && runA.tcs) || []).map((t) => [t.id, t.v]));
   const mapB = Object.fromEntries(((runB && runB.tcs) || []).map((t) => [t.id, t.v]));
-  const regRows = [...new Set([...Object.keys(mapA), ...Object.keys(mapB)])].map((id) => ({ id, name: _nameOf(id), a: mapA[id], b: mapB[id] }));
+  /* 회차별 케이스 리비전 — 퇴행의 원인이 제품인지 케이스 수정인지를 가르는 유일한 단서다.
+     rev가 바뀐 퇴행은 케이스를 먼저 봐야 하고, rev가 같은 퇴행이라야 제품 회귀를 의심할 수 있다. */
+  const revA = Object.fromEntries(((runA && runA.tcs) || []).map((t) => [t.id, t.rev]));
+  const revB = Object.fromEntries(((runB && runB.tcs) || []).map((t) => [t.id, t.rev]));
+  const regRows = [...new Set([...Object.keys(mapA), ...Object.keys(mapB)])].map((id) => ({ id, name: _nameOf(id), a: mapA[id], b: mapB[id], ra: revA[id], rb: revB[id] }));
   const summ = regRows.reduce((acc, r) => { const k = cls(r.a, r.b).k; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
   return (
     <div className="space-y-4">
@@ -2053,9 +2057,11 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
               <thead><tr className="border-b border-slate-800 text-left text-slate-500"><th className="px-4 py-2.5 font-medium">ID</th><th className="font-medium">TC</th><th className="font-medium">A</th><th></th><th className="font-medium">B</th><th className="font-medium">변화</th></tr></thead>
               <tbody>
                 {regRows.length === 0 && (<tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">두 실행 모두 케이스 단위 결과가 없습니다.</td></tr>)}
-                {regRows.map((r) => { const v = cls(r.a, r.b); return (
+                {regRows.map((r) => { const v = cls(r.a, r.b); const revd = r.ra != null && r.rb != null && r.ra !== r.rb; const rv = (n) => (n == null ? null : <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {n}</span>); return (
                   <tr key={r.id} className={"border-b border-slate-800 text-slate-300 " + (v.k === "퇴행" ? "bg-red-950" : "")}>
-                    <td className="px-4 py-2.5 font-mono text-teal-400">{r.id}</td><td className="text-slate-300">{r.name}</td><td>{r.a ? <Badge kind={vK[r.a]}>{r.a}</Badge> : <span className="text-xs text-slate-600">없음</span>}</td><td className="text-slate-600">→</td><td>{r.b ? <Badge kind={vK[r.b]}>{r.b}</Badge> : <span className="text-xs text-slate-600">없음</span>}</td><td className={"font-semibold " + v.c}>{v.k}</td>
+                    <td className="px-4 py-2.5 font-mono text-teal-400">{r.id}</td><td className="text-slate-300">{r.name}</td><td className="whitespace-nowrap">{r.a ? <Badge kind={vK[r.a]}>{r.a}</Badge> : <span className="text-xs text-slate-600">없음</span>}{rv(r.ra)}</td><td className="text-slate-600">→</td><td className="whitespace-nowrap">{r.b ? <Badge kind={vK[r.b]}>{r.b}</Badge> : <span className="text-xs text-slate-600">없음</span>}{rv(r.rb)}</td>
+                    {/* rev가 다르면 판정 변화의 원인을 제품으로 단정할 수 없다 — 그 사실만 덧붙이고 결론은 내리지 않는다 */}
+                    <td className={"font-semibold whitespace-nowrap " + v.c}>{v.k}{revd && <span className="ml-1.5 font-normal text-amber-400" style={{ fontSize: 11 }}>· 케이스 변경</span>}</td>
                   </tr>
                 ); })}
               </tbody>
