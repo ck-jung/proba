@@ -51,7 +51,9 @@ export function DatasetsScreen() {
     else { addDataset({ id: "ds" + Date.now(), ...payload, createdAt: t, updatedAt: t }); flash("데이터셋이 추가되었습니다"); }
     setModal(false);
   };
-  const del = (d) => { const n = refCount(d.name); if (n > 0 && !window.confirm(d.name + " 은(는) " + n + "곳에서 참조 중입니다. 삭제 시 참조가 깨질 수 있습니다. 계속할까요?")) return; if (n === 0 && !window.confirm(d.name + " 데이터셋을 삭제할까요?")) return; removeDataset(d.id); flash(d.name + " 삭제됨"); };
+  /* 깨지는 것은 과거가 아니라 '다음 실행'이다 — 실행 결과에는 행 스냅샷이 남으므로 과거 결과·결함은 영향받지 않는다.
+     그 사실을 경고문에 적지는 않는다. 묻지 않은 걱정을 만들어 답하는 꼴이 된다. */
+  const del = (d) => { const n = refCount(d.name); if (n > 0 && !window.confirm(d.name + " 을(를) 참조하는 항목 " + n + "곳이 다음 실행부터 실패합니다.\n\n계속할까요?")) return; if (n === 0 && !window.confirm(d.name + " 데이터셋을 삭제할까요?")) return; removeDataset(d.id); flash(d.name + " 삭제됨"); };
   const parsed = parseCsv(df.text);
   return (
     <div className="space-y-4">

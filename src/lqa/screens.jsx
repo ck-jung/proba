@@ -259,6 +259,12 @@ export function JiraForm({ close, data }) {
   const [actual, setActual] = useState(d.actual || "");
   const [attach, setAttach] = useState({ conv: true, judge: true, safety: true });
   const [files, setFiles] = useState([]);
+  /* 데이터 구동 케이스(기능 QA)에서만 rows가 전달된다. 없으면 아래 블록이 렌더되지 않으므로 다른 영역에는 영향이 없다.
+     원인이 다른 행은 별개 결함이므로 어느 행을 묶을지는 사용자가 고른다 — 시스템이 자동으로 나누거나 합치지 않는다. */
+  const defRows = Array.isArray(d.rows) ? d.rows : [];
+  const regRows = d.regRows || [];
+  const [pickRows, setPickRows] = useState(() => new Set(defRows.filter((r) => !regRows.includes(JSON.stringify(r.data || {}))).map((r) => r.i)));
+  const togRow = (i) => setPickRows((s) => { const n = new Set(s); n.has(i) ? n.delete(i) : n.add(i); return n; });
   const [jira, setJira] = useState(jconn);
   const autoArtifacts = d.artifacts || (d.q ? [
     { k: "conv", label: "대화 로그", file: "conversation.txt", size: "2 KB" },
@@ -270,7 +276,10 @@ export function JiraForm({ close, data }) {
     if (!title.trim()) { toast("제목을 입력하세요", "warn"); return; }
     const key = jira ? (proj + "-" + Math.floor(1850 + Math.random() * 99)) : ("DEF-" + Math.floor(1000 + Math.random() * 9000));
     const evidence = [...autoArtifacts.filter((a) => attach[a.k]).map((a) => a.label), ...files.map((f) => f.name)];
-    addDefect({ key, tc: d.tc || "수동", target: d.target || "", sev, title, status: "Open", domain: dom, project: jira ? proj : "", assignee: assignee === "미지정" ? "" : assignee, desc, steps, expected, actual, evidence });
+    /* 행은 데이터 스냅샷으로 저장한다 — 데이터셋이 바뀌거나 삭제돼도 결함은 그대로 유효하다 */
+    const rowsSel = defRows.filter((r) => pickRows.has(r.i)).map((r) => ({ i: r.i, data: r.data }));
+    const rowNote = rowsSel.length ? "\n\n[실패 행] " + (d.ds ? "데이터셋 " + d.ds + "\n" : "") + rowsSel.map((r) => r.i + "행 · " + Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")).join("\n") : "";
+    addDefect({ key, tc: d.tc || "수동", target: d.target || "", sev, title, status: "Open", domain: dom, project: jira ? proj : "", assignee: assignee === "미지정" ? "" : assignee, desc: desc + rowNote, steps, expected, actual, evidence, ...(rowsSel.length ? { rows: rowsSel } : {}) });
     if (jira) { toast("결함 등록 · Jira 이슈 " + key + " 생성", "ok"); notify({ icon: "bug", text: "Jira 이슈 " + key + " 생성 (" + (d.tc || "수동") + ")" }); }
     else { toast("결함 " + key + " 등록 완료", "ok"); notify({ icon: "bug", text: "결함 " + key + " 등록 (" + (d.tc || "수동") + ")" }); }
     close();
@@ -299,6 +308,24 @@ export function JiraForm({ close, data }) {
             <Field label="라벨"><Input value={labels} onChange={(e) => setLabels(e.target.value)} /></Field>
           </div>
         </>
+      )}
+      {defRows.length > 0 && (
+        <Field label="실패 행 선택" hint="원인이 다른 행은 별개 결함으로 등록하세요">
+          <div className="space-y-1">
+            {defRows.map((r) => {
+              const done = regRows.includes(JSON.stringify(r.data || {}));
+              return (
+                <label key={r.i} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (done ? "bg-slate-900 opacity-60" : "cursor-pointer bg-slate-800")}>
+                  <input type="checkbox" disabled={done} checked={pickRows.has(r.i)} onChange={() => togRow(r.i)} className="accent-teal-500" />
+                  <span className="shrink-0 font-mono text-xs text-slate-500">{r.i}행</span>
+                  <span className="flex-1 truncate font-mono text-xs text-slate-300">{Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")}</span>
+                  {done && <Badge kind="draft">등록됨</Badge>}
+                </label>
+              );
+            })}
+          </div>
+          <div className="mt-1 text-xs text-slate-500">선택한 행이 결함 본문에 기록됩니다 · 선택 {pickRows.size} / 실패 {defRows.length}행</div>
+        </Field>
       )}
       <Field label="증적 첨부">
         {autoArtifacts.length > 0 && (
@@ -1727,7 +1754,7 @@ export function Defects() {
         <tbody className="text-slate-300">
           {list.map((d) => (
             <tr key={d.key} onClick={() => { setEdit(false); setSel(d); }} className={"cursor-pointer border-b border-slate-800 hover:bg-slate-800 " + (d.status === "Resolved" ? "opacity-60" : "")}>
-              <td className="py-3 px-4 font-mono text-teal-400">{d.key}</td><td><Badge kind={domKind[d.domain || "LQA"] || "info"}>{domLabel[d.domain || "LQA"]}</Badge></td><td className="text-xs text-slate-400">{d.target || "—"}</td><td className="font-mono text-slate-400">{d.tc}</td><td><Badge kind={sev[d.sev]}>{d.sev}</Badge></td><td className="max-w-sm text-slate-200">{d.title}</td>
+              <td className="py-3 px-4 font-mono text-teal-400">{d.key}</td><td><Badge kind={domKind[d.domain || "LQA"] || "info"}>{domLabel[d.domain || "LQA"]}</Badge></td><td className="text-xs text-slate-400">{d.target || "—"}</td><td className="font-mono text-slate-400">{d.tc}{Array.isArray(d.rows) && d.rows.length > 0 && <span className="ml-1.5 rounded bg-slate-700 px-1.5 py-0.5 text-slate-300" style={{ fontSize: 10 }} title={d.rows.map((r) => r.i + "행 · " + Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")).join("\n")}>{d.rows.map((r) => r.i).join(",")}행</span>}</td><td><Badge kind={sev[d.sev]}>{d.sev}</Badge></td><td className="max-w-sm text-slate-200">{d.title}</td>
               <td><Badge kind={st[d.status] || "info"}>{d.status || "Open"}</Badge></td>
               <td className="text-slate-400">{d.assignee || <span className="text-slate-600">미지정</span>}</td>
               <td className="pr-2 text-xs leading-tight text-slate-500"><div>{d.createdBy || "—"} · {d.createdAt || "—"}</div>{d.updatedAt && d.updatedAt !== d.createdAt && <div className="text-slate-400">수정 {d.updatedBy} · {d.updatedAt}</div>}</td>

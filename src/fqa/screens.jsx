@@ -7,7 +7,7 @@ import {
   Smartphone, ChevronRight, ChevronDown, Server, Trash2,
 } from "lucide-react";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { Card, Badge, Btn, Seg, Field, Input, Select, Toast, useToast, PageToolbar, backTo, RunTime, nowStamp } from "../common/ui.jsx";
+import { Card, Badge, Btn, Seg, Field, Input, Select, Modal, Toast, useToast, PageToolbar, backTo, RunTime, nowStamp } from "../common/ui.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
@@ -1483,7 +1483,7 @@ const RUN_LOG = [
   { lv: "ERROR", t: "TC-401 대상 응답 없음 · ECONNREFUSED (러너 오류)" },
 ];
 export function FqaRunScreen({ nav }) {
-  const { fqaRuns, addFqaRun, updateFqaRun, removeFqaRun, fqaCases, fqaSuites, fqaSystems, fqaPlans } = useApp();
+  const { fqaRuns, addFqaRun, updateFqaRun, removeFqaRun, fqaCases, updateFqaCase, fqaSuites, fqaSystems, fqaPlans, datasets, goto } = useApp();
   const [msg, flash] = useToast();
   const [lvl, setLvl] = useState("ALL");
   const [tab, setTab] = useState("진행");
@@ -1541,7 +1541,33 @@ export function FqaRunScreen({ nav }) {
       return { id: c.id, name: c.name, v: flaky ? "WARN" : base, flaky: flaky || undefined, dur: (Math.round((Math.random() * 3 + 0.3) * 10) / 10) + "s" };
     });
   };
-  const gatePlan = (plan) => { if (plan.status !== "활성") { flash(plan.name + " — 초안 계획은 실행할 수 없습니다. 계획을 활성화하세요"); return false; } if (!suiteNames(plan).length) { flash(plan.name + " — 스위트가 선택되지 않았습니다"); return false; } if (!buildTcs(plan).length) { flash(plan.name + " — 실행할 승인 케이스가 없습니다 (스위트·태그·승인 상태 확인)"); return false; } return true; };
+  /* 🔑 사전 검사 — '케이스 밖' 조건만 본다.
+     케이스 안(스텝 완성도·save 변수)은 저장 시점에 이미 막혔으므로 여기서 다시 보지 않는다.
+     여기가 실행을 막는 유일한 지점이다. 실 구현에서는 서버 API 계층에 둔다 —
+     화면 실행 · 정기 스케줄 · CI 웹훅 세 경로가 모두 지나가는 곳은 거기뿐이다. */
+  const precheck = (plan) => {
+    const { e } = envRefOf(plan);
+    const cs = fqaCases.filter((c) => suiteNames(plan).includes(c.suite) && !c.quarantined && tagMatch(c, plan.tags) && c.status === "승인");
+    const roles = ((e || {}).accts || []).map((a) => a.role);
+    const dsNames = (datasets || []).map((d) => d.name);
+    const g = [];
+    const add = (why, fixLabel, fixView, list, planLevel) => { if (list.length) g.push({ why, fixLabel, fixView, cases: list, planLevel: !!planLevel }); };
+    // 접점 ↔ 환경 — 감당 못 하면 그 접점 케이스는 전건 실패한다. 계획 수준 실패이므로 격리로 풀 일이 아니다.
+    add("환경이 케이스의 접점을 감당하지 못합니다 — " + (!(e || {}).apiUrl ? "apiUrl 없음" : "webUrl 없음"), "환경 설정", "fqa-targets",
+      cs.filter((c) => !envCovers(e, surfacesOf(c))), true);
+    // 계정 역할 — 풀에 역할이 없으면 주입할 값이 없다
+    add("환경 계정 풀에 해당 역할이 없습니다", "환경 설정", "fqa-targets",
+      cs.filter((c) => c.acctRole && !roles.includes(c.acctRole)));
+    // 데이터셋 — 사라졌으면 행이 0개가 되어 테스트가 0개 생성된다(실패도 통과도 아닌 무동작)
+    add("참조하는 데이터셋이 없습니다", "데이터셋", "datasets",
+      cs.filter((c) => c.dataset && c.dataset !== "-" && !dsNames.includes(c.dataset)));
+    return g;
+  };
+  const [pcModal, setPcModal] = useState(null);
+  /* 🔴 문제 케이스만 빼고 돌리지 않는다 — 일부만 돈 회차가 품질 게이트를 통과하면
+     검증이 사라진 것을 아무도 모른다. 빼는 결정은 사람이 '격리'로 내린다. */
+  const quarantine = (list) => { list.forEach((c) => updateFqaCase(c.id, { quarantined: true })); setPcModal(null); flash(list.length + "건 격리됨 — 다시 실행하세요"); };
+  const gatePlan = (plan) => { if (plan.status !== "활성") { flash(plan.name + " — 초안 계획은 실행할 수 없습니다. 계획을 활성화하세요"); return false; } if (!suiteNames(plan).length) { flash(plan.name + " — 스위트가 선택되지 않았습니다"); return false; } if (!buildTcs(plan).length) { flash(plan.name + " — 실행할 승인 케이스가 없습니다 (스위트·태그·승인 상태 확인)"); return false; } const pc = precheck(plan); if (pc.length) { setPcModal({ plan, groups: pc }); return false; } return true; };
   // 실행 시점의 대상·환경·빌드 버전을 run에 스탬프 — "이 회귀가 어느 빌드에서 나왔나"를 추적하기 위함
   const stampOf = (plan) => { const { e, label } = envRefOf(plan); return { target: label, ver: (e && e.ver && e.ver !== "-") ? e.ver : "-" }; };
   const [runPlan, setRunPlan] = useState(runnableNames[0] || "");
@@ -1641,6 +1667,29 @@ export function FqaRunScreen({ nav }) {
             </Card>
           </div>
         </div>
+      {pcModal && (
+        <Modal title="사전 검사 실패 — 실행할 수 없습니다" onClose={() => setPcModal(null)} wide>
+          <div className="mb-3 text-xs text-slate-400">{pcModal.plan.name} · 문제 케이스만 빼고 실행하지 않습니다 — 일부만 돈 회차가 품질 게이트를 통과하면 검증이 사라진 것을 알 수 없습니다.</div>
+          <div className="space-y-2">
+            {pcModal.groups.map((g, i) => (
+              <div key={i} className="rounded-lg border border-red-900 bg-red-950 px-3 py-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium text-red-300">{g.why}</div>
+                    <div className="mt-1 font-mono text-slate-400" style={{ fontSize: 11 }}>{g.cases.slice(0, 6).map((c) => c.id).join(", ")}{g.cases.length > 6 && " 외 " + (g.cases.length - 6) + "건"}</div>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    {/* 계획 수준 실패는 격리로 풀 일이 아니다 — 그 접점 케이스가 전부 걸리므로 환경을 고쳐야 한다 */}
+                    {!g.planLevel && <Btn onClick={() => quarantine(g.cases)}>격리 {g.cases.length}건</Btn>}
+                    <Btn onClick={() => { setPcModal(null); goto(g.fixView); }}>{g.fixLabel}</Btn>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 text-slate-500" style={{ fontSize: 11 }}>고치거나 격리한 뒤 다시 실행하세요. 이 검사는 실행 요청마다 다시 수행됩니다 — 계획을 만든 뒤에도 환경·계정·데이터셋은 바뀝니다.</div>
+        </Modal>
+      )}
       <Toast msg={msg} />
     </div>
   );
@@ -1698,6 +1747,8 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const [msg, flash] = useToast();
   const [filt, setFilt] = useState("전체");
   const [selId, setSelId] = useState(null);
+  const [rowsAll, setRowsAll] = useState(false);   // 데이터 구동 케이스 — 기본은 실패 행만(30행 케이스가 화면을 덮지 않도록)
+  const [selRow, setSelRow] = useState(null);      // 선택 행 — 스텝 타임라인·증적이 이 행을 따라간다
   const [etab, setEtab] = useState("스크린샷");
   const [healState, setHealState] = useState({});
   const healSt = (id) => healState[id] || "검토 대기";
@@ -1708,16 +1759,47 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const dkey = (base) => (jr.project || "DEF") + "-" + base;
   const tcs = run.tcs || [];
   const cur = tcs.find((t) => t.id === selId) || tcs[0] || null;
+  /* 선택 행 — 케이스를 바꾸면 그 케이스의 첫 실패 행으로 자연히 옮겨간다(별도 초기화 불필요) */
+  const curRows = Array.isArray(cur && cur.rows) ? cur.rows : [];
+  const curRow = curRows.find((r) => r.i === selRow) || curRows.find((r) => r.v === "FAIL") || curRows[0] || null;
   const passRate = run.total ? Math.round(((run.pass + (run.warn || 0)) / run.total) * 1000) / 10 : 0;
   const gval = run.gate != null ? run.gate : 95;
   const gate = run.fail > 0 || passRate < gval ? "FAIL" : "PASS";
-  const evTabs = !run.brow ? ["요청", "응답", "로그"] : ["스크린샷", "영상", "단말 로그"];
+  /* 증적 탭은 '실행'이 아니라 '케이스의 접점'을 따른다 — 웹·API 케이스가 섞인 실행에서
+     API 케이스를 열었는데 스크린샷 탭이 뜨면 없는 증적을 찾게 된다.
+     실 구현에서는 실행 시점의 접점이 결과에 스탬프되어야 한다(케이스는 실행 뒤에도 바뀐다). */
+  const curCase = fqaCases.find((c) => c.id === ((cur || {}).id));
+  const curSurf = curCase ? surfacesOf(curCase) : (run.brow ? "웹" : "API");
+  /* 🔑 Full-Code는 스텝 상세가 나오지 않는다 — 스텝 경계는 test.step()으로만 생기고,
+     사용자 코드에 그것이 없으면 러너는 테스트 단위 결과만 받는다. 있는 척하지 않는다.
+     케이스를 못 찾으면(삭제·이름변경) Low-Code로 본다 — 타임라인을 숨기는 쪽이 더 큰 오해를 만든다. */
+  const fullCode = !!(curCase && curCase.level === "Full-Code");
+  const evTabs = curSurf === "API" ? ["요청", "응답", "로그"]
+    : curSurf === "웹+API" ? ["스크린샷", "영상", "콘솔 로그", "요청", "응답"]
+    : ["스크린샷", "영상", "콘솔 로그"];
   const evTab = evTabs.includes(etab) ? etab : evTabs[0];
   const _dur = (seed, base) => { let h = 0; for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 9973; return (base + (h % 500)).toLocaleString() + "ms"; };
-  const stepsFor = (t) => {
+  /* row가 주어지면 그 행의 실행으로 본다 — 데이터 구동 케이스는 행마다 결과가 다르므로
+     케이스 단위 타임라인만 보여주면 "몇 행이 어느 스텝에서 깨졌나"를 알 수 없다. */
+  const stepsFor = (t, row) => {
     if (!t) return [];
+    if (row && row.v === "SKIP") return [{ act: "미실행", info: "앞선 행에서 중단되어 실행되지 않았습니다", dur: "-", ok: true, skip: true }];
     const id = t.id || "TC";
     const seg = (run.suite || "app").split(" ")[0].split("/")[0];
+    if (row) {
+      const dv = Object.entries(row.data || {}).map(([k, v]) => k + "=" + v).join(" · ");
+      const rl = row.dur || "-";
+      const base = !run.brow
+        ? [{ act: "요청 전송", info: dv, dur: _dur(id + row.i + "a", 300), ok: true },
+           { act: "응답 수신", info: row.v === "FAIL" ? "상태/스키마 불일치" : "200 OK · 스키마 준수", dur: _dur(id + row.i + "b", 200), ok: true }]
+        : [{ act: "페이지 이동", info: "goto · /" + seg.toLowerCase(), dur: _dur(id + row.i + "a", 300), ok: true },
+           { act: "데이터 주입", info: dv, dur: _dur(id + row.i + "b", 120), ok: true },
+           { act: t.name, info: "액션 수행 → " + id + " [" + row.i + "행]", dur: _dur(id + row.i + "c", 500), ok: true }];
+      base.push(row.v === "FAIL"
+        ? { act: "결과 검증 실패", info: row.err || "기대 결과 불일치", dur: rl, ok: false }
+        : { act: "결과 검증", info: "통과", dur: rl, ok: true });
+      return base;
+    }
     const last = Math.round((parseFloat(t.dur) || 1) * 1000).toLocaleString() + "ms";
     const s = !run.brow
       ? [
@@ -1747,9 +1829,14 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const openDefectOf = (id) => defectsOfTc(id).find((d) => d.status !== "Resolved");
   const isRegression = (id) => !openDefectOf(id) && defectsOfTc(id).length > 0;
   const regDefect = (t) => {
-    if (openDefectOf(t.id)) { flash(t.id + " 이미 열린 결함이 있습니다"); return; }
+    /* 데이터 구동 케이스는 실패 행마다 원인이 다를 수 있으므로 케이스당 1건으로 막지 않는다.
+       어느 행을 묶을지는 사용자가 모달에서 고른다(시스템이 자동으로 분리·병합하지 않는다). */
+    const failRows = Array.isArray(t.rows) ? t.rows.filter((r) => r.v === "FAIL") : [];
+    if (!failRows.length && openDefectOf(t.id)) { flash(t.id + " 이미 열린 결함이 있습니다"); return; }
     openModal("jira", {
       domain: "FQA", sev: "Major", tc: t.id, target: runTarget, labels: "fqa, functional",
+      rows: failRows, ds: t.ds || "",
+      regRows: defectsOfTc(t.id).flatMap((d) => (d.rows || []).map((r) => JSON.stringify(r.data || {}))),
       title: (isRegression(t.id) ? "[재발] " : "") + t.name + " 기능 실패",
       desc: "기능 케이스: " + t.name + " (" + t.id + ")\n대상 제품: " + runTarget,
       steps: "1. 케이스 '" + t.name + "' 실행\n2. 단언(assertion) 검증",
@@ -1787,6 +1874,9 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   };
   const toggleQuar = (r) => { updateFqaCase(r.id, { quarantined: !r.quarantined }); flash(r.id + (r.quarantined ? " 격리 해제 — 차단 실행에 복귀" : " 격리(quarantine) — 차단 실행에서 제외")); };
   const vK = { PASS: "pass", FAIL: "fail", HEAL: "teal", WARN: "warn" };
+  /* 데이터 구동 케이스의 행 요약 — 판정·집계는 케이스 단위(1건)이고 행은 보조 표기다.
+     rows가 없는 케이스는 기존 동작 그대로다(빈 문자열 반환). */
+  const rowSum = (t) => { const rs = t && t.rows; if (!Array.isArray(rs) || !rs.length) return ""; const p = rs.filter((r) => r.v === "PASS").length; const s = rs.filter((r) => r.v === "SKIP").length; return rs.length + "행 중 " + p + "행 통과" + (s ? " · " + s + "행 미실행" : ""); };
   const shown = tcs.filter((t) => filt === "전체" || (filt === "실패만" && t.v === "FAIL") || (filt === "통과만" && t.v === "PASS") || (filt === "보정 제안" && t.heal));
   // 실행은 계획을 id로 참조(planId) — 이름이 바뀌어도 이력이 안 끊긴다. 레거시 런(planId 없음)은 이름으로 매칭.
   const finishedOf = (pid) => fqaRuns.filter((r) => (r.planId != null ? r.planId === pid : r.plan === ((fqaPlans.find((p) => p.id === pid) || {}).name)) && r.status === "완료").sort((x, y) => parseInt(y.id.split("-")[1] || "0", 10) - parseInt(x.id.split("-")[1] || "0", 10));
@@ -1837,7 +1927,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
               <div className="overflow-y-auto" style={{ maxHeight: 340 }}>
                 {shown.map((t) => (
                   <div key={t.id} onClick={() => setSelId(t.id)} className={"flex items-center justify-between border-b border-slate-800 px-4 py-2.5 cursor-pointer hover:bg-slate-800 " + (cur && cur.id === t.id ? "bg-slate-800" : "")}>
-                    <div><span className="font-mono text-xs text-teal-400">{t.id}</span><div className="text-xs text-slate-300">{t.name}</div></div>
+                    <div><span className="font-mono text-xs text-teal-400">{t.id}</span>{t.rev != null && <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {t.rev}</span>}<div className="text-xs text-slate-300">{t.name}</div>{rowSum(t) && <div className="text-slate-500" style={{ fontSize: 11 }}>{rowSum(t)}</div>}</div>
                     <div className="flex items-center gap-2">{t.v === "FAIL" && openDefectOf(t.id) && <Bug size={12} className="text-red-400" />}<span className="text-xs text-slate-500">{t.dur}</span>{t.heal && <Badge kind="teal">보정</Badge>}<Badge kind={vK[t.v]}>{t.v}</Badge></div>
                   </div>
                 ))}
@@ -1845,10 +1935,18 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
             </Card>
             {cur && (
             <Card className="col-span-3 p-4">
-              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-teal-400">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{cur.heal && <Badge kind="teal">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && (openDefectOf(cur.id)
-                ? <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); nav && nav("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>
-                : <Btn kind="danger" icon={Bug} onClick={() => regDefect(cur)}>{isRegression(cur.id) ? "재발 결함 등록" : "결함 등록"}</Btn>)}</div></div>
+              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-teal-400">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{cur.heal && <Badge kind="teal">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && openDefectOf(cur.id) && <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); nav && nav("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>}
+                {/* 행이 있는 케이스는 열린 결함이 있어도 다른 행에 대해 추가 등록할 수 있다 */}
+                {cur.v === "FAIL" && (!openDefectOf(cur.id) || (Array.isArray(cur.rows) && cur.rows.some((r) => r.v === "FAIL"))) && <Btn kind="danger" icon={Bug} onClick={() => regDefect(cur)}>{isRegression(cur.id) ? "재발 결함 등록" : "결함 등록"}</Btn>}</div></div>
               <div className="mb-3 text-sm text-slate-300">{cur.name}</div>
+              {/* 🔑 실행 결과의 리비전 스탬프 — 없으면 "제품이 깨진 건가 케이스가 바뀐 건가"를 구분할 수 없어 회귀 분석이 거짓말을 한다.
+                  케이스가 그 뒤에 수정되었으면 이 결과를 현재 케이스로 재현할 수 없다는 뜻이므로 그렇게 알린다. */}
+              {cur.rev != null && curCase && (curCase.rev || 1) !== cur.rev && (
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-800 bg-amber-950 px-3 py-2 text-xs text-amber-300">
+                  <AlertTriangle size={13} className="shrink-0" />
+                  <span>이 결과는 <span className="font-mono">rev {cur.rev}</span> 로 실행되었고 케이스는 현재 <span className="font-mono">rev {curCase.rev || 1}</span> 입니다 — 지금 다시 돌리면 다른 결과가 나올 수 있습니다.</span>
+                </div>
+              )}
               {cur.heal && (
                 <div className="mb-3 rounded-lg border border-teal-800 bg-teal-950 p-3">
                   <div className="flex items-center justify-between"><span className="text-xs font-semibold text-teal-200">자가보정 제안 (로케이터 자동 복구)</span><Badge kind={healSt(cur.id) === "승인됨" ? "pass" : healSt(cur.id) === "거절됨" ? "fail" : "warn"}>{healSt(cur.id)}</Badge></div>
@@ -1857,25 +1955,75 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   {healSt(cur.id) === "검토 대기" ? <div className="mt-2 flex gap-2"><Btn kind="primary" icon={CheckCircle2} onClick={() => approveHeal(cur)}>승인 · 로케이터 반영</Btn><Btn icon={X} onClick={() => rejectHeal(cur)}>거절</Btn></div> : <div className="mt-2 text-xs text-slate-500">{healSt(cur.id) === "승인됨" ? "제안 로케이터가 TC 스텝에 반영되었습니다." : "원본 로케이터를 유지합니다 (수동 수정 대상)."}</div>}
                 </div>
               )}
-              <div className="mb-2 text-xs font-semibold text-slate-400">스텝 실행 타임라인</div>
+              {Array.isArray(cur.rows) && cur.rows.length > 0 && (
+                <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-300">행 결과 <span className="font-normal text-slate-500">· 데이터셋 {cur.ds || "-"} · {rowSum(cur)}</span>{cur.stopped && <span className="ml-2 text-amber-300">· {cur.stopped}</span>}</span>
+                    <button onClick={() => setRowsAll(!rowsAll)} className="text-xs text-teal-400 hover:text-teal-300">{rowsAll ? "실패 행만" : "전체 " + cur.rows.length + "행 보기"}</button>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {(rowsAll ? cur.rows : cur.rows.filter((r) => r.v !== "PASS")).map((r) => (
+                      <div key={r.i} onClick={() => setSelRow(r.i)} className={"cursor-pointer rounded border px-2.5 py-1.5 text-xs " + (curRow && curRow.i === r.i ? "border-teal-600 bg-slate-800" : r.v === "FAIL" ? "border-red-900 bg-red-950 hover:border-red-700" : "border-slate-800 bg-slate-800 hover:border-slate-600")}>
+                        <div className="flex items-center gap-2">
+                          <span className="shrink-0 font-mono text-slate-500">{r.i}행</span>
+                          <span className="flex-1 truncate font-mono text-slate-300">{Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")}</span>
+                          <span className="text-slate-500">{r.dur || "-"}</span>
+                          <Badge kind={r.v === "PASS" ? "pass" : r.v === "FAIL" ? "fail" : "draft"}>{r.v === "SKIP" ? "미실행" : r.v}</Badge>
+                        </div>
+                        {r.err && <div className="mt-1 text-red-300" style={{ paddingLeft: 38 }}>{r.err}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 text-slate-600" style={{ fontSize: 11 }}>판정은 케이스 단위 1건이다 — 한 행이라도 실패하면 FAIL. 행 데이터는 실행 시점 스냅샷이다. 행을 클릭하면 아래 스텝·증적이 그 행으로 바뀐다.</div>
+                </div>
+              )}
+              <div className="mb-2 text-xs font-semibold text-slate-400">{fullCode ? "실행 결과" : "스텝 실행 타임라인"}{curRow && <span className="ml-1.5 font-normal text-teal-400">· {curRow.i}행</span>}</div>
+              {fullCode ? (
+                /* 코드가 정본인 케이스 — 스텝 경계가 없으므로 테스트 단위 판정과 에러만 준다 */
+                <div className="space-y-1.5">
+                  {(() => { const v = curRow ? curRow.v : cur.v, d = curRow ? curRow.dur : cur.dur, e = curRow ? curRow.err : null;
+                    if (v === "SKIP") return <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs"><AlertTriangle size={14} className="text-slate-500" /><span className="font-medium text-slate-200">미실행</span><span className="flex-1 font-mono text-slate-500">앞선 행에서 중단되어 실행되지 않았습니다</span></div>;
+                    return <div className={"flex items-center gap-2 rounded-lg border px-3 py-2 text-xs " + (v === "FAIL" ? "border-red-900 bg-red-950" : "border-slate-800 bg-slate-800")}>
+                      {v === "FAIL" ? <XCircle size={14} className="text-red-400" /> : <CheckCircle2 size={14} className="text-emerald-400" />}
+                      <span className={"font-medium " + (v === "FAIL" ? "text-red-300" : "text-slate-200")}>{v === "FAIL" ? "테스트 실패" : "테스트 통과"}</span>
+                      <span className="flex-1 font-mono text-slate-500">{e || (v === "FAIL" ? "에러 스택은 증적에서 확인" : cur.name)}</span>
+                      <span className="text-slate-400">{d || "-"}</span>
+                    </div>; })()}
+                  <div className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-slate-500" style={{ fontSize: 11 }}>
+                    Full-Code 케이스는 스텝 상세가 없습니다 — 스텝 경계는 <span className="font-mono text-slate-400">test.step()</span> 으로만 만들어집니다. 코드에 없으면 러너도 알 수 없으므로 지어내지 않습니다.
+                  </div>
+                </div>
+              ) : (
               <div className="space-y-1.5">
-                {stepsFor(cur).map((st, i) => (
-                  <div key={i} className={"flex items-center gap-2 rounded-lg border px-3 py-2 text-xs " + (!st.ok ? "border-red-900 bg-red-950" : st.warn ? "border-amber-900 bg-amber-950" : "border-slate-800 bg-slate-800")}>
-                    {!st.ok ? <XCircle size={14} className="text-red-400" /> : st.warn ? <AlertTriangle size={14} className="text-amber-400" /> : <CheckCircle2 size={14} className="text-emerald-400" />}
+                {stepsFor(cur, curRow).map((st, i) => (
+                  <div key={i} className={"flex items-center gap-2 rounded-lg border px-3 py-2 text-xs " + (!st.ok ? "border-red-900 bg-red-950" : st.skip ? "border-slate-800 bg-slate-900" : st.warn ? "border-amber-900 bg-amber-950" : "border-slate-800 bg-slate-800")}>
+                    {!st.ok ? <XCircle size={14} className="text-red-400" /> : st.skip ? <AlertTriangle size={14} className="text-slate-500" /> : st.warn ? <AlertTriangle size={14} className="text-amber-400" /> : <CheckCircle2 size={14} className="text-emerald-400" />}
                     <span className={"font-medium " + (!st.ok ? "text-red-300" : st.warn ? "text-amber-200" : "text-slate-200")}>{st.act}</span>
                     <span className="flex-1 font-mono text-slate-500">{st.info}</span>
                     <span className="text-slate-400">{st.dur}</span>
                   </div>
                 ))}
               </div>
+              )}
               <div className="mt-3">
                 <div className="flex items-center justify-between border-b border-slate-800">
                   <div className="flex gap-1.5">
                     {evTabs.map((t) => (<button key={t} onClick={() => setEtab(t)} className={"px-2.5 py-1.5 text-xs " + (evTab === t ? "border-b-2 border-teal-500 text-teal-300" : "text-slate-500 hover:text-slate-300")}>{t}</button>))}
                   </div>
-                  <button onClick={() => flash(cur.id + " · " + evTab + " 다운로드")} className="flex shrink-0 items-center gap-1 px-2 py-1 text-xs text-teal-400 hover:text-teal-300"><Download size={12} />{evTab} 다운로드</button>
+                  {/* 증적은 '한 번이라도 실패한 행'만 보관한다 — 통과·미실행 행에는 내려받을 것이 없다 */}
+                  {!(curRow && curRow.v !== "FAIL") && <button onClick={() => flash((curRow ? cur.id + " " + curRow.i + "행" : cur.id) + " · " + evTab + " 다운로드")} className="flex shrink-0 items-center gap-1 px-2 py-1 text-xs text-teal-400 hover:text-teal-300"><Download size={12} />{evTab} 다운로드</button>}
                 </div>
-                <div className="flex h-24 items-center justify-center text-xs text-slate-500">{!run.brow ? (evTab === "응답" ? cur.id + " · 응답 " + (cur.v === "FAIL" ? "4xx · 불일치" : "200 OK") + " · body.json" : evTab === "로그" ? cur.id + " · HTTP trace · 헤더 · 타이밍" : cur.id + " · 요청 원문 · 메서드·URL·헤더·바디") : (evTab === "스크린샷" ? cur.id + (cur.v === "FAIL" ? "_fail" : "_pass") + ".png · 1.4MB" : evTab === "영상" ? run.id.toLowerCase().replace("-", "_") + "_" + cur.id.toLowerCase() + ".webm · 12MB" : cur.id + " · console/network 로그")}</div>
+                {curRow && curRow.v !== "FAIL" ? (
+                  <div className="flex h-24 items-center justify-center px-4 text-center text-xs text-slate-500">{curRow.i}행은 {curRow.v === "SKIP" ? "실행되지 않아" : "통과해"} 보관된 증적이 없습니다 · 증적은 한 번이라도 실패한 행만 보관합니다</div>
+                ) : (
+                <div className="flex h-24 items-center justify-center text-xs text-slate-500">{(() => { const nm = cur.id + (curRow ? "_row" + curRow.i : "");
+                  if (evTab === "요청") return nm + " · 요청 원문 · 메서드·URL·헤더·바디";
+                  if (evTab === "응답") return nm + " · 응답 " + (cur.v === "FAIL" ? "4xx · 불일치" : "200 OK") + " · body.json";
+                  if (evTab === "로그") return nm + " · HTTP trace · 헤더 · 타이밍";
+                  if (evTab === "스크린샷") return nm + (cur.v === "FAIL" ? "_fail" : "_pass") + ".png · 1.4MB";
+                  if (evTab === "영상") return run.id.toLowerCase().replace("-", "_") + "_" + nm.toLowerCase() + ".webm · 12MB";
+                  return nm + " · console/network 로그"; })()}</div>
+                )}
               </div>
             </Card>
             )}
