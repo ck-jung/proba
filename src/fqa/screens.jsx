@@ -460,7 +460,7 @@ function lcsDiff(a, b, key) {
 }
 const stepKey = (s) => [s.act, s.loc, s.val, s.code, s.body, s.headers, s.save].map((x) => x || "").join("│");
 const stepText = (s) => (s.act === "코드 스텝" ? "코드 스텝 · " + (s.code || "").split("\n")[0] : s.act + "  " + (s.loc || "") + (s.val && s.val !== "-" ? "  " + s.val : ""));
-const VER_FIELDS = [["name", "이름"], ["suite", "스위트"], ["tags", "태그"], ["dataset", "데이터셋"], ["acctRole", "계정 역할"], ["level", "관리 수준"]];
+const VER_FIELDS = [["name", "이름"], ["suite", "스위트"], ["tags", "태그"], ["dataset", "데이터셋"], ["preCase", "전제조건 케이스"], ["acctRole", "실행 계정 역할"], ["level", "관리 수준"]];
 const fieldDiff = (v, cur) => VER_FIELDS.map(([k, label]) => ({ k, label, from: String(v[k] || "—"), to: String(cur[k] || "—") })).filter((d) => d.from !== d.to);
 const DIFF_CLS = { add: "bg-emerald-950 text-emerald-300", del: "bg-red-950 text-red-300", same: "text-slate-500" };
 const DIFF_MARK = { add: "+", del: "−", same: " " };
@@ -861,19 +861,31 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
   const [tags, setTags] = useState((tc && tc.tags) || "");
   const [dataset, setDataset] = useState(tc ? (tc.dataset && tc.dataset !== "-" ? tc.dataset : "") : "");
   const [acctRole, setAcctRole] = useState((tc && tc.acctRole) || "");
+  const [preCase, setPreCase] = useState((tc && tc.preCase) || "");
   // 운영주의 — 운영 환경에서 실데이터를 변경/삭제하는 케이스. 태그와 별개 플래그.
   const [prodCaution, setProdCaution] = useState(!!(tc && tc.prodCaution));
   // 등록된 모든 환경의 계정 역할 (케이스는 역할만 고르고, 실제 계정은 실행 계획의 환경이 주입)
   const roleOpts = [...new Set((fqaSystems || []).flatMap((sy) => (sy.envs || []).flatMap((e) => (e.accts || []).map((a) => a.role))).filter(Boolean))];
   // 계정 변수 사용 여부 — Full-Code는 V['계정 ID'] 형태로 나타난다
+  /* 스텝이 계정 변수를 직접 쓰는가 — 로그인 자체를 검증하는 케이스가 여기 해당한다.
+     🔴 문자열 검사라 변수 이름 규칙에 기능이 매달려 있다. 전제조건 로그인을 쓰는 케이스는 이 검사에 안 걸리므로
+     실 구현에서는 값을 구조({ref:"acct"})로 저장해 이름과 무관하게 판별해야 한다. */
   const usesAcct = steps.some((s) => /\$\{계정/.test((s.val || "") + (s.loc || "") + (s.code || ""))) || /계정 (ID|비밀번호)/.test(code || "");
+  /* 전제조건 후보 = 승인된 다른 케이스. 별도 '로그인 프로필' 엔티티를 두지 않는다 —
+     로그인도 케이스이므로 레코딩·리비전·디버그 실행·승인 워크플로가 그대로 따라온다.
+     🔑 전제조건을 가진 케이스는 후보에서 뺀다 — 중첩을 허용하면 순환이 생긴다(1단계만). */
+  const preOpts = (fqaCases || []).filter((c) => c.id !== (tc && tc.id) && c.status === "승인" && !c.preCase
+    // Full-Code 제외 — 전제조건은 globalSetup에서 도는 함수여야 하는데 사용자 코드는 test()로 감싸여 있어 벗길 수 없다
+    && c.level !== "Full-Code"
+    // 데이터셋 제외 — 행마다 로그인한다는 뜻이 되어 성립하지 않는다
+    && (!c.dataset || c.dataset === "-"));
   const [dragIdx, setDragIdx] = useState(null);
   const [codeOpen, setCodeOpen] = useState({});
   const toggleCode = (i) => setCodeOpen((m) => ({ ...m, [i]: !m[i] }));
   const reorder = (from, to) => { setSteps((prev) => { const arr = [...prev]; const [m] = arr.splice(from, 1); arr.splice(to, 0, m); return arr; }); setCodeOpen({}); };
   const vi = LV.indexOf(view);
-  const [snap, setSnap] = useState(() => JSON.stringify({ steps: initSteps, code: initCode, committed: ei, suite: tc ? tc.suite : ((fqaSuites[0] || {}).name || ""), name: (tc && tc.name) || "", tags: (tc && tc.tags) || "", dataset: tc ? (tc.dataset && tc.dataset !== "-" ? tc.dataset : "") : "", acctRole: (tc && tc.acctRole) || "", prodCaution: !!(tc && tc.prodCaution) }));
-  const dirty = snap !== JSON.stringify({ steps, code, committed, suite, name, tags, dataset, acctRole, prodCaution });
+  const [snap, setSnap] = useState(() => JSON.stringify({ steps: initSteps, code: initCode, committed: ei, suite: tc ? tc.suite : ((fqaSuites[0] || {}).name || ""), name: (tc && tc.name) || "", tags: (tc && tc.tags) || "", dataset: tc ? (tc.dataset && tc.dataset !== "-" ? tc.dataset : "") : "", acctRole: (tc && tc.acctRole) || "", preCase: (tc && tc.preCase) || "", prodCaution: !!(tc && tc.prodCaution) }));
+  const dirty = snap !== JSON.stringify({ steps, code, committed, suite, name, tags, dataset, acctRole, preCase, prodCaution });
   const versions = (tc && tc.versions) || [];
   const curRev = (tc && tc.rev) || 1;
   /* 내가 편집을 시작한 리비전 — 저장 시 낙관적 잠금의 기준.
@@ -943,7 +955,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
   /* Low-Code는 스텝이 진실 — code를 저장하면 스텝과 어긋난 낡은 코드가 DB에 남는다(실행 시 서버가 스텝에서 생성한다).
      Full-Code는 code가 진실 — 스텝은 참고용으로 그대로 둔다(변환 시점의 흔적). */
   // origin(생성 경로)은 최초 생성 때 정해지고 이후 바뀌지 않는다 — 편집·변환·복제와 무관한 '출생' 정보
-  const body = () => ({ steps, code: isFull ? code : "", level: LV[committed], suite, name: name.trim(), tags, dataset: dataset || "-", acctRole: usesAcct ? acctRole : "", prodCaution, origin: (tc && tc.origin) || "직접 작성" });
+  const body = () => ({ steps, code: isFull ? code : "", level: LV[committed], suite, name: name.trim(), tags, dataset: dataset || "-", preCase, acctRole: (preCase || usesAcct) ? acctRole : "", prodCaution, origin: (tc && tc.origin) || "직접 작성" });
   /* 저장 = 새 리비전 INSERT. baseRev로 낙관적 잠금 — 그 사이 남이 저장했으면 거부한다. */
   /* 충돌 후 탈출구 — 최신본을 다시 읽어 편집 상태를 갈아끼운다.
      이게 없으면 baseRev가 낡은 채로 남아 다시 저장해도 또 충돌한다(영원히 저장 불가). */
@@ -951,10 +963,10 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
     const c = tc || {};
     setSteps(c.steps || []); setCode(c.code || ""); setCommitted(Math.max(0, LV.indexOf(c.level)));
     setView(c.level || "Low-Code"); setName(c.name || ""); setTags(c.tags || ""); setSuite(c.suite || "");
-    setDataset(c.dataset && c.dataset !== "-" ? c.dataset : ""); setAcctRole(c.acctRole || ""); setProdCaution(!!c.prodCaution);
+    setDataset(c.dataset && c.dataset !== "-" ? c.dataset : ""); setAcctRole(c.acctRole || ""); setPreCase(c.preCase || ""); setProdCaution(!!c.prodCaution);
     setStatus(c.status || "검토중");
     baseRev.current = c.rev || 1;
-    setSnap(JSON.stringify({ steps: c.steps || [], code: c.code || "", committed: Math.max(0, LV.indexOf(c.level)), suite: c.suite || "", name: c.name || "", tags: c.tags || "", dataset: c.dataset && c.dataset !== "-" ? c.dataset : "", acctRole: c.acctRole || "", prodCaution: !!c.prodCaution }));
+    setSnap(JSON.stringify({ steps: c.steps || [], code: c.code || "", committed: Math.max(0, LV.indexOf(c.level)), suite: c.suite || "", name: c.name || "", tags: c.tags || "", dataset: c.dataset && c.dataset !== "-" ? c.dataset : "", acctRole: c.acctRole || "", preCase: c.preCase || "", prodCaution: !!c.prodCaution }));
     flash("rev " + (c.rev || 1) + " 최신본을 불러왔습니다");
   };
   /* 저장하면 상태는 검토중으로 수렴한다 — 내용이 바뀌었으니 다시 검토 대상이 된다.
@@ -970,7 +982,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
     if (!fqaCases.some((c) => c.id === tc.id)) {
       addFqaCase({ id: tc.id, ...body(), status: "검토중" });
       baseRev.current = 1; setStatus("검토중");
-      setSnap(JSON.stringify({ steps, code, committed, suite, name, tags, dataset, acctRole, prodCaution }));
+      setSnap(JSON.stringify({ steps, code, committed, suite, name, tags, dataset, acctRole, preCase, prodCaution }));
       flash("검토중으로 저장됨");
       return true;
     }
@@ -983,7 +995,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
     }
     baseRev.current = curRev + 1;
     setStatus("검토중");
-    setSnap(JSON.stringify({ steps, code, committed, suite, name, tags, dataset, acctRole, prodCaution }));
+    setSnap(JSON.stringify({ steps, code, committed, suite, name, tags, dataset, acctRole, preCase, prodCaution }));
     flash(wasApproved ? "rev " + (curRev + 1) + " 저장 · 승인 해제(검토중)" : "rev " + (curRev + 1) + " 검토중으로 저장");
     return true;
   };
@@ -1017,17 +1029,35 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
             </label>
             <div className="mt-1.5 text-xs text-slate-500">데이터 변경/삭제 — 운영 환경 테스트 시 주의</div>
           </Card>
-          {/* 계정 변수를 쓰는 케이스에서만 의미가 있다 — 안 쓰면 골라도 아무 일이 없으므로 감춘다 */}
-          {usesAcct && (
-            <Card className="p-3">
-              <div className="mb-2 text-xs font-semibold text-slate-400">실행 계정 역할</div>
-              <Select value={acctRole} onChange={(e) => setAcctRole(e.target.value)}>
-                <option value="">기본 (풀의 첫 계정)</option>
-                {roleOpts.map((r) => <option key={r}>{r}</option>)}
-              </Select>
-              <div className="mt-1.5 text-xs text-slate-500">이 역할의 계정이 <span className="font-mono text-teal-400">{"${계정 ID}"}</span>·<span className="font-mono text-teal-400">{"${계정 비밀번호}"}</span>에 주입됩니다.</div>
-            </Card>
-          )}
+          {/* 🔑 전제조건 — 로그인은 대부분의 케이스에서 '검증 대상'이 아니라 '들어가기 위한 절차'다.
+              스텝으로 넣으면 케이스마다 같은 다섯 줄이 복사되고, 워커마다 로그인해서 계정이 충돌한다(F4).
+              별도 '로그인 프로필' 엔티티를 만들지 않고 케이스를 그대로 가리킨다 —
+              그래야 레코딩·리비전·디버그 실행·승인 워크플로가 공짜로 따라오고, 로그인 자체도 테스트 대상이 된다.
+              로그인을 검증하는 케이스(TC-0031)는 '없음'으로 두고 스텝으로 직접 쓴다. */}
+          <Card className="p-3">
+            <div className="mb-2 text-xs font-semibold text-slate-400">전제조건</div>
+            <Select value={preCase} onChange={(e) => setPreCase(e.target.value)}>
+              <option value="">없음 (비로그인 흐름 · 로그인 자체 검증)</option>
+              {preOpts.map((c) => <option key={c.id} value={c.id}>{c.id} · {c.name}</option>)}
+            </Select>
+            {(preCase || usesAcct) && (
+              <div className="mt-2">
+                <Select value={acctRole} onChange={(e) => setAcctRole(e.target.value)}>
+                  <option value="">기본 (풀의 첫 계정)</option>
+                  {roleOpts.map((r) => <option key={r}>{r}</option>)}
+                </Select>
+                <div className="mt-1.5 text-xs text-slate-500">
+                  {preCase
+                    ? <>이 역할의 계정으로 <span className="font-mono text-teal-400">{preCase}</span>을 먼저 수행한 세션에서 시작합니다. 스텝에 로그인을 쓰지 않습니다.<br />전제조건 수행은 <span className="text-slate-400">집계에 세지 않습니다</span> — 실패하면 이 케이스가 <span className="text-slate-400">전제조건 실패</span>로 기록됩니다.</>
+                    : <>스텝이 계정 변수를 사용합니다 — 이 역할의 계정이 <span className="font-mono text-teal-400">{"${계정 ID}"}</span>·<span className="font-mono text-teal-400">{"${계정 비밀번호}"}</span>에 주입됩니다.</>}
+                </div>
+              </div>
+            )}
+            {/* 승인된 케이스만 후보다 — 초안을 전제로 쓰면 실행이 불안정해진다.
+                전제조건 케이스를 수정하면 승인이 풀리므로 이 케이스도 실행이 막힌다(F9). 그게 의도다. */}
+            <div className="mt-1.5 text-xs text-slate-600">승인된 Low-Code 케이스만 고를 수 있습니다.</div>
+            {preOpts.length === 0 && <div className="mt-1 text-xs text-amber-500">해당하는 케이스가 없습니다.</div>}
+          </Card>
           {/* 케이스가 행마다 반복 실행된다 — 부하용 대량 데이터셋(NQA 몫)은 고를 수 없다 */}
           <Card className="p-3">
             <div className="mb-2 text-xs font-semibold text-slate-400">데이터셋 (데이터 드리븐)</div>
@@ -1470,7 +1500,7 @@ export function FqaSuiteScreen() {
 }
 /* ═══════════ 6. 실행 관리 ═══════════ */
 const RUN_LOG = [
-  { lv: "INFO", t: "FRUN-512 시작 · Chrome 1920×1080" },
+  { lv: "INFO", t: "FRUN-512 시작 · Chromium 1920×1080" },
   { lv: "TC", t: "TC-031 로그인 성공 확인" },
   { lv: "STEP", t: "fill [data-testid=username]" },
   { lv: "STEP", t: "click role=button[로그인]" },
@@ -1546,7 +1576,7 @@ export function FqaRunScreen({ nav }) {
      여기가 실행을 막는 유일한 지점이다. 실 구현에서는 서버 API 계층에 둔다 —
      화면 실행 · 정기 스케줄 · CI 웹훅 세 경로가 모두 지나가는 곳은 거기뿐이다. */
   const precheck = (plan) => {
-    const { e } = envRefOf(plan);
+    const { sy, e } = envRefOf(plan);
     const cs = fqaCases.filter((c) => suiteNames(plan).includes(c.suite) && !c.quarantined && tagMatch(c, plan.tags) && c.status === "승인");
     const roles = ((e || {}).accts || []).map((a) => a.role);
     const dsNames = (datasets || []).map((d) => d.name);
@@ -1561,6 +1591,12 @@ export function FqaRunScreen({ nav }) {
     // 데이터셋 — 사라졌으면 행이 0개가 되어 테스트가 0개 생성된다(실패도 통과도 아닌 무동작)
     add("참조하는 데이터셋이 없습니다", "데이터셋", "datasets",
       cs.filter((c) => c.dataset && c.dataset !== "-" && !dsNames.includes(c.dataset)));
+    /* 전제조건 케이스 — 사라졌거나 승인이 풀렸으면 로그인 없이 돌아 전건 실패한다.
+       전제조건 케이스를 고치면 승인이 풀리므로(저장 시 검토중) 여기서 걸린다. 그게 의도다 —
+       로그인 절차를 바꿔놓고 검증 없이 수백 케이스에 적용하는 것을 막는다. */
+    const byId = (id) => (fqaCases || []).find((x) => x.id === id);
+    add("전제조건 케이스가 없거나 승인되지 않았습니다", "테스트케이스", "fqa-cases",
+      cs.filter((c) => c.preCase && (byId(c.preCase) || {}).status !== "승인"));
     return g;
   };
   const [pcModal, setPcModal] = useState(null);
@@ -1574,7 +1610,7 @@ export function FqaRunScreen({ nav }) {
   const [selRunId, setSelRunId] = useState(null);
   const selRun = fqaRuns.find((r) => r.id === selRunId && (r.status === "실행 중" || r.status === "대기 중")) || liveRun || rows[0] || null;
   // 실행 = 큐 맨끝에 '대기'로 적재만. 픽업·실행·완료는 아래 큐 프로세서가 담당(앞선 작업이 없어야 실행).
-  const runNow = (plan) => { if (!gatePlan(plan)) return; const tcs = buildTcs(plan); const total = tcs.length; const id = nextId(); const { e } = envRefOf(plan); addFqaRun({ id, planId: plan.id, plan: plan.name, name: plan.name, suite: suiteNames(plan).join(" · "), ...stampOf(plan), brow: (e && e.webUrl) ? ((plan.brow && plan.brow[0]) || "Chrome") : "", trig: "수동", by: "QA Engineer", status: "대기 중", prog: 0, progt: "대기", dur: "-", at: "방금 전", gate: plan.gate != null ? plan.gate : 95, total, pass: 0, fail: 0, warn: 0, heal: 0, tcs }); setSelRunId(id); flash(plan.name + " 실행 요청 · " + id + " — 큐 맨끝에 적재"); };
+  const runNow = (plan) => { if (!gatePlan(plan)) return; const tcs = buildTcs(plan); const total = tcs.length; const id = nextId(); const { e } = envRefOf(plan); addFqaRun({ id, planId: plan.id, plan: plan.name, name: plan.name, suite: suiteNames(plan).join(" · "), ...stampOf(plan), pw: "1.50.0", brVer: "132.0.6834.83", brow: (e && e.webUrl) ? ((plan.brow && plan.brow[0]) || "Chromium") : "", trig: "수동", by: "QA Engineer", status: "대기 중", prog: 0, progt: "대기", dur: "-", at: "방금 전", gate: plan.gate != null ? plan.gate : 95, total, pass: 0, fail: 0, warn: 0, heal: 0, tcs }); setSelRunId(id); flash(plan.name + " 실행 요청 · " + id + " — 큐 맨끝에 적재"); };
   // 큐 프로세서(단일 러너 FIFO) — 러너가 비면(실행 중 0) 대기 큐의 맨앞(가장 오래된)을 픽업해 실행→완료
   const procRef = useRef({});
   useEffect(() => {
@@ -1774,9 +1810,12 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
      사용자 코드에 그것이 없으면 러너는 테스트 단위 결과만 받는다. 있는 척하지 않는다.
      케이스를 못 찾으면(삭제·이름변경) Low-Code로 본다 — 타임라인을 숨기는 쪽이 더 큰 오해를 만든다. */
   const fullCode = !!(curCase && curCase.level === "Full-Code");
-  const evTabs = curSurf === "API" ? ["요청", "응답", "로그"]
-    : curSurf === "웹+API" ? ["스크린샷", "영상", "콘솔 로그", "요청", "응답"]
-    : ["스크린샷", "영상", "콘솔 로그"];
+  /* trace가 1급이다 — 액션마다 DOM 스냅샷·네트워크·콘솔이 들어 있어 뷰어에서 타임트래블이 된다.
+     영상은 trace의 필름스트립과 겹치므로 계획에서 명시적으로 켠 경우에만 탭에 나온다. */
+  const hasVideo = !!run.video && run.video !== "녹화 안 함";
+  const evTabs = curSurf === "API" ? ["요청", "응답", "HAR", "로그"]
+    : curSurf === "웹+API" ? ["trace", "스크린샷", "콘솔 로그", "요청", "응답", "HAR"].concat(hasVideo ? ["영상"] : [])
+    : ["trace", "스크린샷", "콘솔 로그"].concat(hasVideo ? ["영상"] : []);
   const evTab = evTabs.includes(etab) ? etab : evTabs[0];
   const _dur = (seed, base) => { let h = 0; for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 9973; return (base + (h % 500)).toLocaleString() + "ms"; };
   /* row가 주어지면 그 행의 실행으로 본다 — 데이터 구동 케이스는 행마다 결과가 다르므로
@@ -1807,7 +1846,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
           { act: "응답 수신", info: t.v === "FAIL" ? "상태/스키마 불일치" : "200 OK · 스키마 준수", dur: _dur(id + "b", 200), ok: true },
         ]
       : [
-          { act: "브라우저 열기", info: (run.brow || "Chrome").toLowerCase().split("+")[0] + " · 세션 시작", dur: _dur(id + "a", 1400), ok: true },
+          { act: "브라우저 열기", info: (run.brow || "Chromium").toLowerCase().split("+")[0] + " · 세션 시작", dur: _dur(id + "a", 1400), ok: true },
           { act: "페이지 이동", info: "goto · /" + seg.toLowerCase(), dur: _dur(id + "b", 300), ok: true },
           { act: t.name, info: t.heal ? "로케이터 " + t.heal.to + " · 자동 보정 적용" : "액션 수행 → " + id, dur: _dur(id + "c", 500), ok: true },
         ];
@@ -1899,6 +1938,14 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const revA = Object.fromEntries(((runA && runA.tcs) || []).map((t) => [t.id, t.rev]));
   const revB = Object.fromEntries(((runB && runB.tcs) || []).map((t) => [t.id, t.rev]));
   const regRows = [...new Set([...Object.keys(mapA), ...Object.keys(mapB)])].map((id) => ({ id, name: _nameOf(id), a: mapA[id], b: mapB[id], ra: revA[id], rb: revB[id] }));
+  /* 러너·브라우저가 바뀐 회차끼리의 비교는 제품 회귀로 단정할 수 없다 — 회차 단위 사실이므로 한 번만 계산한다.
+     케이스 rev와 같은 원칙: 판정을 뒤집지 않고 사실만 덧붙인다. */
+  const runDiff = (() => {
+    if (!runA || !runB) return "";
+    if ((runA.brow || "") !== (runB.brow || "")) return "브라우저 변경";
+    if (runA.pw && runB.pw && runA.pw !== runB.pw) return "러너 변경";
+    return "";
+  })();
   const summ = regRows.reduce((acc, r) => { const k = cls(r.a, r.b).k; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
   return (
     <div className="space-y-4">
@@ -1912,7 +1959,10 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
       {mode === "상세" && (
         <>
           <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
-            <div className="flex items-center gap-2 flex-wrap"><span className="font-mono text-sm text-teal-400">{run.id}</span><span className="text-sm font-medium text-slate-200">{(fqaPlans.find((p) => p.id === run.planId) || {}).name || run.plan}</span>{run.fail > 0 ? <Badge kind="fail">실패 {run.fail}건</Badge> : <Badge kind="pass">전체 통과</Badge>}<span className="text-xs text-slate-500">{!run.brow ? "API" : (run.brow || "Chrome")} · {run.suite}</span>{run.ver && run.ver !== "-" && <Badge kind="info">빌드 {run.ver}</Badge>}</div>
+            <div className="flex items-center gap-2 flex-wrap"><span className="font-mono text-sm text-teal-400">{run.id}</span><span className="text-sm font-medium text-slate-200">{(fqaPlans.find((p) => p.id === run.planId) || {}).name || run.plan}</span>{run.fail > 0 ? <Badge kind="fail">실패 {run.fail}건</Badge> : <Badge kind="pass">전체 통과</Badge>}<span className="text-xs text-slate-500">{!run.brow ? "API" : (run.brow || "Chromium")} · {run.suite}</span>{run.ver && run.ver !== "-" && <Badge kind="info">빌드 {run.ver}</Badge>}
+              {/* 🔑 러너 버전 스탬프 — 없으면 "제품이 깨진 건가 브라우저가 올라간 건가"를 구분할 수 없다.
+                  케이스 rev와 같은 목적이다. 브라우저 버전은 Playwright 버전에 종속이지만 매핑표를 외우게 하지 않는다. */}
+              {run.pw && <span className="font-mono text-slate-600" style={{ fontSize: 11 }} title={"Playwright " + run.pw + " · Chromium " + (run.brVer || "-")}>pw {run.pw}</span>}</div>
             <div className="flex gap-2"><Btn icon={Download} onClick={() => flash("Excel")}>Excel</Btn><Btn icon={Download} onClick={() => flash("PDF")}>PDF</Btn></div>
           </Card>
           <div className={"grid gap-3 " + (!run.brow ? "grid-cols-5" : "grid-cols-6")}>
@@ -2021,6 +2071,8 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   <div className="flex h-24 items-center justify-center px-4 text-center text-xs text-slate-500">{curRow.i}행은 {curRow.v === "SKIP" ? "실행되지 않아" : "통과해"} 보관된 증적이 없습니다 · 증적은 한 번이라도 실패한 행만 보관합니다</div>
                 ) : (
                 <div className="flex h-24 items-center justify-center text-xs text-slate-500">{(() => { const nm = cur.id + (curRow ? "_row" + curRow.i : "");
+                  if (evTab === "trace") return nm + "_trace.zip · 4.2MB · Playwright Trace Viewer로 열기";
+                  if (evTab === "HAR") return nm + ".har · 네트워크 전체 기록 · 1.1MB";
                   if (evTab === "요청") return nm + " · 요청 원문 · 메서드·URL·헤더·바디";
                   if (evTab === "응답") return nm + " · 응답 " + (cur.v === "FAIL" ? "4xx · 불일치" : "200 OK") + " · body.json";
                   if (evTab === "로그") return nm + " · HTTP trace · 헤더 · 타이밍";
@@ -2028,6 +2080,8 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   if (evTab === "영상") return run.id.toLowerCase().replace("-", "_") + "_" + nm.toLowerCase() + ".webm · 12MB";
                   return nm + " · console/network 로그"; })()}</div>
                 )}
+                {/* 언제 사라지는지 알려준다 — 결함에 걸린 증적은 기간과 무관하게 남는다(참조 기준, 기간 기준이 아님) */}
+                <div className="mt-1.5 text-slate-600" style={{ fontSize: 11 }}>증적 보존 30일{defectsOfTc(cur.id).length > 0 && <span className="text-slate-500"> · 결함에 연결되어 결함 종료 시까지 유지됩니다</span>}</div>
               </div>
             </Card>
             )}
@@ -2061,7 +2115,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   <tr key={r.id} className={"border-b border-slate-800 text-slate-300 " + (v.k === "퇴행" ? "bg-red-950" : "")}>
                     <td className="px-4 py-2.5 font-mono text-teal-400">{r.id}</td><td className="text-slate-300">{r.name}</td><td className="whitespace-nowrap">{r.a ? <Badge kind={vK[r.a]}>{r.a}</Badge> : <span className="text-xs text-slate-600">없음</span>}{rv(r.ra)}</td><td className="text-slate-600">→</td><td className="whitespace-nowrap">{r.b ? <Badge kind={vK[r.b]}>{r.b}</Badge> : <span className="text-xs text-slate-600">없음</span>}{rv(r.rb)}</td>
                     {/* rev가 다르면 판정 변화의 원인을 제품으로 단정할 수 없다 — 그 사실만 덧붙이고 결론은 내리지 않는다 */}
-                    <td className={"font-semibold whitespace-nowrap " + v.c}>{v.k}{revd && <span className="ml-1.5 font-normal text-amber-400" style={{ fontSize: 11 }}>· 케이스 변경</span>}</td>
+                    <td className={"font-semibold whitespace-nowrap " + v.c}>{v.k}{revd && <span className="ml-1.5 font-normal text-amber-400" style={{ fontSize: 11 }}>· 케이스 변경</span>}{runDiff && <span className="ml-1.5 font-normal text-amber-400" style={{ fontSize: 11 }}>· {runDiff}</span>}</td>
                   </tr>
                 ); })}
               </tbody>
@@ -2337,7 +2391,7 @@ export function FqaCasesScreen() {
                 <td className="text-slate-200">{c.name}</td>
                 <td className="text-slate-400">{c.suite}</td>
                 <td>{tagList(c.tags).length ? <div className="flex gap-1">{tagList(c.tags).map((t) => <span key={t} className="rounded-full border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-xs text-slate-400">{t}</span>)}</div> : <span className="text-xs text-slate-600">-</span>}</td>
-                <td>{surfacesOf(c) === "-" ? <span className="text-xs text-slate-600">-</span> : <Badge kind={SURF_K[surfacesOf(c)] || "info"}>{surfacesOf(c)}</Badge>}</td>
+                <td className="whitespace-nowrap">{surfacesOf(c) === "-" ? <span className="text-xs text-slate-600">-</span> : <Badge kind={SURF_K[surfacesOf(c)] || "info"}>{surfacesOf(c)}</Badge>}{c.preCase && <span className="ml-1 font-mono text-slate-500" style={{ fontSize: 10 }} title={"전제조건 " + c.preCase + " 수행 후 시작"}>← {c.preCase}</span>}{c.dataset && c.dataset !== "-" && <span className="ml-1 font-mono text-teal-500" style={{ fontSize: 10 }} title={"데이터셋 " + c.dataset}>⛁ {c.dataset}</span>}</td>
                 <td><Badge kind={lvK2[c.level] || "info"}>{lvLabel(c)}</Badge></td>
                 <td><Badge kind={stK[c.status]}>{c.status}</Badge></td>
                 <td className="pr-2 text-xs text-slate-500 whitespace-nowrap">{c.updatedBy || "—"} · {c.updatedAt || "—"}</td>
@@ -2429,7 +2483,7 @@ const EndpointGroup = ({ webUrl, apiUrl, set }) => {
 };
 export function FqaTargetScreen() {
   const [msg, flash] = useToast();
-  const { fqaSystems: systems, addFqaSystem, updateFqaSystem, removeFqaSystem, fqaPlans } = useApp();
+  const { fqaSystems: systems, addFqaSystem, updateFqaSystem, removeFqaSystem, fqaPlans, fqaCases } = useApp();
   const [sel, setSel] = useState(0);
   const [envIdx, setEnvIdx] = useState(0);
   const [test, setTest] = useState(null);
@@ -2606,6 +2660,7 @@ export function FqaTargetScreen() {
             <div className="text-xs text-slate-500">케이스의 <span className="text-slate-400">실행 계정 역할</span>과 같은 역할의 계정이 <span className="font-mono text-teal-400">{"${계정 ID}"}</span>·<span className="font-mono text-teal-400">{"${계정 비밀번호}"}</span>로 주입됩니다.</div>
           </Card>
 
+
           {hasApi && (
             <Card className="p-4 space-y-3">
               <div className="text-sm font-semibold text-slate-200">API 인증</div>
@@ -2762,12 +2817,12 @@ export function FqaPlanScreen() {
   const [suites, setSuites] = useState(sel.suites || []);
   const toggleSuite = (n) => setSuites((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]));
   const [tags, setTags] = useState(sel.tags);
-  const [brow, setBrow] = useState(sel.brow || ["Chrome"]);
+  const [brow, setBrow] = useState(sel.brow || ["Chromium"]);
   const [res, setRes] = useState(sel.res || "1920×1080");
   const [workers, setWorkers] = useState(sel.workers || "4");
   const [retry, setRetry] = useState(sel.retry != null ? sel.retry : 1);
   const [onfail, setOnfail] = useState(sel.onfail || "계속 진행");
-  const [video, setVideo] = useState(sel.video || "실패 시만");
+  const [video, setVideo] = useState(sel.video || "녹화 안 함");
   const [apiTimeout, setApiTimeout] = useState(sel.timeout || 30);
   const [gate, setGate] = useState(sel.gate != null ? sel.gate : 95);
   const [planStatus, setPlanStatus] = useState(sel.status || "초안");
@@ -2789,11 +2844,11 @@ export function FqaPlanScreen() {
   // 운영주의 — 대상이 운영(prod) 환경인데 실데이터를 건드리는 케이스가 섞였을 때 경고(막지 않음)
   const isProdTarget = !!(envOf(targetRef) || {}).prod;
   const cautionCases = isProdTarget ? planCases.filter((c) => c.prodCaution) : [];
-  const pick = (p) => { setSelId(p.id); setName(p.name); setTargetRef(p.targetRef || defRef); setSuites(p.suites || []); setTags(p.tags); setBrow(p.brow || ["Chrome"]); setRes(p.res || "1920×1080"); setWorkers(p.workers || "4"); setRetry(p.retry != null ? p.retry : 1); setOnfail(p.onfail || "계속 진행"); setVideo(p.video || "실패 시만"); setApiTimeout(p.timeout != null ? p.timeout : 30); setGate(p.gate != null ? p.gate : 95); setPlanStatus(p.status || "초안"); setSched(p.schedule || DEFAULT_SCHED); setJira(p.jira || { override: false }); };
+  const pick = (p) => { setSelId(p.id); setName(p.name); setTargetRef(p.targetRef || defRef); setSuites(p.suites || []); setTags(p.tags); setBrow(p.brow || ["Chromium"]); setRes(p.res || "1920×1080"); setWorkers(p.workers || "4"); setRetry(p.retry != null ? p.retry : 1); setOnfail(p.onfail || "계속 진행"); setVideo(p.video || "녹화 안 함"); setApiTimeout(p.timeout != null ? p.timeout : 30); setGate(p.gate != null ? p.gate : 95); setPlanStatus(p.status || "초안"); setSched(p.schedule || DEFAULT_SCHED); setJira(p.jira || { override: false }); };
   const saveCfg = () => { const nm = name.trim() || sel.name; updateFqaPlan(sel.id, { name: nm, targetRef, suites, tags, brow, res, workers, retry, onfail, video, timeout: apiTimeout, gate, status: planStatus, jira, schedule: sched, sched: (sched && sched.summary) || "예약 없음" }); flash(nm + " 설정 저장됨"); };
-  const dirty = JSON.stringify({ name, targetRef, suites, tags, brow, res, workers, retry, onfail, video, timeout: apiTimeout, gate, status: planStatus, jira }) !== JSON.stringify({ name: sel.name, targetRef: sel.targetRef || defRef, suites: sel.suites || [], tags: sel.tags, brow: sel.brow || ["Chrome"], res: sel.res || "1920×1080", workers: sel.workers || "4", retry: sel.retry != null ? sel.retry : 1, onfail: sel.onfail || "계속 진행", video: sel.video || "실패 시만", timeout: sel.timeout != null ? sel.timeout : 30, gate: sel.gate != null ? sel.gate : 95, status: sel.status || "초안", jira: sel.jira || { override: false } }) || schedKey(sched) !== schedKey(sel.schedule || DEFAULT_SCHED);
+  const dirty = JSON.stringify({ name, targetRef, suites, tags, brow, res, workers, retry, onfail, video, timeout: apiTimeout, gate, status: planStatus, jira }) !== JSON.stringify({ name: sel.name, targetRef: sel.targetRef || defRef, suites: sel.suites || [], tags: sel.tags, brow: sel.brow || ["Chromium"], res: sel.res || "1920×1080", workers: sel.workers || "4", retry: sel.retry != null ? sel.retry : 1, onfail: sel.onfail || "계속 진행", video: sel.video || "녹화 안 함", timeout: sel.timeout != null ? sel.timeout : 30, gate: sel.gate != null ? sel.gate : 95, status: sel.status || "초안", jira: sel.jira || { override: false } }) || schedKey(sched) !== schedKey(sel.schedule || DEFAULT_SCHED);
   const choosePlan = (p) => { if (p.id === sel.id) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; pick(p); };
-  const createPlan = () => { const nm = nf.name.trim(); if (!nm) { flash("계획 이름을 입력하세요"); return; } if (!nf.suites.length) { flash("스위트를 1개 이상 선택하세요"); return; } const id = Math.max(0, ...fqaPlans.map((x) => x.id)) + 1; const np = { id, name: nm, targetRef: nf.targetRef, suites: nf.suites, tags: nf.tags, sched: "예약 없음", status: "초안", brow: ["Chrome"], res: "1920×1080", workers: "4", retry: 1, onfail: "계속 진행", video: "실패 시만", timeout: 30, gate: 95 }; addFqaPlan(np); pick(np); setAddOpen(false); setNf({ name: "", targetRef: defRef, suites: [], tags: "" }); flash(nm + " 계획 생성 (초안)"); };
+  const createPlan = () => { const nm = nf.name.trim(); if (!nm) { flash("계획 이름을 입력하세요"); return; } if (!nf.suites.length) { flash("스위트를 1개 이상 선택하세요"); return; } const id = Math.max(0, ...fqaPlans.map((x) => x.id)) + 1; const np = { id, name: nm, targetRef: nf.targetRef, suites: nf.suites, tags: nf.tags, sched: "예약 없음", status: "초안", brow: ["Chromium"], res: "1920×1080", workers: "4", retry: 1, onfail: "계속 진행", video: "녹화 안 함", timeout: 30, gate: 95 }; addFqaPlan(np); pick(np); setAddOpen(false); setNf({ name: "", targetRef: defRef, suites: [], tags: "" }); flash(nm + " 계획 생성 (초안)"); };
   const delPlan = (pl) => { if (!window.confirm(pl.name + " 계획을 삭제할까요?")) return; removeFqaPlan(pl.id); if (selId === pl.id) { const rest = fqaPlans.filter((x) => x.id !== pl.id); setSelId(rest[0] ? rest[0].id : null); } flash(pl.name + " 삭제됨"); };
   return (
     <div className="space-y-4">
@@ -2861,14 +2916,14 @@ export function FqaPlanScreen() {
                 <>
                   <Field label="브라우저 (다중) · 화면 스텝">
                     <div className="grid grid-cols-2 gap-2">
-                      {["Chrome", "Firefox", "Safari", "Mobile Chrome"].map((b) => (
+                      {["Chromium", "Firefox", "WebKit", "Mobile Chromium"].map((b) => (
                         <button key={b} onClick={() => toggleB(b)} className={"rounded-lg border px-2 py-1.5 text-xs " + (brow.includes(b) ? "border-teal-500 bg-teal-900 text-teal-200" : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700")}>{b}</button>
                       ))}
                     </div>
                   </Field>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="해상도"><Select value={res} onChange={(e) => setRes(e.target.value)}><option>1920×1080</option><option>1440×900</option><option>1280×720</option><option>375×812 (모바일)</option></Select></Field>
-                    <Field label="영상 녹화"><Select value={video} onChange={(e) => setVideo(e.target.value)}><option>녹화 안 함</option><option>실패 시만</option><option>전체 녹화</option></Select></Field>
+                    <Field label="영상 녹화"><Select value={video} onChange={(e) => setVideo(e.target.value)}><option>녹화 안 함</option><option>실패 시만</option><option>전체 녹화</option></Select><div className="mt-1 text-slate-600" style={{ fontSize: 11 }}>trace는 항상 기록되어 실패 시 보관됩니다 — 영상은 trace와 겹치므로 필요할 때만 켜세요.</div></Field>
                   </div>
                 </>
               )}
