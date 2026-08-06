@@ -95,7 +95,7 @@ const surfacesOf = (c) => {
   return web && api ? "웹+API" : api ? "API" : web ? "웹" : "-";
 };
 const SURF_K = { "웹+API": "teal", "API": "warn", "웹": "info" };
-/* 이 환경이 케이스의 접점을 감당하는가 — 못 하면 실행은 반드시 실패한다 */
+
 const envCovers = (env, surf) => {
   const w = !!(env && env.webUrl), a = !!(env && env.apiUrl);
   if (surf === "웹") return w;
@@ -103,6 +103,45 @@ const envCovers = (env, surf) => {
   if (surf === "웹+API") return w && a;
   return true;   // "-" 판정 불가 — 막지 않는다
 };
+/* 🔑 '케이스 밖' 조건 검사 — 계획 화면(경고)과 실행 요청(차단)이 같은 함수를 쓴다.
+   두 곳에 따로 구현하면 반드시 어긋나고, 어긋난 쪽이 조용히 통과시킨다.
+   케이스 안(스텝·변수)은 저장 시점에 이미 막혔으므로 여기서 보지 않는다. */
+const outerChecks = (cs, env, datasets, allCases) => {
+  const roles = ((env || {}).accts || []).map((a) => a.role);
+  const dsNames = (datasets || []).map((d) => d.name);
+  const byId = (id) => (allCases || []).find((x) => x.id === id);
+  const g = [];
+  const add = (why, fixLabel, fixView, list, planLevel) => { if (list.length) g.push({ why, fixLabel, fixView, cases: list, planLevel: !!planLevel }); };
+  // 접점 ↔ 환경 — 감당 못 하면 그 접점 케이스는 전건 실패한다. 계획 수준 실패이므로 격리로 풀 일이 아니다.
+  add("환경이 케이스의 접점을 감당하지 못합니다 — " + (!(env || {}).apiUrl ? "apiUrl 없음" : "webUrl 없음"), "환경 설정", "fqa-targets",
+    cs.filter((c) => !envCovers(env, surfacesOf(c))), true);
+  // 계정 역할 — 풀에 역할이 없으면 주입할 값이 없다
+  add("환경 계정 풀에 해당 역할이 없습니다", "환경 설정", "fqa-targets",
+    cs.filter((c) => c.acctRole && !roles.includes(c.acctRole)));
+  // 데이터셋 — 사라졌으면 행이 0개가 되어 테스트가 0개 생성된다(실패도 통과도 아닌 무동작)
+  add("참조하는 데이터셋이 없습니다", "데이터셋", "datasets",
+    cs.filter((c) => c.dataset && c.dataset !== "-" && !dsNames.includes(c.dataset)));
+  /* 전제조건 케이스 — 사라졌거나 승인이 풀렸으면 로그인 없이 돌아 전건 실패한다.
+     전제조건 케이스를 고치면 승인이 풀리므로(저장 시 검토중) 여기서 걸린다. 그게 의도다. */
+  add("전제조건 케이스가 없거나 승인되지 않았습니다", "테스트케이스", "fqa-cases",
+    cs.filter((c) => c.preCase && (byId(c.preCase) || {}).status !== "승인"));
+  return g;
+};
+
+/* 실효 워커 — 워커 슬롯이 곧 계정이므로(F4) 워커 수가 역할별 계정 수를 넘을 수 없다.
+   넘으면 같은 계정으로 동시 로그인해 세션이 서로를 밀어낸다. 조용히 내리지 않고 원인을 알린다. */
+const effWorkers = (cs, env, setWorkers) => {
+  const used = [...new Set(cs.map((c) => c.acctRole).filter(Boolean))];
+  const accts = ((env || {}).accts || []);
+  if (!used.length) return null;
+  const cnt = (r) => accts.filter((a) => a.role === r).length;
+  const tight = used.map((r) => ({ role: r, n: cnt(r) })).sort((a, b) => a.n - b.n)[0];
+  const want = setWorkers === "auto" ? 4 : (parseInt(setWorkers, 10) || 1);
+  if (tight.n === 0) return null;             // 역할 자체가 없는 건 사전 검사가 잡는다
+  if (tight.n >= want) return null;
+  return { want, eff: tight.n, role: tight.role };
+};
+/* 이 환경이 케이스의 접점을 감당하는가 — 못 하면 실행은 반드시 실패한다 */
 
 /* 다음 TC 번호 — 기존 최댓값 + 1. 실 구현에서는 서버가 전역 시퀀스로 발급한다(충돌 불가).
    목업은 타임스탬프 대신 순번을 흉내 낸다 — TC-206, TC-207 … 처럼 이어진다. */
@@ -841,7 +880,7 @@ export function FqaApiImportScreen({ onDone }) {
   );
 }
 export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
-  const { commitFqaCase, addFqaCase, fqaSuites, fqaCases, fqaRuns, fqaSystems, datasets, debugEnv, setDebugEnv } = useApp();
+  const { commitFqaCase, addFqaCase, fqaSuites, fqaCases, fqaRuns, fqaSystems, datasets, debugEnv, setDebugEnv, setNavGuard } = useApp();
   const [msg, flash] = useToast();
   const [status, setStatus] = useState(tc && tc.status ? tc.status : "검토중");
   const stEK = { "승인": "pass", "검토중": "warn", "초안": "draft" };
@@ -886,6 +925,8 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
   const vi = LV.indexOf(view);
   const [snap, setSnap] = useState(() => JSON.stringify({ steps: initSteps, code: initCode, committed: ei, suite: tc ? tc.suite : ((fqaSuites[0] || {}).name || ""), name: (tc && tc.name) || "", tags: (tc && tc.tags) || "", dataset: tc ? (tc.dataset && tc.dataset !== "-" ? tc.dataset : "") : "", acctRole: (tc && tc.acctRole) || "", preCase: (tc && tc.preCase) || "", prodCaution: !!(tc && tc.prodCaution) }));
   const dirty = snap !== JSON.stringify({ steps, code, committed, suite, name, tags, dataset, acctRole, preCase, prodCaution });
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const versions = (tc && tc.versions) || [];
   const curRev = (tc && tc.rev) || 1;
   /* 내가 편집을 시작한 리비전 — 저장 시 낙관적 잠금의 기준.
@@ -910,6 +951,14 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
      ※ 실 구현에서는 생성기를 서버가 소유한다(프론트·서버 이중 구현은 반드시 어긋난다). */
   const asCase = () => ({ ...(tc || {}), name: name.trim() || (tc && tc.name) || "", dataset: dataset || "-" });
   const preview = () => stepsToCode(steps, asCase());
+  /* 🔑 이 케이스를 전제조건으로 쓰는 케이스들 — 그러면 생성기가 두 형태를 내야 한다.
+     케이스로 실행: test(...)  /  전제조건으로 실행: globalSetup에서 도는 async 함수.
+     스텝 본문은 같고 껍데기만 다르다. 통으로 test()를 만들면 전제조건으로 못 쓴다(F1). */
+  const usedAsPre = (fqaCases || []).filter((c) => c.preCase === (tc && tc.id));
+  const preForm = () => {
+    const body = stepsToCode(steps, asCase()).split("\n").filter((l) => /^\s{2}/.test(l)).map((l) => l.slice(2)).join("\n");
+    return "// globalSetup — 역할·슬롯 조합마다 1회\nexport async function setup(page, V) {\n" + body + "\n}";
+  };
   const descend = () => {
     if (!window.confirm("Full-Code로 변환하면 스텝 편집은 읽기 전용이 되고, 되돌릴 수 없습니다.\n(변경 이력에서 이전 리비전으로 복원하는 방법만 남습니다)\n\n변환할까요?")) return;
     setCode(preview()); setCommitted(1); setView("Full-Code");
@@ -1251,6 +1300,17 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                 <textarea value={code} onChange={(e) => setCode(e.target.value)} rows={16} className={taCls} style={{ fontFamily: "monospace" }} />
               </div>
             )}
+            {/* 전제조건으로 쓰이는 케이스는 생성기가 두 형태를 낸다 — 껍데기만 다르고 본문은 같다 */}
+            {usedAsPre.length > 0 && view === "Low-Code" && (
+              <div className="border-t border-slate-800 p-3">
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                  <Badge kind="teal">전제조건으로 사용 {usedAsPre.length}건</Badge>
+                  <span className="font-mono text-slate-500">{usedAsPre.slice(0, 4).map((c) => c.id).join(", ")}{usedAsPre.length > 4 && " 외 " + (usedAsPre.length - 4) + "건"}</span>
+                </div>
+                <div className="mb-1.5 text-slate-500" style={{ fontSize: 11 }}>같은 스텝이 <span className="text-slate-400">케이스용 <span className="font-mono">test(...)</span></span> 와 <span className="text-slate-400">전제조건용 <span className="font-mono">async 함수</span></span> 두 형태로 생성됩니다. 실행 시작 시 이 함수로 세션을 만들어 위 케이스들이 재사용합니다.</div>
+                <pre className="max-h-40 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-2.5 font-mono text-slate-400" style={{ fontSize: 11 }}>{preForm()}</pre>
+              </div>
+            )}
 
             {errs.length > 0 && (
               <div className="border-t border-amber-900 bg-amber-950 px-4 py-2">
@@ -1371,7 +1431,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
 const SF0 = { name: "", desc: "" };
 export function FqaSuiteScreen() {
   const [msg, flash] = useToast();
-  const { fqaSuites: suites, addFqaSuite, updateFqaSuite, removeFqaSuite, fqaCases, updateFqaCase, setFqaEditTc, goto } = useApp();
+  const { fqaSuites: suites, addFqaSuite, updateFqaSuite, removeFqaSuite, fqaCases, updateFqaCase, setFqaEditTc, goto, setNavGuard } = useApp();
   const casesOf = (name) => fqaCases.filter((c) => c.suite === name);
   const tcOf = (name) => casesOf(name).length;
   const [sel, setSel] = useState(suites[0] ? suites[0].id : null);
@@ -1384,6 +1444,8 @@ export function FqaSuiteScreen() {
   const nm = draft.name != null ? draft.name : (selSuite ? selSuite.name : "");
   const ds = draft.desc != null ? draft.desc : (selSuite ? (selSuite.desc || "") : "");
   const dirty = !!selSuite && (nm !== selSuite.name || ds !== (selSuite.desc || ""));
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const saveSuite = () => {
     const name = nm.trim();
     if (!name) { flash("이름을 입력하세요"); return; }
@@ -1476,7 +1538,13 @@ export function FqaSuiteScreen() {
               </Card>
             </>
           ) : (
-            <Card className="flex items-center justify-center py-16 text-xs text-slate-600">왼쪽에서 스위트를 선택하세요.</Card>
+            <Card className="flex flex-col items-center justify-center py-16 text-center">
+              {suites.length === 0 ? (<>
+                <Layers size={26} className="text-slate-600" />
+                <div className="mt-3 text-sm font-medium text-slate-300">테스트 스위트를 먼저 만드세요</div>
+                <div className="mt-1.5 max-w-md text-xs text-slate-500">스위트는 업무 흐름 단위로 케이스를 묶습니다. 실행 계획이 스위트를 골라 실행하므로, 케이스는 스위트에 속해야 실행됩니다.</div>
+              </>) : <div className="text-xs text-slate-600">왼쪽에서 스위트를 선택하세요.</div>}
+            </Card>
           )}
         </div>
       </div>
@@ -1575,30 +1643,8 @@ export function FqaRunScreen({ nav }) {
      케이스 안(스텝 완성도·save 변수)은 저장 시점에 이미 막혔으므로 여기서 다시 보지 않는다.
      여기가 실행을 막는 유일한 지점이다. 실 구현에서는 서버 API 계층에 둔다 —
      화면 실행 · 정기 스케줄 · CI 웹훅 세 경로가 모두 지나가는 곳은 거기뿐이다. */
-  const precheck = (plan) => {
-    const { sy, e } = envRefOf(plan);
-    const cs = fqaCases.filter((c) => suiteNames(plan).includes(c.suite) && !c.quarantined && tagMatch(c, plan.tags) && c.status === "승인");
-    const roles = ((e || {}).accts || []).map((a) => a.role);
-    const dsNames = (datasets || []).map((d) => d.name);
-    const g = [];
-    const add = (why, fixLabel, fixView, list, planLevel) => { if (list.length) g.push({ why, fixLabel, fixView, cases: list, planLevel: !!planLevel }); };
-    // 접점 ↔ 환경 — 감당 못 하면 그 접점 케이스는 전건 실패한다. 계획 수준 실패이므로 격리로 풀 일이 아니다.
-    add("환경이 케이스의 접점을 감당하지 못합니다 — " + (!(e || {}).apiUrl ? "apiUrl 없음" : "webUrl 없음"), "환경 설정", "fqa-targets",
-      cs.filter((c) => !envCovers(e, surfacesOf(c))), true);
-    // 계정 역할 — 풀에 역할이 없으면 주입할 값이 없다
-    add("환경 계정 풀에 해당 역할이 없습니다", "환경 설정", "fqa-targets",
-      cs.filter((c) => c.acctRole && !roles.includes(c.acctRole)));
-    // 데이터셋 — 사라졌으면 행이 0개가 되어 테스트가 0개 생성된다(실패도 통과도 아닌 무동작)
-    add("참조하는 데이터셋이 없습니다", "데이터셋", "datasets",
-      cs.filter((c) => c.dataset && c.dataset !== "-" && !dsNames.includes(c.dataset)));
-    /* 전제조건 케이스 — 사라졌거나 승인이 풀렸으면 로그인 없이 돌아 전건 실패한다.
-       전제조건 케이스를 고치면 승인이 풀리므로(저장 시 검토중) 여기서 걸린다. 그게 의도다 —
-       로그인 절차를 바꿔놓고 검증 없이 수백 케이스에 적용하는 것을 막는다. */
-    const byId = (id) => (fqaCases || []).find((x) => x.id === id);
-    add("전제조건 케이스가 없거나 승인되지 않았습니다", "테스트케이스", "fqa-cases",
-      cs.filter((c) => c.preCase && (byId(c.preCase) || {}).status !== "승인"));
-    return g;
-  };
+  const planCasesOf = (plan) => fqaCases.filter((c) => suiteNames(plan).includes(c.suite) && !c.quarantined && tagMatch(c, plan.tags) && c.status === "승인");
+  const precheck = (plan) => { const { e } = envRefOf(plan); return outerChecks(planCasesOf(plan), e, datasets, fqaCases); };
   const [pcModal, setPcModal] = useState(null);
   /* 🔴 문제 케이스만 빼고 돌리지 않는다 — 일부만 돈 회차가 품질 게이트를 통과하면
      검증이 사라진 것을 아무도 모른다. 빼는 결정은 사람이 '격리'로 내린다. */
@@ -1723,7 +1769,11 @@ export function FqaRunScreen({ nav }) {
               </div>
             ))}
           </div>
-          <div className="mt-3 text-slate-500" style={{ fontSize: 11 }}>고치거나 격리한 뒤 다시 실행하세요. 이 검사는 실행 요청마다 다시 수행됩니다 — 계획을 만든 뒤에도 환경·계정·데이터셋은 바뀝니다.</div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="text-slate-500" style={{ fontSize: 11 }}>이 검사는 실행 요청마다 다시 수행됩니다 — 계획을 만든 뒤에도 환경·계정·데이터셋은 바뀝니다.</div>
+            {/* 고친 뒤 실행 화면을 다시 찾아올 필요가 없게 한다 — 통과하면 그대로 실행되고, 아니면 이 모달이 다시 뜬다 */}
+            <Btn kind="primary" icon={Play} onClick={() => { const pl = pcModal.plan; setPcModal(null); runNow(pl); }}>다시 실행</Btn>
+          </div>
         </Modal>
       )}
       <Toast msg={msg} />
@@ -1779,7 +1829,7 @@ export function FqaHistoryScreen({ nav }) {
 }
 /* ═══════════ 7. 결과 상세 ═══════════ */
 export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }) {
-  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, jiraConfig, setPendingSelect } = useApp();
+  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, jiraConfig, setPendingSelect, goto } = useApp();
   const [msg, flash] = useToast();
   const [filt, setFilt] = useState("전체");
   const [selId, setSelId] = useState(null);
@@ -1867,11 +1917,18 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const defectsOfTc = (id) => defects.filter((d) => d.tc === id && d.domain === "FQA" && (d.target || "") === runTarget);
   const openDefectOf = (id) => defectsOfTc(id).find((d) => d.status !== "Resolved");
   const isRegression = (id) => !openDefectOf(id) && defectsOfTc(id).length > 0;
+  /* 🔑 아직 결함에 안 걸린 실패 행 — 버튼 노출 조건과 등록 모달의 기본 선택이 같은 계산을 써야 한다.
+     따로 계산하면 "등록할 게 없는데 버튼이 보이는" 상태가 된다. 행 식별은 스냅샷 해시가 아니라
+     목업이므로 데이터 직렬화로 대신한다(실 구현은 data_hash). */
+  const regKeysOf = (id) => defectsOfTc(id).flatMap((d) => (d.rows || []).map((r) => JSON.stringify(r.data || {})));
+  const openFailRows = (t) => { if (!t || !Array.isArray(t.rows)) return []; const k = regKeysOf(t.id); return t.rows.filter((r) => r.v === "FAIL" && !k.includes(JSON.stringify(r.data || {}))); };
+  // 등록할 것이 남았는가 — 행 케이스는 미등록 실패 행 기준, 일반 케이스는 열린 결함 유무 기준
+  const canRegister = (t) => { if (!t || t.v !== "FAIL") return false; return Array.isArray(t.rows) && t.rows.length ? openFailRows(t).length > 0 : !openDefectOf(t.id); };
   const regDefect = (t) => {
     /* 데이터 구동 케이스는 실패 행마다 원인이 다를 수 있으므로 케이스당 1건으로 막지 않는다.
        어느 행을 묶을지는 사용자가 모달에서 고른다(시스템이 자동으로 분리·병합하지 않는다). */
     const failRows = Array.isArray(t.rows) ? t.rows.filter((r) => r.v === "FAIL") : [];
-    if (!failRows.length && openDefectOf(t.id)) { flash(t.id + " 이미 열린 결함이 있습니다"); return; }
+    if (!canRegister(t)) { flash(t.id + " 등록할 실패 행이 없습니다 — 이미 모두 결함에 연결되어 있습니다"); return; }
     openModal("jira", {
       domain: "FQA", sev: "Major", tc: t.id, target: runTarget, labels: "fqa, functional",
       rows: failRows, ds: t.ds || "",
@@ -1989,16 +2046,16 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
             </Card>
             {cur && (
             <Card className="col-span-3 p-4">
-              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-teal-400">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{cur.heal && <Badge kind="teal">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && openDefectOf(cur.id) && <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); nav && nav("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>}
+              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-teal-400">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{cur.heal && <Badge kind="teal">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && openDefectOf(cur.id) && <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); goto("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>}
                 {/* 행이 있는 케이스는 열린 결함이 있어도 다른 행에 대해 추가 등록할 수 있다 */}
-                {cur.v === "FAIL" && (!openDefectOf(cur.id) || (Array.isArray(cur.rows) && cur.rows.some((r) => r.v === "FAIL"))) && <Btn kind="danger" icon={Bug} onClick={() => regDefect(cur)}>{isRegression(cur.id) ? "재발 결함 등록" : "결함 등록"}</Btn>}</div></div>
+                {canRegister(cur) && <Btn kind="danger" icon={Bug} onClick={() => regDefect(cur)}>{isRegression(cur.id) ? "재발 결함 등록" : "결함 등록"}</Btn>}</div></div>
               <div className="mb-3 text-sm text-slate-300">{cur.name}</div>
               {/* 🔑 실행 결과의 리비전 스탬프 — 없으면 "제품이 깨진 건가 케이스가 바뀐 건가"를 구분할 수 없어 회귀 분석이 거짓말을 한다.
                   케이스가 그 뒤에 수정되었으면 이 결과를 현재 케이스로 재현할 수 없다는 뜻이므로 그렇게 알린다. */}
               {cur.rev != null && curCase && (curCase.rev || 1) !== cur.rev && (
                 <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-800 bg-amber-950 px-3 py-2 text-xs text-amber-300">
                   <AlertTriangle size={13} className="shrink-0" />
-                  <span>이 결과는 <span className="font-mono">rev {cur.rev}</span> 로 실행되었고 케이스는 현재 <span className="font-mono">rev {curCase.rev || 1}</span> 입니다 — 지금 다시 돌리면 다른 결과가 나올 수 있습니다.</span>
+                  <span>이 결과는 <span className="font-mono">rev {cur.rev}</span> 로 실행되었고 케이스는 현재 <span className="font-mono">rev {curCase.rev || 1}</span> 입니다 — 지금 다시 돌리면 다른 결과가 나올 수 있습니다. <span className="text-amber-400/80">테스트케이스에서 변경 이력을 확인하세요.</span></span>
                 </div>
               )}
               {cur.heal && (
@@ -2106,16 +2163,16 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
             <Card className="p-4 text-center"><div className="text-2xl font-bold text-slate-300">{summ["유지"] || 0}</div><div className="mt-0.5 text-xs text-slate-500">유지</div></Card>
           </div>
           <Card className="overflow-hidden">
-            <div className="border-b border-slate-800 px-4 py-3 text-sm font-semibold text-slate-200">케이스 회귀 분석 <span className="font-normal text-slate-500">· {aId} → {bId}</span></div>
+            <div className="border-b border-slate-800 px-4 py-3 text-sm font-semibold text-slate-200">케이스 회귀 분석 <span className="font-normal text-slate-500">· {aId} → {bId}</span>{runDiff && <span className="ml-2 font-normal text-amber-400" style={{ fontSize: 12 }}>· {runDiff} — 판정 차이를 제품 회귀로 단정할 수 없습니다</span>}<span className="ml-2 font-normal text-slate-600" style={{ fontSize: 11 }}>행을 클릭하면 {bId} 결과 상세로 이동합니다</span></div>
             <table className="w-full text-sm">
               <thead><tr className="border-b border-slate-800 text-left text-slate-500"><th className="px-4 py-2.5 font-medium">ID</th><th className="font-medium">TC</th><th className="font-medium">A</th><th></th><th className="font-medium">B</th><th className="font-medium">변화</th></tr></thead>
               <tbody>
                 {regRows.length === 0 && (<tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">두 실행 모두 케이스 단위 결과가 없습니다.</td></tr>)}
                 {regRows.map((r) => { const v = cls(r.a, r.b); const revd = r.ra != null && r.rb != null && r.ra !== r.rb; const rv = (n) => (n == null ? null : <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {n}</span>); return (
-                  <tr key={r.id} className={"border-b border-slate-800 text-slate-300 " + (v.k === "퇴행" ? "bg-red-950" : "")}>
+                  <tr key={r.id} onClick={() => nav && nav(bId)} title={bId + " 결과 상세로 이동"} className={"cursor-pointer border-b border-slate-800 text-slate-300 hover:brightness-125 " + (v.k === "퇴행" ? "bg-red-950" : "")}>
                     <td className="px-4 py-2.5 font-mono text-teal-400">{r.id}</td><td className="text-slate-300">{r.name}</td><td className="whitespace-nowrap">{r.a ? <Badge kind={vK[r.a]}>{r.a}</Badge> : <span className="text-xs text-slate-600">없음</span>}{rv(r.ra)}</td><td className="text-slate-600">→</td><td className="whitespace-nowrap">{r.b ? <Badge kind={vK[r.b]}>{r.b}</Badge> : <span className="text-xs text-slate-600">없음</span>}{rv(r.rb)}</td>
                     {/* rev가 다르면 판정 변화의 원인을 제품으로 단정할 수 없다 — 그 사실만 덧붙이고 결론은 내리지 않는다 */}
-                    <td className={"font-semibold whitespace-nowrap " + v.c}>{v.k}{revd && <span className="ml-1.5 font-normal text-amber-400" style={{ fontSize: 11 }}>· 케이스 변경</span>}{runDiff && <span className="ml-1.5 font-normal text-amber-400" style={{ fontSize: 11 }}>· {runDiff}</span>}</td>
+                    <td className={"font-semibold whitespace-nowrap " + v.c}>{v.k}{revd && <span className="ml-1.5 font-normal text-amber-400" style={{ fontSize: 11 }}>· 케이스 변경</span>}</td>
                   </tr>
                 ); })}
               </tbody>
@@ -2302,7 +2359,7 @@ export function FqaDashboardScreen({ nav }) {
 }
 /* ═══════════ 9. 테스트케이스 (통합 저장소) ═══════════ */
 export function FqaCasesScreen() {
-  const { fqaCases, fqaSuites, addFqaCase, setFqaCaseStatus, removeFqaCase, fqaEditTc, setFqaEditTc, fqaSuiteFocus, setFqaSuiteFocus } = useApp();
+  const { fqaCases, fqaSuites, addFqaCase, setFqaCaseStatus, removeFqaCase, fqaEditTc, setFqaEditTc, fqaSuiteFocus, setFqaSuiteFocus, goTo } = useApp();
   const editorDirty = useRef(false);
   useEffect(() => { if (fqaEditTc) { const c = fqaCases.find((x) => x.id === fqaEditTc); if (c) { setSel(c); setMode("edit"); } setFqaEditTc(null); } }, [fqaEditTc]);
   const [msg, flash] = useToast();
@@ -2359,7 +2416,7 @@ export function FqaCasesScreen() {
         <div style={{ width: 110 }}><Select value={platF} onChange={(e) => setPlatF(e.target.value)}><option>전체</option><option>웹</option><option>API</option><option>웹+API</option></Select></div>
         <div style={{ width: 110 }}><Select value={stf} onChange={(e) => setStf(e.target.value)}><option>전체</option><option>승인</option><option>검토중</option><option>초안</option></Select></div>
         <div className="relative">
-          <Btn kind="primary" icon={Plus} onClick={() => setAddOpen(!addOpen)}>새 TC</Btn>
+          <Btn kind="primary" icon={Plus} onClick={() => setAddOpen(!addOpen)} disabled={fqaSuites.length === 0} title={fqaSuites.length === 0 ? "스위트를 먼저 만드세요 — 케이스는 스위트에 속해야 계획이 잡습니다" : ""}>새 TC</Btn>
           {addOpen && (
             <div className="absolute right-0 z-20 mt-1 w-60 rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-xl">
               {/* 모든 경로는 '실행 가능한 스텝'을 만든다 — 스텝 없는 TC는 만들지 않는다 */}
@@ -2384,6 +2441,26 @@ export function FqaCasesScreen() {
           {/* 케이스의 속성만 — 실행 결과·결함은 실행의 속성이므로 결과·결함 화면이 본진이다 */}
           <thead><tr className="border-b border-slate-800 text-left text-slate-500"><th className="w-8 py-2.5 pl-4"><input type="checkbox" checked={allPicked} onChange={toggleAll} className="accent-teal-500" title="전체 선택" /></th><th className="py-2.5 pr-4 font-medium">ID</th><th className="font-medium">이름</th><th className="font-medium">스위트</th><th className="font-medium">태그</th><th className="font-medium">구성</th><th className="font-medium">관리</th><th className="font-medium">상태</th><th className="font-medium">수정</th><th></th></tr></thead>
           <tbody>
+            {/* 아무것도 없는 것과 필터에 걸린 것은 다른 상황이다 — 같은 빈 표를 보여주면 사용자가 원인을 모른다 */}
+            {list.length === 0 && (
+              <tr><td colSpan={9} className="px-4 py-10 text-center">
+                {fqaCases.length === 0 ? (<>
+                  <div className="text-sm font-medium text-slate-300">등록된 테스트케이스가 없습니다</div>
+                  {fqaSuites.length === 0 ? (
+                    /* 스위트가 먼저다 — 케이스는 스위트에 속해야 계획이 잡는다 */
+                    <>
+                      <div className="mt-1.5 text-xs text-amber-400">테스트 스위트를 먼저 만드세요. 케이스는 스위트에 속해야 실행 계획이 잡습니다.</div>
+                      <Btn className="mt-3" icon={Layers} onClick={() => goTo("fqa-suites")}>테스트 스위트 만들러 가기</Btn>
+                    </>
+                  ) : (
+                    <div className="mt-1.5 text-xs text-slate-500">레코딩으로 만들거나 직접 작성할 수 있습니다. 실행하려면 <span className="text-slate-400">승인</span> 상태여야 합니다.</div>
+                  )}
+                </>) : (<>
+                  <div className="text-sm text-slate-300">조건에 맞는 케이스가 없습니다</div>
+                  <div className="mt-1.5 text-xs text-slate-500">검색어·스위트·태그·접점·상태 필터를 확인하세요.</div>
+                </>)}
+              </td></tr>
+            )}
             {list.map((c) => (
               <tr key={c.id} onClick={() => setOpen(c)} className={"cursor-pointer border-b border-slate-800 text-slate-300 hover:bg-slate-800 " + (picked.has(c.id) ? "bg-slate-800/60" : "")}>
                 <td className="pl-4" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} className="accent-teal-500" /></td>
@@ -2391,7 +2468,7 @@ export function FqaCasesScreen() {
                 <td className="text-slate-200">{c.name}</td>
                 <td className="text-slate-400">{c.suite}</td>
                 <td>{tagList(c.tags).length ? <div className="flex gap-1">{tagList(c.tags).map((t) => <span key={t} className="rounded-full border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-xs text-slate-400">{t}</span>)}</div> : <span className="text-xs text-slate-600">-</span>}</td>
-                <td className="whitespace-nowrap">{surfacesOf(c) === "-" ? <span className="text-xs text-slate-600">-</span> : <Badge kind={SURF_K[surfacesOf(c)] || "info"}>{surfacesOf(c)}</Badge>}{c.preCase && <span className="ml-1 font-mono text-slate-500" style={{ fontSize: 10 }} title={"전제조건 " + c.preCase + " 수행 후 시작"}>← {c.preCase}</span>}{c.dataset && c.dataset !== "-" && <span className="ml-1 font-mono text-teal-500" style={{ fontSize: 10 }} title={"데이터셋 " + c.dataset}>⛁ {c.dataset}</span>}</td>
+                <td className="whitespace-nowrap">{surfacesOf(c) === "-" ? <span className="text-xs text-slate-600">-</span> : <Badge kind={SURF_K[surfacesOf(c)] || "info"}>{surfacesOf(c)}</Badge>}{c.preCase && <button onClick={(e) => { e.stopPropagation(); const t = list.find((x) => x.id === c.preCase) || fqaCases.find((x) => x.id === c.preCase); if (t) setOpen(t); }} className="ml-1 font-mono text-slate-500 hover:text-teal-400" style={{ fontSize: 10 }} title={"전제조건 " + c.preCase + " — 클릭하면 그 케이스를 봅니다"}>← {c.preCase}</button>}{c.dataset && c.dataset !== "-" && <span className="ml-1 font-mono text-teal-500" style={{ fontSize: 10 }} title={"데이터셋 " + c.dataset}>⛁ {c.dataset}</span>}</td>
                 <td><Badge kind={lvK2[c.level] || "info"}>{lvLabel(c)}</Badge></td>
                 <td><Badge kind={stK[c.status]}>{c.status}</Badge></td>
                 <td className="pr-2 text-xs text-slate-500 whitespace-nowrap">{c.updatedBy || "—"} · {c.updatedAt || "—"}</td>
@@ -2483,7 +2560,7 @@ const EndpointGroup = ({ webUrl, apiUrl, set }) => {
 };
 export function FqaTargetScreen() {
   const [msg, flash] = useToast();
-  const { fqaSystems: systems, addFqaSystem, updateFqaSystem, removeFqaSystem, fqaPlans, fqaCases } = useApp();
+  const { fqaSystems: systems, addFqaSystem, updateFqaSystem, removeFqaSystem, fqaPlans, fqaCases, setNavGuard } = useApp();
   const [sel, setSel] = useState(0);
   const [envIdx, setEnvIdx] = useState(0);
   const [test, setTest] = useState(null);
@@ -2494,8 +2571,10 @@ export function FqaTargetScreen() {
   const [draft, setDraft] = useState({});
   const [nameDraft, setNameDraft] = useState(null);
   const stK = { "연결됨": "pass", "미확인": "warn", "오류": "fail" };
-  const sys = systems[sel] || systems[0];
-  const env = sys.envs[envIdx] || sys.envs[0];
+  /* 🔴 신규 조직은 대상이 0건으로 시작한다 — sys.envs 접근 전에 막지 않으면 첫 화면에서 터진다.
+     지금은 "최소 1개 유지" 가드 덕에 도달하지 않지만, 실 구현에서는 반드시 겪는 상태다. */
+  const sys = systems[sel] || systems[0] || null;
+  const env = sys ? (sys.envs[envIdx] || sys.envs[0]) : null;
   const secretRef = (val, setVal, ph) => <VarRefInput value={val} onChange={setVal} placeholder={ph} />;
   // 환경 = 한 배포본이 노출하는 접점(webUrl/apiUrl) + 공유 계정 + API 인증
   // 웹 로그인은 환경 설정이 아니다 — UI 흐름이므로 테스트케이스의 스텝이 수행한다.
@@ -2513,25 +2592,30 @@ export function FqaTargetScreen() {
   const hasApi = !!cfg.apiUrl;
   const apiT = (cfg.apiAuth || {}).type || "API Key";
   const verMode = (cfg.deploy || {}).mode || "수동";
-  const dirty = Object.keys(draft).length > 0 || (nameDraft !== null && nameDraft !== sys.name);
+  const dirty = Object.keys(draft).length > 0 || (nameDraft !== null && nameDraft !== ((sys || {}).name || ""));
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   // 접점·인증이 바뀌면 이전 연결 결과는 무효 → 미확인으로 되돌린다
   const invalidates = ["webUrl", "apiUrl", "apiAuth", "access"].some((k) => k in draft);
   const saveCfg = () => { updateFqaSystem(sys.id, { ...(nameDraft !== null ? { name: nameDraft } : {}), envs: sys.envs.map((e, i) => (i === envIdx ? { ...e, ...draft, ...(invalidates ? { status: "미확인" } : {}) } : e)) }); setDraft({}); setNameDraft(null); setTest(null); flash("설정 저장됨" + (invalidates ? " · 연결 테스트 필요" : "")); };
   const guardSwitch = (fn) => { if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; setDraft({}); setNameDraft(null); fn(); };
-  useEffect(() => { setDraft({}); setNameDraft(null); }, [sys.id]);
-  const envSlug = { "스테이징": "stg", "운영": "prod", "개발": "dev" }[env.env] || "env";
-  const hookUrl = "https://autoqa.io/api/hooks/t" + sys.id + "-" + envSlug + "-3f9a2c";
+  useEffect(() => { setDraft({}); setNameDraft(null); }, [(sys || {}).id]);
+  const envSlug = { "스테이징": "stg", "운영": "prod", "개발": "dev" }[(env || {}).env] || "env";
+  const hookUrl = "https://autoqa.io/api/hooks/t" + ((sys || {}).id || 0) + "-" + envSlug + "-3f9a2c";
   const choose = (i) => guardSwitch(() => { setSel(i); setEnvIdx(0); setTest(null); });
   // 참조 중이면 삭제 불가 — 계획의 targetRef가 조용히 끊어지는 것을 막는다
+  /* '최소 1개 유지' 가드는 두지 않는다 — 업무 규칙이 아니라 sys.envs 접근 크래시를 피하려던 장치였다.
+     크래시를 막았으므로 0건도 정상 상태다. 신규 조직은 어차피 0건에서 시작한다.
+     실제로 막아야 하는 것은 '참조 중인 대상 삭제'이고 그건 아래 plansUsing이 한다. */
   const delTarget = (i, sy) => {
-    if (systems.length <= 1) { flash("최소 1개 대상은 유지해야 합니다"); return; }
     const used = plansUsing(sy.id, null);
     if (used.length) { setBlock({ what: sy.name + " 대상", plans: used }); return; }
-    if (!window.confirm(sy.name + " 대상을 삭제할까요?")) return;
-    guardSwitch(() => { removeFqaSystem(sy.id); setSel(0); setEnvIdx(0); setTest(null); flash(sy.name + " 삭제됨"); });
+    if (!window.confirm(sy.name + " 대상을 삭제할까요?" + (systems.length <= 1 ? "\n\n마지막 대상입니다 — 삭제하면 케이스를 실행할 대상이 없어집니다." : ""))) return;
+    guardSwitch(() => { removeFqaSystem(sy.id); setSel(0); setEnvIdx(0); setTest(null); setNameDraft(null); setDraft({}); flash(sy.name + " 삭제됨"); });
   };
   const delEnv = () => {
-    if (sys.envs.length <= 1) { flash("최소 1개 환경은 유지해야 합니다"); return; }
+    // 환경이 없는 대상은 실행 대상이 될 수 없다 — 이건 크래시 회피가 아니라 업무 규칙이다
+    if (sys.envs.length <= 1) { flash("대상에는 환경이 최소 1개 필요합니다 — 대상을 지우려면 대상 삭제를 쓰세요"); return; }
     const used = plansUsing(sys.id, env.env);
     if (used.length) { setBlock({ what: sys.name + " · " + env.env + " 환경", plans: used }); return; }
     if (!window.confirm(env.env + " 환경을 삭제할까요?")) return;
@@ -2577,7 +2661,7 @@ export function FqaTargetScreen() {
 
   /* 참조 무결성 — 환경 이름은 실행 계획의 참조 키(targetRef.env)다.
      ① 같은 대상 안에서 유니크해야 하고  ② 참조 중이면 삭제할 수 없다. */
-  const usedEnvs = (sys.envs || []).map((e) => e.env);
+  const usedEnvs = ((sys || {}).envs || []).map((e) => e.env);
   const envOpts = ENV_NAMES.filter((n) => !usedEnvs.includes(n));
   const plansUsing = (systemId, envName) => (fqaPlans || []).filter((p) => {
     const r = p.targetRef || {};
@@ -2595,6 +2679,39 @@ export function FqaTargetScreen() {
     if (!ef.webUrl.trim() && !ef.apiUrl.trim()) { flash("웹 또는 API 접점 중 하나 이상을 입력하세요"); return; }
     guardSwitch(() => { updateFqaSystem(sys.id, { envs: [...sys.envs, { env: ef.env, webUrl: ef.webUrl, apiUrl: ef.apiUrl, status: "미확인", ver: "-", prod: ef.env === "운영", accts: [] }] }); setEnvIdx(sys.envs.length); setModal(null); flash("환경이 추가되었습니다"); });
   };
+  // 빈 상태 — 무엇이 없는지와 다음에 할 일을 같이 준다. 여기서 막히면 이후 단계로 못 간다.
+  if (!sys) return (
+    <div className="space-y-4">
+      <PageToolbar desc="대상(제품) → 환경(배포본) · 접점(웹/API) · 인증 · 접근" />
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-3 space-y-3">
+          <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setTf({ name: "", env: "스테이징", webUrl: "", apiUrl: "" }); setModal("target"); }}>대상 추가</Btn>
+          <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 대상이 없습니다.</div>
+        </div>
+        <div className="col-span-9">
+          <Card className="flex flex-col items-center justify-center py-16 text-center">
+            <Server size={26} className="text-slate-600" />
+            <div className="mt-3 text-sm font-medium text-slate-300">검증 대상을 먼저 등록하세요</div>
+            <div className="mt-1.5 max-w-md text-xs text-slate-500">테스트할 제품과 환경(스테이징·운영)을 등록해야 케이스를 만들고 실행할 수 있습니다. 케이스는 환경을 모르고, 실행 시점에 여기서 주입받습니다.</div>
+          </Card>
+        </div>
+      </div>
+      {modal && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setModal(null)}>
+          <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3.5"><h3 className="font-semibold text-slate-100">대상 추가</h3><button onClick={() => setModal(null)} className="text-slate-500 hover:text-slate-200"><X size={18} /></button></div>
+            <div className="space-y-3 px-5 py-4">
+              <Field label="대상 이름"><Input value={tf.name} onChange={(e) => setTf({ ...tf, name: e.target.value })} placeholder="예: 온마켓" /></Field>
+              <Field label="첫 환경"><Select value={tf.env} onChange={(e) => setTf({ ...tf, env: e.target.value })}>{ENV_NAMES.map((n) => <option key={n}>{n}</option>)}</Select></Field>
+              <EndpointGroup webUrl={tf.webUrl} apiUrl={tf.apiUrl} set={(pp) => setTf({ ...tf, ...pp })} />
+              <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setModal(null)}>취소</Btn><Btn kind="primary" icon={Save} onClick={addTarget}>추가</Btn></div>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={msg} />
+    </div>
+  );
   return (
     <div className="space-y-4">
       <PageToolbar desc="대상(제품) → 환경(배포본) · 접점(웹/API) · 인증 · 접근" />
@@ -2800,7 +2917,7 @@ const TG = ({ on, onClick }) => (
   <button onClick={onClick} className={"relative h-5 w-9 rounded-full transition " + (on ? "bg-teal-600" : "bg-slate-700")}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all" style={{ left: on ? 18 : 2 }} /></button>
 );
 export function FqaPlanScreen() {
-  const { fqaSuites, fqaSystems, fqaCases, fqaRuns, addFqaRun, updateFqaRun, fqaPlans, addFqaPlan, updateFqaPlan, removeFqaPlan, jiraConfig } = useApp();
+  const { fqaSuites, fqaSystems, fqaCases, fqaRuns, addFqaRun, updateFqaRun, fqaPlans, addFqaPlan, updateFqaPlan, removeFqaPlan, jiraConfig, datasets, setNavGuard, goTo } = useApp();
   const [msg, flash] = useToast();
   // 대상·환경은 ID 참조 { systemId, env } — 이름 변경에도 참조가 깨지지 않는다
   const targetOpts = (fqaSystems || []).flatMap((sy) => (sy.envs || []).map((e) => ({ systemId: sy.id, env: e.env, label: sy.name + " · " + e.env })));
@@ -2811,23 +2928,26 @@ export function FqaPlanScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [nf, setNf] = useState({ name: "", targetRef: defRef, suites: [], tags: "" });
   const [selId, setSelId] = useState(fqaPlans[0] ? fqaPlans[0].id : null);
-  const sel = fqaPlans.find((p) => p.id === selId) || fqaPlans[0] || { id: 0, name: "-", targetRef: defRef, suites: [], tags: "" };
-  const [name, setName] = useState(sel.name);
-  const [targetRef, setTargetRef] = useState(sel.targetRef || defRef);
-  const [suites, setSuites] = useState(sel.suites || []);
+  /* 🔴 계획이 0건일 때 가짜 계획(id:0)으로 폼을 렌더하면 안 된다 —
+     저장을 눌러도 updateFqaPlan(0, …)이 매칭되지 않아 조용히 무동작이고, 화면은 "저장됨"이라고 말한다.
+     화면이 거짓말하느니 빈 상태를 보여주는 편이 낫다. */
+  const sel = fqaPlans.find((p) => p.id === selId) || fqaPlans[0] || null;
+  const [name, setName] = useState((sel || {}).name || "");
+  const [targetRef, setTargetRef] = useState((sel || {}).targetRef || defRef);
+  const [suites, setSuites] = useState((sel || {}).suites || []);
   const toggleSuite = (n) => setSuites((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]));
-  const [tags, setTags] = useState(sel.tags);
-  const [brow, setBrow] = useState(sel.brow || ["Chromium"]);
-  const [res, setRes] = useState(sel.res || "1920×1080");
-  const [workers, setWorkers] = useState(sel.workers || "4");
-  const [retry, setRetry] = useState(sel.retry != null ? sel.retry : 1);
-  const [onfail, setOnfail] = useState(sel.onfail || "계속 진행");
-  const [video, setVideo] = useState(sel.video || "녹화 안 함");
-  const [apiTimeout, setApiTimeout] = useState(sel.timeout || 30);
-  const [gate, setGate] = useState(sel.gate != null ? sel.gate : 95);
-  const [planStatus, setPlanStatus] = useState(sel.status || "초안");
-  const [sched, setSched] = useState(sel.schedule || DEFAULT_SCHED);
-  const [jira, setJira] = useState(sel.jira || { override: false });
+  const [tags, setTags] = useState((sel || {}).tags || "");
+  const [brow, setBrow] = useState((sel || {}).brow || ["Chromium"]);
+  const [res, setRes] = useState((sel || {}).res || "1920×1080");
+  const [workers, setWorkers] = useState((sel || {}).workers || "4");
+  const [retry, setRetry] = useState((sel || {}).retry != null ? sel.retry : 1);
+  const [onfail, setOnfail] = useState((sel || {}).onfail || "계속 진행");
+  const [video, setVideo] = useState((sel || {}).video || "녹화 안 함");
+  const [apiTimeout, setApiTimeout] = useState((sel || {}).timeout || 30);
+  const [gate, setGate] = useState((sel || {}).gate != null ? sel.gate : 95);
+  const [planStatus, setPlanStatus] = useState((sel || {}).status || "초안");
+  const [sched, setSched] = useState((sel || {}).schedule || DEFAULT_SCHED);
+  const [jira, setJira] = useState((sel || {}).jira || { override: false });
   const jgc = jiraConfig || {};
   const enableJira = (on) => setJira(on ? { override: true, project: jira.project || jgc.project || "", issueType: jira.issueType || jgc.issueType || "Bug", assignee: jira.assignee != null ? jira.assignee : (jgc.assignee || ""), labels: jira.labels != null ? jira.labels : (jgc.labels || ""), titleTpl: jira.titleTpl || jgc.titleTpl || "" } : { override: false });
   const setJf = (patch) => setJira((j) => ({ ...j, ...patch }));
@@ -2841,15 +2961,61 @@ export function FqaPlanScreen() {
   /* 대상 케이스가 이 환경에서 실제로 돌 수 있는가 —
      API 케이스인데 환경에 apiUrl이 없으면 전 건 실패한다. 조용히 빼지 않고 경고한다. */
   const uncovered = planCases.filter((c) => !envCovers(envOf(targetRef), surfacesOf(c)));
+  /* 실행 요청 시점과 같은 검사를 여기서도 돌린다 — 다만 여기서는 경고일 뿐 막지 않는다.
+     목적이 다르다. 여기는 피드백 속도, 실행 요청은 차단. 계획을 다 짜고 나서야 틀린 걸 알면 늦다.
+     접점(planLevel)은 아래에 전용 카드가 있으므로 제외한다. */
+  const planWarn = outerChecks(planCases, envOf(targetRef), datasets, fqaCases).filter((g) => !g.planLevel);
+  /* 워커 슬롯이 곧 계정이다(F4) — 계정보다 워커가 많으면 같은 계정으로 동시 로그인해 세션이 밀린다.
+     🔴 실행 '간' 충돌은 여기서 표현하지 못한다 — parallelIndex는 실행 내부 슬롯이라 실행 두 개가
+     동시에 돌면 둘 다 슬롯 0을 집는다. 목업은 단일 러너 FIFO라 실행이 하나씩이므로 재현되지 않는다.
+     실 구현에서는 '실행 중인 회차 중 같은 대상·환경 + 역할 겹침'을 경고해야 한다(차단 아님). */
+  const wLimit = effWorkers(planCases, envOf(targetRef), workers);
   // 운영주의 — 대상이 운영(prod) 환경인데 실데이터를 건드리는 케이스가 섞였을 때 경고(막지 않음)
   const isProdTarget = !!(envOf(targetRef) || {}).prod;
   const cautionCases = isProdTarget ? planCases.filter((c) => c.prodCaution) : [];
   const pick = (p) => { setSelId(p.id); setName(p.name); setTargetRef(p.targetRef || defRef); setSuites(p.suites || []); setTags(p.tags); setBrow(p.brow || ["Chromium"]); setRes(p.res || "1920×1080"); setWorkers(p.workers || "4"); setRetry(p.retry != null ? p.retry : 1); setOnfail(p.onfail || "계속 진행"); setVideo(p.video || "녹화 안 함"); setApiTimeout(p.timeout != null ? p.timeout : 30); setGate(p.gate != null ? p.gate : 95); setPlanStatus(p.status || "초안"); setSched(p.schedule || DEFAULT_SCHED); setJira(p.jira || { override: false }); };
   const saveCfg = () => { const nm = name.trim() || sel.name; updateFqaPlan(sel.id, { name: nm, targetRef, suites, tags, brow, res, workers, retry, onfail, video, timeout: apiTimeout, gate, status: planStatus, jira, schedule: sched, sched: (sched && sched.summary) || "예약 없음" }); flash(nm + " 설정 저장됨"); };
-  const dirty = JSON.stringify({ name, targetRef, suites, tags, brow, res, workers, retry, onfail, video, timeout: apiTimeout, gate, status: planStatus, jira }) !== JSON.stringify({ name: sel.name, targetRef: sel.targetRef || defRef, suites: sel.suites || [], tags: sel.tags, brow: sel.brow || ["Chromium"], res: sel.res || "1920×1080", workers: sel.workers || "4", retry: sel.retry != null ? sel.retry : 1, onfail: sel.onfail || "계속 진행", video: sel.video || "녹화 안 함", timeout: sel.timeout != null ? sel.timeout : 30, gate: sel.gate != null ? sel.gate : 95, status: sel.status || "초안", jira: sel.jira || { override: false } }) || schedKey(sched) !== schedKey(sel.schedule || DEFAULT_SCHED);
+  const dirty = !sel ? false : JSON.stringify({ name, targetRef, suites, tags, brow, res, workers, retry, onfail, video, timeout: apiTimeout, gate, status: planStatus, jira }) !== JSON.stringify({ name: sel.name, targetRef: sel.targetRef || defRef, suites: sel.suites || [], tags: sel.tags, brow: sel.brow || ["Chromium"], res: sel.res || "1920×1080", workers: sel.workers || "4", retry: sel.retry != null ? sel.retry : 1, onfail: sel.onfail || "계속 진행", video: sel.video || "녹화 안 함", timeout: sel.timeout != null ? sel.timeout : 30, gate: sel.gate != null ? sel.gate : 95, status: sel.status || "초안", jira: sel.jira || { override: false } }) || schedKey(sched) !== schedKey((sel || {}).schedule || DEFAULT_SCHED);
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const choosePlan = (p) => { if (p.id === sel.id) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; pick(p); };
   const createPlan = () => { const nm = nf.name.trim(); if (!nm) { flash("계획 이름을 입력하세요"); return; } if (!nf.suites.length) { flash("스위트를 1개 이상 선택하세요"); return; } const id = Math.max(0, ...fqaPlans.map((x) => x.id)) + 1; const np = { id, name: nm, targetRef: nf.targetRef, suites: nf.suites, tags: nf.tags, sched: "예약 없음", status: "초안", brow: ["Chromium"], res: "1920×1080", workers: "4", retry: 1, onfail: "계속 진행", video: "녹화 안 함", timeout: 30, gate: 95 }; addFqaPlan(np); pick(np); setAddOpen(false); setNf({ name: "", targetRef: defRef, suites: [], tags: "" }); flash(nm + " 계획 생성 (초안)"); };
   const delPlan = (pl) => { if (!window.confirm(pl.name + " 계획을 삭제할까요?")) return; removeFqaPlan(pl.id); if (selId === pl.id) { const rest = fqaPlans.filter((x) => x.id !== pl.id); setSelId(rest[0] ? rest[0].id : null); } flash(pl.name + " 삭제됨"); };
+  /* 빈 상태 — 계획은 대상·승인 케이스가 있어야 의미가 있다. 선행 조건까지 확인해 어디부터 해야 하는지 알린다. */
+  if (!sel) {
+    const okTarget = targetOpts.length > 0;
+    const okCase = fqaCases.some((c) => c.status === "승인");
+    return (
+      <div className="space-y-4">
+        <PageToolbar desc="대상·스위트·실행옵션·스케줄 정의" />
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-3 space-y-3">
+            <Btn kind="primary" icon={Plus} className="w-full" onClick={() => setAddOpen(true)} disabled={!okTarget}>새 실행 계획</Btn>
+            <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 계획이 없습니다.</div>
+          </div>
+          <div className="col-span-9">
+            <Card className="flex flex-col items-center justify-center py-16 text-center">
+              <ClipboardList size={26} className="text-slate-600" />
+              <div className="mt-3 text-sm font-medium text-slate-300">실행 계획을 만드세요</div>
+              <div className="mt-1.5 max-w-md text-xs text-slate-500">계획은 <span className="text-slate-400">대상·환경</span>과 <span className="text-slate-400">스위트</span>를 묶어 무엇을 어디에 돌릴지 정합니다.</div>
+              <div className="mt-4 w-64 space-y-1.5 text-left">
+                {[["대상·환경 등록", okTarget], ["승인된 테스트케이스", okCase]].map(([label, ok]) => (
+                  <div key={label} className="flex items-center gap-2 text-xs">
+                    {ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertTriangle size={13} className="text-amber-400" />}
+                    <span className={ok ? "text-slate-400" : "text-amber-300"}>{label}</span>
+                    <span className="ml-auto text-slate-600">{ok ? "완료" : "필요"}</span>
+                  </div>
+                ))}
+              </div>
+              {!okTarget && <Btn className="mt-3" icon={Server} onClick={() => goTo("fqa-targets")}>대상·환경 등록하러 가기</Btn>}
+              {okTarget && !okCase && <div className="mt-3 text-xs text-amber-500">계획은 만들 수 있지만 승인된 케이스가 없으면 실행해도 0건입니다.</div>}
+            </Card>
+          </div>
+        </div>
+        <Toast msg={msg} />
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
       <PageToolbar desc="대상·스위트·실행옵션·스케줄 정의" />
@@ -2903,6 +3069,14 @@ export function FqaPlanScreen() {
                 </div>
               )}
               {/* 운영주의 — 막지 않고 알린다. 운영에 실데이터 테스트를 정당하게 하는 경우도 있으므로. */}
+              {/* 실행 요청 시점에 차단될 것들을 여기서 미리 알린다 — 막지는 않는다 */}
+              {planWarn.map((g, i) => (
+                <div key={i} className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-1.5 text-xs text-amber-300">
+                  ⚠ <span className="font-semibold">{g.cases.length}건</span> — {g.why}
+                  <div className="mt-0.5 font-mono text-amber-400">{g.cases.slice(0, 4).map((c) => c.id).join(", ")}{g.cases.length > 4 ? " 외 " + (g.cases.length - 4) + "건" : ""}</div>
+                  <div className="mt-0.5 text-amber-500/80">실행 요청 시 차단됩니다 — {g.fixLabel}에서 해결하세요.</div>
+                </div>
+              ))}
               {cautionCases.length > 0 && (
                 <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-1.5 text-xs text-amber-300">
                   ⚠ <span className="font-semibold">운영 환경</span>에 <span className="font-semibold">운영주의 {cautionCases.length}건</span>이 포함됩니다 — 실데이터를 변경·삭제할 수 있습니다.
@@ -2929,7 +3103,7 @@ export function FqaPlanScreen() {
               )}
               {surf.api && <Field label="요청 타임아웃(초) · 요청 스텝"><Input type="number" value={apiTimeout} onChange={(e) => setApiTimeout(+e.target.value || 0)} className="w-32" /></Field>}
               <div className="grid grid-cols-2 gap-3">
-                <Field label="병렬 workers"><Select value={workers} onChange={(e) => setWorkers(e.target.value)}><option>1 (순차)</option><option>2</option><option>4</option><option>auto</option></Select></Field>
+                <Field label="병렬 workers"><Select value={workers} onChange={(e) => setWorkers(e.target.value)}><option>1 (순차)</option><option>2</option><option>4</option><option>auto</option></Select>{wLimit && <div className="mt-1 text-amber-400" style={{ fontSize: 11 }}>실효 {wLimit.eff} — <span className="font-mono">{wLimit.role}</span> 역할 계정이 {wLimit.eff}개입니다. <span className="text-amber-400/80">대상·환경의 계정 풀에서 계정을 추가하면</span> 병렬도가 올라갑니다.</div>}</Field>
                 <Field label="재시도"><Input type="number" value={retry} onChange={(e) => setRetry(+e.target.value || 0)} /></Field>
               </div>
               <div className="flex items-center gap-4">

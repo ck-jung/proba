@@ -3,7 +3,7 @@
 // App.jsx에서 분리(2026-07-01).
 // ============================================================
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, Bug, Calendar, Copy, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, FileDown, FileText, Ghost, History, Link2, Lock, Mail, Megaphone, Play, Plus, RefreshCw, Search, Send, Server, ShieldCheck, Slack, SlidersHorizontal, Sparkles, Tag, TrendingDown, TrendingUp, Upload, Wrench, X, XCircle, Trash2, Save } from "lucide-react";
+import { AlertTriangle, ChevronLeft, Bug, Calendar, Copy, CheckCircle2, ChevronRight, ClipboardList, ExternalLink, FileDown, FileText, Ghost, History, Link2, Lock, Mail, Megaphone, Play, Plus, RefreshCw, Search, Send, Server, ShieldCheck, Slack, SlidersHorizontal, Sparkles, Tag, TrendingDown, TrendingUp, Upload, Wrench, X, XCircle, Trash2, Save, MessageSquare } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
@@ -911,28 +911,32 @@ export function Dashboard() {
   );
 }
 export function Plans() {
-  const { plans, cases, prompts, openModal, toast, goto, chatbots, models, updatePlan, removePlan, setRunIntent, jiraConfig, pendingSelect, setPendingSelect } = useApp();
+  const { plans, cases, prompts, openModal, toast, goto, chatbots, models, updatePlan, removePlan, setRunIntent, jiraConfig, pendingSelect, setPendingSelect, goTo } = useApp();
   // TC 수는 계획에 저장하지 않고 caseIds에서 파생 — 삭제된 케이스는 자동으로 빠진다
   const caseCount = (p) => planCases(cases, p).length;
-  const [sel, setSel] = useState(plans[0]);
-  const cur = plans.find((p) => p.id === sel.id) || plans[0];
+  /* 계획을 만들려면 대상 챗봇과 승인된 케이스가 있어야 한다 — NewPlanForm이 요구하는 것과 같은 기준이다.
+     빈 상태에서 "만드세요"만 말하면 어디서 막혔는지 알 수 없다. */
+  const okBot = (chatbots || []).length > 0;
+  const okCase = (cases || []).some((c) => c.status === "승인");
+  const [sel, setSel] = useState(plans[0] || null);
+  const cur = plans.find((p) => p.id === (sel || {}).id) || plans[0] || null;
   useEffect(() => { if (pendingSelect && pendingSelect.kind === "plan") { const np = plans.find((p) => p.id === pendingSelect.id); if (np) setSel(np); setPendingSelect(null); } }, [pendingSelect]);
-  const defJudges = (p) => { const o = {}; (p.judgeList || ["Claude (sonnet-4-6)", "GPT-4o"]).forEach((n) => (o[n] = true)); return o; };
+  const defJudges = (p) => { const o = {}; ((p || {}).judgeList || ["Claude (sonnet-4-6)", "GPT-4o"]).forEach((n) => (o[n] = true)); return o; };
   const [jsel, setJsel] = useState(() => defJudges(cur));
   const hall = true; // 환각 탐지는 상시 — 끌 수 없다
-  const [pii, setPii] = useState(cur.opts ? !!cur.opts.pii : false);
-  const [policy, setPolicy] = useState(cur.opts ? !!cur.opts.policy : false);
+  const [pii, setPii] = useState((cur || {}).opts ? !!(cur || {}).opts.pii : false);
+  const [policy, setPolicy] = useState((cur || {}).opts ? !!(cur || {}).opts.policy : false);
   // 정책 위반은 "무엇이 금지인가"를 알아야 판정된다 — 이 텍스트가 프롬프트의 {{policy}}로 주입된다
-  const [policyText, setPolicyText] = useState((cur.opts && cur.opts.policyText) || "");
-  const [tpl, setTpl] = useState(cur.promptTpl || (prompts[0] || {}).name || "");
-  const [pass, setPass] = useState(cur.passScore || 85);
-  const [bot, setBot] = useState(cur.bot || (chatbots[0] && chatbots[0].name) || "");
-  const [planStatus, setPlanStatus] = useState(cur.status || "초안");
-  const [name, setName] = useState(cur.name);
+  const [policyText, setPolicyText] = useState(((cur || {}).opts && (cur || {}).opts.policyText) || "");
+  const [tpl, setTpl] = useState((cur || {}).promptTpl || (prompts[0] || {}).name || "");
+  const [pass, setPass] = useState((cur || {}).passScore || 85);
+  const [bot, setBot] = useState((cur || {}).bot || (chatbots[0] && chatbots[0].name) || "");
+  const [planStatus, setPlanStatus] = useState((cur || {}).status || "초안");
+  const [name, setName] = useState((cur || {}).name);
   const [weights, setWeights] = useState({});
   const [wSnap, setWSnap] = useState("");
-  const [sched, setSched] = useState(cur.schedule || DEFAULT_SCHED);
-  const [jira, setJira] = useState(cur.jira || { override: false });
+  const [sched, setSched] = useState((cur || {}).schedule || DEFAULT_SCHED);
+  const [jira, setJira] = useState((cur || {}).jira || { override: false });
   const jgc = jiraConfig || {};
   const enableJira = (on) => setJira(on ? { override: true, project: jira.project || jgc.project || "", issueType: jira.issueType || jgc.issueType || "Bug", assignee: jira.assignee != null ? jira.assignee : (jgc.assignee || ""), labels: jira.labels != null ? jira.labels : (jgc.labels || ""), titleTpl: jira.titleTpl || jgc.titleTpl || "" } : { override: false });
   const setJf = (patch) => setJira((j) => ({ ...j, ...patch }));
@@ -945,26 +949,26 @@ export function Plans() {
   const seedWeights = (t) => {
     const tp = prompts.find((p) => p.name === t);
     const dd = (tp && tp.rubric && tp.rubric.length) ? tp.rubric : METRICS.map((m) => m.key);
-    const base = (cur.weights && !Array.isArray(cur.weights)) ? cur.weights : {};
+    const base = ((cur || {}).weights && !Array.isArray((cur || {}).weights)) ? (cur || {}).weights : {};
     const o = {}; dd.forEach((d) => { o[d] = base[d] != null ? base[d] : Math.round(100 / dd.length); });
     return o;
   };
   // 계획 전환 시 렌더 단계에서 동기 리셋 → 이전 값이 한 프레임 노출되는 껌뻑임 제거
-  const [lastId, setLastId] = useState(cur.id);
-  if (cur.id !== lastId) {
-    setLastId(cur.id);
-    const seedTpl = cur.promptTpl || (prompts[0] || {}).name || "";
+  const [lastId, setLastId] = useState((cur || {}).id);
+  if ((cur || {}).id !== lastId) {
+    setLastId((cur || {}).id);
+    const seedTpl = (cur || {}).promptTpl || (prompts[0] || {}).name || "";
     setJsel(defJudges(cur));
-    setPolicyText((cur.opts && cur.opts.policyText) || "");
-    setPii(cur.opts ? !!cur.opts.pii : false);
-    setPolicy(cur.opts ? !!cur.opts.policy : false);
+    setPolicyText(((cur || {}).opts && (cur || {}).opts.policyText) || "");
+    setPii((cur || {}).opts ? !!(cur || {}).opts.pii : false);
+    setPolicy((cur || {}).opts ? !!(cur || {}).opts.policy : false);
     setTpl(seedTpl);
-    setPass(cur.passScore || 85);
-    setBot(cur.bot || (chatbots[0] && chatbots[0].name) || "");
-    setPlanStatus(cur.status || "초안");
-    setName(cur.name);
-    setSched(cur.schedule || DEFAULT_SCHED);
-    setJira(cur.jira || { override: false });
+    setPass((cur || {}).passScore || 85);
+    setBot((cur || {}).bot || (chatbots[0] && chatbots[0].name) || "");
+    setPlanStatus((cur || {}).status || "초안");
+    setName((cur || {}).name);
+    setSched((cur || {}).schedule || DEFAULT_SCHED);
+    setJira((cur || {}).jira || { override: false });
     const o = seedWeights(seedTpl);
     setWeights(o); setWSnap(JSON.stringify(o));
   }
@@ -976,35 +980,36 @@ export function Plans() {
   const saveCfg = () => {
     if (needPolicyText && !policyText.trim()) { toast(policy ? "금지 행위를 입력해야 정책 위반을 판정할 수 있습니다" : "선택한 템플릿이 {{policy}}를 요구합니다 — 안전 정책을 입력하세요", "warn"); return; }
     const judgeList = Object.keys(jsel).filter((k) => jsel[k]);
-    const nm = name.trim() || cur.name;
-    updatePlan(cur.id, { name: nm, bot, promptTpl: tpl, passScore: pass, weights, opts: { hall, pii, policy, policyText }, judgeList, status: planStatus, schedule: sched, sched: (sched && sched.summary) || "예약 없음", jira });
+    const nm = name.trim() || (cur || {}).name;
+    updatePlan((cur || {}).id, { name: nm, bot, promptTpl: tpl, passScore: pass, weights, opts: { hall, pii, policy, policyText }, judgeList, status: planStatus, schedule: sched, sched: (sched && sched.summary) || "예약 없음", jira });
     toast(nm + " 설정이 저장되었습니다", "ok");
   };
   const baseJudges = defJudges(cur);
   const dirty =
-    name !== cur.name ||
-    bot !== (cur.bot || (chatbots[0] && chatbots[0].name) || "") ||
-    planStatus !== (cur.status || "초안") ||
-    tpl !== (cur.promptTpl || ((prompts[0] || {}).name) || "") ||
-    pass !== (cur.passScore || 85) ||
-    pii !== (cur.opts ? !!cur.opts.pii : false) ||
-    policy !== (cur.opts ? !!cur.opts.policy : false) ||
-    policyText !== ((cur.opts && cur.opts.policyText) || "") ||
+    name !== (cur || {}).name ||
+    bot !== ((cur || {}).bot || (chatbots[0] && chatbots[0].name) || "") ||
+    planStatus !== ((cur || {}).status || "초안") ||
+    tpl !== ((cur || {}).promptTpl || ((prompts[0] || {}).name) || "") ||
+    pass !== ((cur || {}).passScore || 85) ||
+    pii !== ((cur || {}).opts ? !!(cur || {}).opts.pii : false) ||
+    policy !== ((cur || {}).opts ? !!(cur || {}).opts.policy : false) ||
+    policyText !== (((cur || {}).opts && (cur || {}).opts.policyText) || "") ||
     JSON.stringify(Object.keys(jsel).filter((k) => jsel[k]).sort()) !== JSON.stringify(Object.keys(baseJudges).filter((k) => baseJudges[k]).sort()) ||
-    schedKey(sched) !== schedKey(cur.schedule || DEFAULT_SCHED) ||
-    JSON.stringify(jira) !== JSON.stringify(cur.jira || { override: false }) ||
+    schedKey(sched) !== schedKey((cur || {}).schedule || DEFAULT_SCHED) ||
+    JSON.stringify(jira) !== JSON.stringify((cur || {}).jira || { override: false }) ||
     (wSnap !== "" && JSON.stringify(weights) !== wSnap);
-  const chooseSel = (p) => { if (p.id === cur.id) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; setSel(p); };
+  const chooseSel = (p) => { if (p.id === (cur || {}).id) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; setSel(p); };
   return (
     <div className="space-y-4">
       <PageToolbar desc="평가 계획 구성 — Judge·가중치·프롬프트·스케줄" />
       <div className="grid grid-cols-12 gap-4">
       <div className="col-span-3 space-y-3">
-        <Btn kind="primary" icon={Plus} className="w-full" onClick={() => openModal("newPlan")}>새 평가 계획</Btn>
+        <Btn kind="primary" icon={Plus} className="w-full" onClick={() => openModal("newPlan")} disabled={!okBot || !okCase} title={!okBot ? "평가 대상 챗봇을 먼저 등록하세요" : !okCase ? "승인된 테스트케이스가 필요합니다" : ""}>새 평가 계획</Btn>
+        {plans.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 계획이 없습니다.</div>}
         {plans.map((p) => (
           <Card key={p.id} className={"p-4 cursor-pointer " + (cur.id === p.id ? "border-teal-500" : "hover:border-slate-700")}>
             <div onClick={() => chooseSel(p)}>
-              <div className="flex items-center justify-between"><div className="font-semibold text-slate-100">{p.name}</div><div className="flex items-center gap-1.5"><Badge kind={p.status === "활성" ? "active" : "draft"}>{p.status}</Badge><button onClick={(e) => { e.stopPropagation(); if (plans.length <= 1) { toast("최소 1개 계획은 유지해야 합니다", "warn"); return; } if (window.confirm(p.name + " 계획을 삭제할까요?")) { removePlan(p.id); if (sel.id === p.id) setSel(plans.find((x) => x.id !== p.id)); toast(p.name + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-400" title="계획 삭제"><X size={13} /></button></div></div>
+              <div className="flex items-center justify-between"><div className="font-semibold text-slate-100">{p.name}</div><div className="flex items-center gap-1.5"><Badge kind={p.status === "활성" ? "active" : "draft"}>{p.status}</Badge><button onClick={(e) => { e.stopPropagation(); if (window.confirm(p.name + " 계획을 삭제할까요?" + (plans.length <= 1 ? "\n\n마지막 계획입니다 — 삭제하면 평가를 실행할 계획이 없어집니다." : ""))) { removePlan(p.id); if ((sel || {}).id === p.id) setSel(plans.find((x) => x.id !== p.id) || null); toast(p.name + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-400" title="계획 삭제"><X size={13} /></button></div></div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-center">
                 <div><div className="text-lg font-bold text-slate-100">{caseCount(p)}</div><div className="text-xs text-slate-500">TC</div></div>
                 <div><div className="text-lg font-bold text-slate-100">{(p.judgeList || []).length || p.judges}</div><div className="text-xs text-slate-500">Judge</div></div>
@@ -1016,6 +1021,24 @@ export function Plans() {
         ))}
       </div>
       <Card className="col-span-9 p-5">
+        {plans.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <ClipboardList size={26} className="text-slate-600" />
+            <div className="mt-3 text-sm font-medium text-slate-300">평가 계획을 만드세요</div>
+            <div className="mt-1.5 max-w-md text-xs text-slate-500">계획은 챗봇과 평가 케이스·판정 모델을 묶어 무엇을 어떤 기준으로 평가할지 정합니다.</div>
+            <div className="mt-4 w-64 space-y-1.5 text-left">
+              {[["평가 대상 챗봇 등록", okBot], ["승인된 테스트케이스", okCase]].map(([label, ok]) => (
+                <div key={label} className="flex items-center gap-2 text-xs">
+                  {ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertTriangle size={13} className="text-amber-400" />}
+                  <span className={ok ? "text-slate-400" : "text-amber-300"}>{label}</span>
+                  <span className="ml-auto text-slate-600">{ok ? "완료" : "필요"}</span>
+                </div>
+              ))}
+            </div>
+            {!okBot && <Btn className="mt-3" icon={MessageSquare} onClick={() => goTo("targets")}>챗봇 등록하러 가기</Btn>}
+            {okBot && !okCase && <><div className="mt-3 text-xs text-amber-500">승인된 케이스만 계획에 담을 수 있습니다.</div><Btn className="mt-2" icon={ClipboardList} onClick={() => goTo("cases")}>테스트케이스로 가기</Btn></>}
+          </div>
+        ) : (<>
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="min-w-0 max-w-sm flex-1"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="계획 이름" /></div>
           <div className="flex shrink-0 items-center gap-3"><div className="flex items-center gap-2 text-sm text-slate-300"><span>{planStatus === "활성" ? "활성" : "초안"}</span><Toggle on={planStatus === "활성"} onClick={() => setPlanStatus(planStatus === "활성" ? "초안" : "활성")} /></div>{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn kind="primary" icon={RefreshCw} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
@@ -1096,6 +1119,7 @@ export function Plans() {
           )}
         </div>
         )}
+        </>)}
       </Card>
     </div>
     </div>
@@ -1815,13 +1839,15 @@ export function Defects() {
   );
 }
 export function Report() {
-  const { toast, notify, openModal, reportCfg, setReportCfg } = useApp();
+  const { toast, notify, openModal, reportCfg, setReportCfg, setNavGuard } = useApp();
   const [ch, setCh] = useState(reportCfg.ch);
   const [cond, setCond] = useState(reportCfg.cond);
   const [autoJira, setAutoJira] = useState(true);
   const [scope, setScope] = useState(reportCfg.scope);
   const [rsched, setRsched] = useState(reportCfg.rsched);
   const dirty = JSON.stringify({ ch, cond, scope, rsched }) !== JSON.stringify({ ch: reportCfg.ch, cond: reportCfg.cond, scope: reportCfg.scope, rsched: reportCfg.rsched });
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const saveCfg = () => { setReportCfg({ ch, cond, scope, rsched }); toast("리포트·알림 설정 저장됨", "ok"); };
   const dowK = ["일", "월", "화", "수", "목", "금", "토"];
   const nextRun = () => rsched.freq === "daily" ? "매일 " + rsched.time : rsched.freq === "monthly" ? "매월 " + rsched.dom + "일 " + rsched.time : "매주 " + dowK[rsched.dow] + "요일 " + rsched.time;

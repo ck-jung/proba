@@ -8,7 +8,7 @@ import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Toast, useToast, nowStamp, RunTime } from "../common/ui.jsx";
-import { Plus, X, Smartphone, Cpu, Zap, Package, Save, RefreshCw, Copy, Play, Activity, Code2, Gauge, ChevronLeft, Download, Bug, CheckCircle2, TrendingUp } from "lucide-react";
+import { Plus, X, Smartphone, Cpu, Zap, Package, Save, RefreshCw, Copy, Play, Activity, Code2, Gauge, ChevronLeft, Download, Bug, CheckCircle2, TrendingUp, AlertTriangle, ClipboardList } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from "recharts";
 import { PERF_PLATFORMS, PERF_BUILD_SOURCES, PERF_VARIANTS, PERF_METRICS, PERF_DEVICES } from "./data.js";
 
@@ -27,7 +27,7 @@ const Modal = ({ title, onClose, children }) => (
 
 /* ═══════════ 대상·환경 (앱 빌드 + 단말·환경) ═══════════ */
 export function PqaTargetScreen() {
-  const { perfApps, perfScenarios, perfPlans, addPerfApp, updatePerfApp, removePerfApp, toast } = useApp();
+  const { perfApps, perfScenarios, perfPlans, addPerfApp, updatePerfApp, removePerfApp, toast, setNavGuard } = useApp();
   const [sel, setSel] = useState(0);
   const [modal, setModal] = useState(false);
   const [nf, setNf] = useState({ name: "", pkg: "" });
@@ -35,15 +35,17 @@ export function PqaTargetScreen() {
   const [draft, setDraft] = useState({});
   const [syncedId, setSyncedId] = useState(null);
   useEffect(() => {
-    if (app) { setDraft({ name: app.name, pkg: app.pkg, version: app.version, versionCode: app.versionCode || "", variant: app.variant || PERF_VARIANTS[0], source: app.source, build: app.build, signed: !!app.signed, artifactUrl: app.artifactUrl || "", tokenRef: app.tokenRef || "", track: app.track || "운영(Production)", buildFile: app.buildFile || "", benchModule: app.benchModule || ":benchmark", deploySecret: app.deploySecret || "" }); setSyncedId(app.id); }
-  }, [app && app.id]);
+    if (app) { setDraft({ name: (app || {}).name, pkg: (app || {}).pkg, version: (app || {}).version, versionCode: (app || {}).versionCode || "", variant: (app || {}).variant || PERF_VARIANTS[0], source: (app || {}).source, build: (app || {}).build, signed: !!(app || {}).signed, artifactUrl: (app || {}).artifactUrl || "", tokenRef: (app || {}).tokenRef || "", track: (app || {}).track || "운영(Production)", buildFile: (app || {}).buildFile || "", benchModule: (app || {}).benchModule || ":benchmark", deploySecret: (app || {}).deploySecret || "" }); setSyncedId((app || {}).id); }
+  }, [app && (app || {}).id]);
   const setD = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const FIELDS = ["name", "pkg", "version", "versionCode", "variant", "source", "build", "signed", "artifactUrl", "tokenRef", "track", "buildFile", "benchModule", "deploySecret"];
   const nz = (v) => (v == null ? "" : v);
-  const dirty = !!app && syncedId === app.id && FIELDS.some((k) => (k === "signed" ? !!draft[k] !== !!app[k] : k === "variant" ? (draft[k] || PERF_VARIANTS[0]) !== (app[k] || PERF_VARIANTS[0]) : nz(draft[k]) !== nz(app[k])));
+  const dirty = !!app && syncedId === (app || {}).id && FIELDS.some((k) => (k === "signed" ? !!draft[k] !== !!app[k] : k === "variant" ? (draft[k] || PERF_VARIANTS[0]) !== (app[k] || PERF_VARIANTS[0]) : nz(draft[k]) !== nz(app[k])));
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const saveCfg = () => {
     if (!(draft.name || "").trim() || !(draft.pkg || "").trim()) { toast("앱 이름과 패키지 id는 비울 수 없습니다", "warn"); return; }
-    updatePerfApp(app.id, { name: draft.name.trim(), pkg: draft.pkg.trim(), version: draft.version, versionCode: draft.versionCode, variant: draft.variant, source: draft.source, build: draft.build, signed: draft.signed, artifactUrl: draft.artifactUrl, tokenRef: draft.tokenRef, track: draft.track, buildFile: draft.buildFile, benchModule: draft.benchModule, deploySecret: draft.deploySecret });
+    updatePerfApp((app || {}).id, { name: draft.name.trim(), pkg: draft.pkg.trim(), version: draft.version, versionCode: draft.versionCode, variant: draft.variant, source: draft.source, build: draft.build, signed: draft.signed, artifactUrl: draft.artifactUrl, tokenRef: draft.tokenRef, track: draft.track, buildFile: draft.buildFile, benchModule: draft.benchModule, deploySecret: draft.deploySecret });
     toast("저장되었습니다", "ok");
   };
   const parseBuild = () => {
@@ -59,7 +61,7 @@ export function PqaTargetScreen() {
     addPerfApp({ id: Date.now(), name: nf.name.trim(), platform: "Android", pkg: nf.pkg.trim(), version: "-", versionCode: "-", variant: "release·profileable", source: "CI 아티팩트", build: "-", signed: false, artifactUrl: "", tokenRef: "", track: "운영(Production)", buildFile: "", benchModule: ":benchmark", deploySecret: genSecret() });
     setSel(0); setModal(false); toast("대상 앱 추가됨 — 상세에서 빌드를 연결하고 '빌드 파싱'을 실행하세요", "ok");
   };
-  const deployHook = app ? ("https://autoqa.io/api/hooks/perf/" + app.id + "-" + String(app.pkg || "app").replace(/[^a-z0-9]+/gi, "-") + "-9c1e") : "";
+  const deployHook = app ? ("https://autoqa.io/api/hooks/perf/" + (app || {}).id + "-" + String((app || {}).pkg || "app").replace(/[^a-z0-9]+/gi, "-") + "-9c1e") : "";
   const selectApp = (i) => { if (i === sel) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 저장하지 않고 다른 앱으로 이동할까요?")) return; setSel(i); };
   const del = (a) => {
     const scn = (perfScenarios || []).filter((s) => s.appId === a.id).length;
@@ -74,6 +76,7 @@ export function PqaTargetScreen() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-2">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setNf({ name: "", pkg: "" }); setModal(true); }}>대상 앱 추가</Btn>
+          {perfApps.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 대상 앱이 없습니다.</div>}
           {perfApps.map((a, i) => (
             <Card key={a.id} className={cardCls(sel === i)}>
               <div onClick={() => selectApp(i)}>
@@ -85,6 +88,13 @@ export function PqaTargetScreen() {
           ))}
         </div>
         <div className="col-span-9 space-y-4">
+          {perfApps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Smartphone size={26} className="text-slate-600" />
+              <div className="mt-3 text-sm font-medium text-slate-300">대상 앱을 먼저 등록하세요</div>
+              <div className="mt-1.5 max-w-md text-xs text-slate-500">측정할 앱과 빌드 소스를 등록해야 시나리오를 만들고 단말에서 측정할 수 있습니다.</div>
+            </div>
+          ) : (<>
           {app && (
           <Card className="p-4">
             <div className="mb-3 flex items-center justify-between">
@@ -138,6 +148,7 @@ export function PqaTargetScreen() {
             </div>
           </Card>
           )}
+          </>)}
         </div>
       </div>
       {modal && (
@@ -156,21 +167,21 @@ export function PqaTargetScreen() {
 
 /* ═══════════ 측정 시나리오 (여정 + 지표 + 마커) ═══════════ */
 export function PqaScenarioScreen() {
-  const { perfScenarios, perfApps, perfPlans, addPerfScenario, updatePerfScenario, removePerfScenario, toast } = useApp();
+  const { perfScenarios, perfApps, perfPlans, addPerfScenario, updatePerfScenario, removePerfScenario, toast, goTo } = useApp();
   const [sel, setSel] = useState(0);
   const [modal, setModal] = useState(false);
   const [nf, setNf] = useState({ name: "", appId: "", scriptRef: "" });
   const scn = perfScenarios[sel] || perfScenarios[0];
   const appName = (id) => (perfApps.find((a) => a.id === id) || {}).name || "-";
-  const scnApp = (perfApps.find((a) => a.id === (scn && scn.appId))) || {};
+  const scnApp = (perfApps.find((a) => a.id === (scn && (scn || {}).appId))) || {};
   const [draft, setDraft] = useState({});
   const [syncedId, setSyncedId] = useState(null);
   useEffect(() => {
-    if (scn) { setDraft({ scriptRef: scn.scriptRef || "" }); setSyncedId(scn.id); }
-  }, [scn && scn.id]);
+    if (scn) { setDraft({ scriptRef: (scn || {}).scriptRef || "" }); setSyncedId((scn || {}).id); }
+  }, [scn && (scn || {}).id]);
   const setD = (patch) => setDraft((d) => ({ ...d, ...patch }));
-  const isStartup = String((scn && scn.journey) || "").startsWith("앱 시작");
-  const refDirty = !!scn && syncedId === scn.id && (draft.scriptRef || "") !== (scn.scriptRef || "");
+  const isStartup = String((scn && (scn || {}).journey) || "").startsWith("앱 시작");
+  const refDirty = !!scn && syncedId === (scn || {}).id && (draft.scriptRef || "") !== ((scn || {}).scriptRef || "");
   const syncBench = () => {
     const ref = (draft.scriptRef || "").trim();
     if (!ref) { toast("테스트(클래스#메서드)를 먼저 입력하세요", "warn"); return; }
@@ -181,7 +192,7 @@ export function PqaScenarioScreen() {
     const patch = startup
       ? { journey: "앱 시작(Startup)", startMode: "Cold", iterations: 10, steps: [], metrics: ["e2e", "mem"], traceSection: "", scriptRef: ref, benchSource: "@Test\nfun " + method + "() = rule.measureRepeated(\n  packageName = \"" + pkg + "\",\n  metrics = listOf(StartupTimingMetric(), MemoryUsageMetric(Mode.Last)),\n  iterations = 10, startupMode = StartupMode.COLD,\n) { pressHome(); startActivityAndWait() }" }
       : { journey: "사용 흐름(Flow)", startMode: "", iterations: 10, steps: ["앱 진입", "대상 화면 이동", "스크롤·조작"], metrics: ["e2e", "frame", "jank", "mem"], traceSection: section, scriptRef: ref, benchSource: "@Test\nfun " + method + "() = rule.measureRepeated(\n  packageName = \"" + pkg + "\",\n  metrics = listOf(TraceSectionMetric(\"" + section + "\"), FrameTimingMetric(), MemoryUsageMetric(Mode.Last)),\n  iterations = 10, startupMode = StartupMode.WARM,\n) {\n  startActivityAndWait()\n  trace(\"" + section + "\") { onView(res(\"target\")).fling(DOWN) }\n}" };
-    updatePerfScenario(scn.id, patch);
+    updatePerfScenario((scn || {}).id, patch);
     toast("벤치마크에서 유형·지표·흐름·E2E·소스를 인식했습니다", "ok");
   };
   const selectScn = (i) => { if (i === sel) return; if (refDirty && !window.confirm("동기화하지 않은 테스트 참조 변경이 있습니다. 그대로 이동할까요?")) return; setSel(i); };
@@ -195,7 +206,8 @@ export function PqaScenarioScreen() {
       <PageToolbar desc="벤치마크 테스트 참조 · 동기화로 유형·지표·흐름 인식" />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-2">
-          <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setNf({ name: "", appId: perfApps[0] ? String(perfApps[0].id) : "", scriptRef: "" }); setModal(true); }}>시나리오 추가</Btn>
+          <Btn kind="primary" icon={Plus} className="w-full" disabled={(perfApps || []).length === 0} title={(perfApps || []).length === 0 ? "대상 앱을 먼저 등록하세요" : ""} onClick={() => { setNf({ name: "", appId: perfApps[0] ? String(perfApps[0].id) : "", scriptRef: "" }); setModal(true); }}>시나리오 추가</Btn>
+          {perfScenarios.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 시나리오가 없습니다.</div>}
           {perfScenarios.map((s, i) => (
             <Card key={s.id} className={cardCls(sel === i)}>
               <div onClick={() => selectScn(i)}>
@@ -207,6 +219,23 @@ export function PqaScenarioScreen() {
         </div>
         {scn && (
         <Card className="col-span-9 p-4 space-y-4">
+          {perfScenarios.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Activity size={26} className="text-slate-600" />
+              <div className="mt-3 text-sm font-medium text-slate-300">측정 시나리오를 먼저 만드세요</div>
+              <div className="mt-1.5 max-w-md text-xs text-slate-500">시나리오는 앱의 어떤 흐름을 측정할지 정합니다. 벤치마크 모듈에서 지표를 인식합니다.</div>
+              {(perfApps || []).length === 0 && <Btn className="mt-3" icon={Smartphone} onClick={() => goTo("perf-targets")}>대상 앱 등록하러 가기</Btn>}
+            <div className="mt-4 w-64 space-y-1.5 text-left">
+              {[["대상 앱 등록", (perfApps || []).length > 0]].map(([label, ok]) => (
+                <div key={label} className="flex items-center gap-2 text-xs">
+                  {ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertTriangle size={13} className="text-amber-400" />}
+                  <span className={ok ? "text-slate-400" : "text-amber-300"}>{label}</span>
+                  <span className="ml-auto text-slate-600">{ok ? "완료" : "필요"}</span>
+                </div>
+              ))}
+            </div>
+            </div>
+          ) : (<>
           <div className="flex items-center gap-2">
             <div className="w-64 shrink-0"><Input value={scn.name} onChange={(e) => updatePerfScenario(scn.id, { name: e.target.value })} className="text-base font-semibold" /></div><Badge kind="info">{appName(scn.appId)}</Badge>
           </div>
@@ -251,6 +280,7 @@ export function PqaScenarioScreen() {
             </div>
           )}
           <div className="text-xs text-slate-500">배터리는 사내 랩(전력 리그) 전용 · 시작(Startup) 유형은 여정 없이 콜드/웜/핫만 측정.</div>
+          </>)}
         </Card>
         )}
       </div>
@@ -270,7 +300,7 @@ export function PqaScenarioScreen() {
 
 /* ═══════════ 측정 계획 (조립 + 예산 + 트리거) ═══════════ */
 export function PqaPlanScreen() {
-  const { perfPlans, perfScenarios, perfApps, addPerfPlan, updatePerfPlan, removePerfPlan, toast } = useApp();
+  const { perfPlans, perfScenarios, perfApps, addPerfPlan, updatePerfPlan, removePerfPlan, toast, setNavGuard, goTo } = useApp();
   const [sel, setSel] = useState(0);
   const [modal, setModal] = useState(false);
   const [nf, setNf] = useState({ name: "", appId: "" });
@@ -278,9 +308,9 @@ export function PqaPlanScreen() {
   const appName = (id) => (perfApps.find((a) => a.id === id) || {}).name || "-";
   const mkDraft = (p) => ({ name: p.name, status: p.status, scenarioIds: [...(p.scenarioIds || [])], deviceIds: [...((p.matrix && p.matrix.deviceIds) || [])], budget: JSON.parse(JSON.stringify(p.budget || {})), schedule: p.schedule });
   const [draft, setDraft] = useState(() => (plan ? mkDraft(plan) : {}));
-  const [syncedId, setSyncedId] = useState(plan ? plan.id : null);
-  // 계획 전환 시 렌더 시점에 draft 동기 재초기화 — useEffect 지연으로 ScheduleConfig(key=plan.id)가 이전 계획 스케줄로 마운트되는 문제 방지
-  if (plan && syncedId !== plan.id) { setDraft(mkDraft(plan)); setSyncedId(plan.id); }
+  const [syncedId, setSyncedId] = useState(plan ? (plan || {}).id : null);
+  // 계획 전환 시 렌더 시점에 draft 동기 재초기화 — useEffect 지연으로 ScheduleConfig(key=(plan || {}).id)가 이전 계획 스케줄로 마운트되는 문제 방지
+  if (plan && syncedId !== (plan || {}).id) { setDraft(mkDraft(plan)); setSyncedId((plan || {}).id); }
   const setD = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const add = () => {
     if (!nf.name.trim() || !nf.appId) { toast("이름과 대상 앱을 선택하세요", "warn"); return; }
@@ -290,24 +320,26 @@ export function PqaPlanScreen() {
   const arrEq = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
   // 스케줄 정규형: 파생 필드(summary)·비활성 ev 키는 무시 → ScheduleConfig 재마운트 방출로 인한 허위 dirty 방지
   const schedKey = (s) => { s = s || {}; const ev = Object.entries(s.ev || {}).filter(([, val]) => val).map(([k]) => k).sort(); return JSON.stringify({ mode: s.mode, freq: s.freq, time: s.time, dow: s.dow, dom: s.dom, cron: s.cron, tz: s.tz, active: s.active, ev }); };
-  const dirty = !!plan && syncedId === plan.id && (
-    (draft.name || "") !== (plan.name || "") ||
-    draft.status !== plan.status ||
-    !arrEq(draft.scenarioIds || [], plan.scenarioIds || []) ||
-    !arrEq(draft.deviceIds || [], (plan.matrix && plan.matrix.deviceIds) || []) ||
-    JSON.stringify(draft.budget || {}) !== JSON.stringify(plan.budget || {}) ||
-    schedKey(draft.schedule) !== schedKey(plan.schedule)
+  const dirty = !!plan && syncedId === (plan || {}).id && (
+    (draft.name || "") !== ((plan || {}).name || "") ||
+    draft.status !== (plan || {}).status ||
+    !arrEq(draft.scenarioIds || [], (plan || {}).scenarioIds || []) ||
+    !arrEq(draft.deviceIds || [], ((plan || {}).matrix && (plan || {}).matrix.deviceIds) || []) ||
+    JSON.stringify(draft.budget || {}) !== JSON.stringify((plan || {}).budget || {}) ||
+    schedKey(draft.schedule) !== schedKey((plan || {}).schedule)
   );
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const saveCfg = () => {
     if (!(draft.name || "").trim()) { toast("계획 이름을 비울 수 없습니다", "warn"); return; }
-    updatePerfPlan(plan.id, { name: draft.name.trim(), status: draft.status, scenarioIds: draft.scenarioIds, matrix: { ...plan.matrix, deviceIds: draft.deviceIds }, budget: draft.budget, schedule: draft.schedule });
+    updatePerfPlan((plan || {}).id, { name: draft.name.trim(), status: draft.status, scenarioIds: draft.scenarioIds, matrix: { ...plan.matrix, deviceIds: draft.deviceIds }, budget: draft.budget, schedule: draft.schedule });
     toast("저장되었습니다", "ok");
   };
   const selectPlan = (i) => { if (i === sel) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 저장하지 않고 다른 계획으로 이동할까요?")) return; setSel(i); };
   const scnsOf = (id) => perfScenarios.filter((s) => s.appId === id);
   const selScns = perfScenarios.filter((s) => (draft.scenarioIds || []).includes(s.id));
   const setBudget = (sid, mid, val) => { const b = draft.budget || {}; const sb = { ...(b[String(sid)] || {}), [mid]: val === "" ? undefined : +val }; setD({ budget: { ...b, [String(sid)]: sb } }); };
-  const planApp = perfApps.find((a) => a.id === (plan && plan.appId)) || {};
+  const planApp = perfApps.find((a) => a.id === (plan && (plan || {}).appId)) || {};
   const ciSource = planApp.source === "CI 아티팩트";
   const toggleScn = (sid) => { const has = (draft.scenarioIds || []).includes(sid); setD({ scenarioIds: has ? draft.scenarioIds.filter((x) => x !== sid) : [...(draft.scenarioIds || []), sid] }); };
   const toggleDevice = (did) => { const ids = draft.deviceIds || []; const has = ids.includes(did); setD({ deviceIds: has ? ids.filter((x) => x !== did) : [...ids, did] }); };
@@ -319,7 +351,8 @@ export function PqaPlanScreen() {
       <PageToolbar desc="대상 앱 + 시나리오 + 기기 매트릭스 + 지표별 SLA + 트리거" />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-2">
-          <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setNf({ name: "", appId: perfApps[0] ? String(perfApps[0].id) : "" }); setModal(true); }}>계획 추가</Btn>
+          <Btn kind="primary" icon={Plus} className="w-full" disabled={(perfApps || []).length === 0} title={(perfApps || []).length === 0 ? "대상 앱을 먼저 등록하세요" : ""} onClick={() => { setNf({ name: "", appId: perfApps[0] ? String(perfApps[0].id) : "" }); setModal(true); }}>계획 추가</Btn>
+          {perfPlans.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 계획이 없습니다.</div>}
           {perfPlans.map((p, i) => (
             <Card key={p.id} className={cardCls(sel === i)}>
               <div onClick={() => selectPlan(i)}>
@@ -331,6 +364,23 @@ export function PqaPlanScreen() {
         </div>
         {plan && (
         <Card className="col-span-9 p-4 space-y-4">
+          {perfPlans.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <ClipboardList size={26} className="text-slate-600" />
+              <div className="mt-3 text-sm font-medium text-slate-300">측정 계획을 만드세요</div>
+              <div className="mt-1.5 max-w-md text-xs text-slate-500">계획은 대상 앱과 시나리오·단말을 묶어 무엇을 어디서 측정할지 정합니다.</div>
+              {(perfApps || []).length === 0 ? <Btn className="mt-3" icon={Smartphone} onClick={() => goTo("perf-targets")}>대상 앱 등록하러 가기</Btn> : (perfScenarios || []).length === 0 ? <Btn className="mt-3" icon={Activity} onClick={() => goTo("perf-scenarios")}>측정 시나리오 만들러 가기</Btn> : null}
+            <div className="mt-4 w-64 space-y-1.5 text-left">
+              {[["대상 앱 등록", (perfApps || []).length > 0], ["측정 시나리오 등록", (perfScenarios || []).length > 0]].map(([label, ok]) => (
+                <div key={label} className="flex items-center gap-2 text-xs">
+                  {ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertTriangle size={13} className="text-amber-400" />}
+                  <span className={ok ? "text-slate-400" : "text-amber-300"}>{label}</span>
+                  <span className="ml-auto text-slate-600">{ok ? "완료" : "필요"}</span>
+                </div>
+              ))}
+            </div>
+            </div>
+          ) : (<>
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 flex-1 items-center gap-2"><div className="w-64 shrink-0"><Input value={draft.name || ""} onChange={(e) => setD({ name: e.target.value })} className="text-base font-semibold" /></div><Badge kind="info">{appName(plan.appId)}</Badge></div>
             <div className="flex shrink-0 items-center gap-3">
@@ -398,6 +448,7 @@ export function PqaPlanScreen() {
             <ScheduleConfig key={plan.id} value={draft.schedule} onChange={(s) => setD({ schedule: s })} events={PQA_EVENTS} singleSelect allowEvent={ciSource} manualHint="자동 실행 없음 — 측정 실행 화면에서 수동으로만 수행합니다." toast={toast} />
             {!ciSource && <div className="mt-1.5 text-xs text-slate-500">배포 이벤트 트리거는 대상 앱 빌드 소스가 'CI 아티팩트'일 때만 사용할 수 있습니다.</div>}
           </div>
+          </>)}
         </Card>
         )}
       </div>

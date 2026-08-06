@@ -3,7 +3,7 @@ import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { DatasetPicker } from "../common/DatasetPicker.jsx";
 import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Seg, Toast, useToast, RunTime, stampPlus } from "../common/ui.jsx";
-import { Gauge, Plus, X, Save, Smartphone, Cpu, Wifi, Package, Upload, Link2, CheckCircle2, Globe, Monitor, Server, Zap, Activity, AlertTriangle, TrendingUp, Bug, Pencil, ChevronLeft, FileDown } from "lucide-react";
+import { Gauge, Plus, X, Save, Smartphone, Cpu, Wifi, Package, Upload, Link2, CheckCircle2, Globe, Monitor, Server, Zap, Activity, AlertTriangle, TrendingUp, Bug, Pencil, ChevronLeft, FileDown, Layers, Code2, Play, ClipboardList } from "lucide-react";
 import { NQA_SUBTYPES, NQA_PLATFORMS, NQA_PLAT_K, NQA_TIERS, NQA_TOOLS, NQA_TOOL_METRICS, NQA_NETWORKS, NQA_STARTS, NQA_THERMAL_LEVELS, NQA_PROVIDERS, NQA_DEV_STATUS, NQA_DEV_ST_K, NQA_CAP_LABELS, NQA_PROVIDER_CAPS, NQA_SCN_SOURCES, NQA_SCN_SRC_K, NQA_MARKERS, NQA_SCN_TEMPLATES, NQA_BROWSERS, NQA_VIEWPORTS, NQA_WEB_NET, NQA_CPU_THROTTLE, NQA_CACHE, NQA_PROTOCOLS, NQA_LOAD_ENVS, NQA_HTTP_METHODS, NQA_AUTH_TYPES, NQA_MAX_AGENTS, NQA_LOAD_UNITS, NQA_LOAD_SHAPES } from "./data.js";
 
 const NQA_META = {
@@ -25,7 +25,7 @@ const epCorrelated = (eps) => {
   return (eps || []).some((ep) => { const txt = (ep.body || "") + " " + ((ep.headers || []).map((h) => h.v).join(" ")); return (txt.match(/\$\{([a-zA-Z0-9_]+)\}/g) || []).some((m) => produced.has(m.replace(/\$\{|\}/g, ""))); });
 };
 export function NqaTargetScreen() {
-  const { nqaSystems, addNqaSystem, updateNqaSystem, removeNqaSystem, variables } = useApp();
+  const { nqaSystems, addNqaSystem, updateNqaSystem, removeNqaSystem, variables, setNavGuard } = useApp();
   const [msg, flash] = useToast();
   const systems = nqaSystems || [];
   const [sel, setSel] = useState(0);
@@ -33,6 +33,8 @@ export function NqaTargetScreen() {
   const [draft, setDraft] = useState({});
   const cfg = { ...sys, ...draft };
   const dirty = Object.keys(draft).length > 0;
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const setCfg = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const saveCfg = () => { if (!(cfg.baseUrl || "").trim()) { flash("Base URL을 입력하세요"); return; } updateNqaSystem(sys.id, draft); setDraft({}); flash("설정 저장됨"); };
   const guardSwitch = (fn) => { if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; setDraft({}); fn(); };
@@ -50,14 +52,14 @@ export function NqaTargetScreen() {
     if (!nf.baseUrl.trim()) { flash("Base URL을 입력하세요"); return; }
     guardSwitch(() => { const ns = { id: Date.now(), name: nf.name, subtype: "load", baseUrl: nf.baseUrl, protocol: nf.protocol, loadgen: { tool: "k6", agents: 1 }, auth: { type: "없음" } }; addNqaSystem(ns); setSel(0); setModal(false); flash("부하 대상이 추가되었습니다"); });
   };
-  const delSut = (i, sy) => { if (systems.length <= 1) { flash("최소 1개 대상은 유지해야 합니다"); return; } if (!window.confirm(sy.name + " 대상을 삭제할까요?")) return; guardSwitch(() => { removeNqaSystem(sy.id); setSel(0); flash(sy.name + " 삭제됨"); }); };
-  if (!systems.length) return <div className="p-8 text-center text-sm text-slate-500">부하 대상이 없습니다.</div>;
+  const delSut = (i, sy) => { if (!window.confirm(sy.name + " 대상을 삭제할까요?" + (systems.length <= 1 ? "\n\n마지막 대상입니다 — 삭제하면 부하 테스트를 만들 대상이 없어집니다." : ""))) return; guardSwitch(() => { removeNqaSystem(sy.id); setSel(0); flash(sy.name + " 삭제됨"); }); };
   return (
     <div className="space-y-4">
       <PageToolbar desc="부하 대상(SUT) · 인증 · 부하 생성 인프라" />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-3">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setNf({ name: "", baseUrl: "", protocol: "HTTP/HTTPS", env: "스테이징" }); setModal(true); }}>부하 대상 추가</Btn>
+          {systems.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 대상이 없습니다.</div>}
           {systems.map((sy, i) => (
             <Card key={sy.id} className={"cursor-pointer p-3 " + (sel === i ? "border-teal-500" : "hover:border-slate-700")}>
               <div onClick={() => choose(i)}>
@@ -69,6 +71,13 @@ export function NqaTargetScreen() {
           ))}
         </div>
         <div className="col-span-9 space-y-3">
+          {systems.length === 0 ? (
+            <Card className="flex flex-col items-center justify-center py-16 text-center">
+              <Server size={26} className="text-slate-600" />
+              <div className="mt-3 text-sm font-medium text-slate-300">부하 대상을 먼저 등록하세요</div>
+              <div className="mt-1.5 max-w-md text-xs text-slate-500">테스트할 서비스와 Base URL을 등록해야 부하 테스트를 만들고 측정할 수 있습니다.</div>
+            </Card>
+          ) : (<>
           <Card className="flex items-center justify-between gap-3 p-3">
             <div className="flex min-w-0 flex-1 items-center gap-2"><div className="w-56 shrink-0"><Input value={cfg.name || ""} onChange={(e) => setCfg({ name: e.target.value })} className="text-base font-semibold" /></div><span className="shrink-0"><Badge kind="info">{sys.protocol}</Badge></span><span className="truncate text-xs text-slate-500">{cfg.baseUrl}</span></div>
             <div className="flex shrink-0 items-center gap-2">{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn icon={Link2} onClick={runCheck}>{chk && chk.s === "run" ? "확인 중…" : "연결 확인"}</Btn><Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
@@ -90,6 +99,7 @@ export function NqaTargetScreen() {
             {auth.type === "API Key" && <div className="grid grid-cols-2 gap-3"><Field label="헤더명"><Input value={auth.keyName || ""} onChange={(e) => setCfg({ auth: { ...auth, keyName: e.target.value } })} placeholder="X-API-Key" /></Field><Field label="키 값 (변수 참조)">{secretRef(auth.ref, (val) => setCfg({ auth: { ...auth, ref: val } }), "${api_key}")}</Field></div>}
             {auth.type === "OAuth 2.0 (client credentials)" && <div className="grid grid-cols-6 gap-3"><div className="col-span-2"><Field label="토큰 URL"><Input value={auth.tokenUrl || ""} onChange={(e) => setCfg({ auth: { ...auth, tokenUrl: e.target.value } })} placeholder="https://auth.../token" /></Field></div><Field label="scope"><Input value={auth.scope || ""} onChange={(e) => setCfg({ auth: { ...auth, scope: e.target.value } })} placeholder="read write" /></Field><Field label="client id"><Input value={auth.clientId || ""} onChange={(e) => setCfg({ auth: { ...auth, clientId: e.target.value } })} /></Field><div className="col-span-2"><Field label="client secret (변수 참조)">{secretRef(auth.ref, (val) => setCfg({ auth: { ...auth, ref: val } }), "${client_secret}")}</Field></div></div>}
           </Card>
+          </>)}
         </div>
       </div>
       {modal && (
@@ -144,7 +154,7 @@ function ShapeChart({ cfg }) {
   );
 }
 export function NqaScenarioScreen() {
-  const { nqaScenarios, addNqaScenario, updateNqaScenario, removeNqaScenario, nqaSystems, datasets, nqaScnFocus, setNqaScnFocus } = useApp();
+  const { nqaScenarios, addNqaScenario, updateNqaScenario, removeNqaScenario, nqaSystems, datasets, nqaScnFocus, setNqaScnFocus, setNavGuard, goTo } = useApp();
   const [msg, flash] = useToast();
   const list = nqaScenarios || [];
   const systems = (nqaSystems || []).filter((s) => s.subtype === "load");
@@ -154,6 +164,8 @@ export function NqaScenarioScreen() {
   const [draft, setDraft] = useState({});
   const cfg = { ...scn, ...draft };
   const dirty = Object.keys(draft).length > 0;
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const setScn = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const sut = systems.find((s) => s.id === cfg.sutId) || {};
   const endpoints = cfg.endpoints || [];
@@ -224,7 +236,7 @@ export function NqaScenarioScreen() {
     const ns = { id, name, sutId: nf.sutId, unit: "가상 사용자(VU)", shape: nf.shape, peak: 500, rampUp: 3, sustain: 15, rampDown: 2, thinkTime: 2, maxVU: 1000, baseline: 100, spikeHold: 30, start: 100, step: 100, steps: 5, stepHold: 3, soakH: 2, agents: 1, sla: { p95: 2000, p99: 3000, errRate: 1.0, minRps: 360, capacity: 300, driftPct: 10, recoverySec: 60 }, endpoints: [], dataset: "", forceOrder: false, journey: [] };
     guardSwitch(() => { addNqaScenario(ns); setSel(0); setModal(false); flash(name + " 생성"); });
   };
-  const delScn = (i, s) => { if (list.length <= 1) { flash("최소 1개 시나리오는 유지해야 합니다"); return; } if (!window.confirm(s.name + " 시나리오를 삭제할까요?")) return; guardSwitch(() => { removeNqaScenario(s.id); setSel(0); flash(s.name + " 삭제됨"); }); };
+  const delScn = (i, s) => { if (!window.confirm(s.name + " 시나리오를 삭제할까요?" + (list.length <= 1 ? "\n\n마지막 부하 테스트입니다 — 삭제하면 측정 계획을 만들 수 없습니다." : ""))) return; guardSwitch(() => { removeNqaScenario(s.id); setSel(0); flash(s.name + " 삭제됨"); }); };
   const setJourney = (j) => setScn({ journey: j });
   const addJourneyStep = () => { const e0 = endpoints[0]; if (!e0) { flash("엔드포인트를 먼저 추가하세요"); return; } setJourney([...journey, { method: e0.method, path: e0.path }]); };
   const openEpAdd = () => { setEpEdit(null); setEf({ method: "GET", path: "", weight: 10, headers: [], body: "", expect: 200, extracts: [] }); setEpModal(true); };
@@ -236,13 +248,13 @@ export function NqaScenarioScreen() {
   const updJourney = (i, patch) => setJourney(journey.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   const delJourney = (i) => setJourney(journey.filter((_, j) => j !== i));
   const mvJourney = (i, d) => { const j = i + d; if (j < 0 || j >= journey.length) return; const a = journey.slice(); const t = a[i]; a[i] = a[j]; a[j] = t; setJourney(a); };
-  if (!list.length) return <div className="p-8 text-center text-sm text-slate-500">부하 테스트가 없습니다.</div>;
   return (
     <div className="space-y-4">
       <PageToolbar desc="환경 · 워크로드(비율 혼합/순차 진행) · 부하 형상 · SLA 판정" />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-3">
-          <Btn kind="primary" icon={Plus} className="w-full" onClick={openModal}>새 부하 테스트</Btn>
+          <Btn kind="primary" icon={Plus} className="w-full" onClick={openModal} disabled={systems.length === 0} title={systems.length === 0 ? "부하 대상을 먼저 등록하세요" : ""}>새 부하 테스트</Btn>
+          {list.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 부하 테스트가 없습니다.</div>}
           {list.map((s, i) => {
             const su = systems.find((x) => x.id === s.sutId) || {};
             const j = epCorrelated(s.endpoints) || s.forceOrder;
@@ -259,6 +271,14 @@ export function NqaScenarioScreen() {
           })}
         </div>
         <div className="col-span-9 space-y-3">
+          {list.length === 0 ? (
+            <Card className="flex flex-col items-center justify-center py-16 text-center">
+              <Activity size={26} className="text-slate-600" />
+              <div className="mt-3 text-sm font-medium text-slate-300">부하 테스트를 먼저 만드세요</div>
+              <div className="mt-1.5 max-w-md text-xs text-slate-500">부하 형상(스테디·램프)과 엔드포인트를 정의합니다. 측정 계획이 이것을 골라 실행합니다.</div>
+              {systems.length === 0 && <Btn className="mt-3" icon={Server} onClick={() => goTo("nqa-targets")}>부하 대상 등록하러 가기</Btn>}
+            </Card>
+          ) : (<>
           <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5"><div className="w-64 shrink-0"><Input value={cfg.name || ""} onChange={(e) => setScn({ name: e.target.value })} /></div><span className="shrink-0"><Badge kind="info">{sut.name || "대상 미지정"}</Badge></span><span className="shrink-0"><Badge kind={isJourney ? "active" : "info"}>{isJourney ? "순차 진행" : "비율 혼합"}</Badge></span></div>
             <div className="flex items-center gap-3">{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>부하 테스트 저장</Btn></div>
@@ -355,6 +375,7 @@ export function NqaScenarioScreen() {
             </div>
             <div className="rounded-lg border border-emerald-900 bg-emerald-950 px-2.5 py-1.5 text-xs text-emerald-300">합격 조건: <span className="text-emerald-100">{slaText}</span> 를 모두 만족</div>
           </Card>
+          </>)}
         </div>
       </div>
       {modal && (
@@ -399,7 +420,7 @@ export function NqaScenarioScreen() {
 }
 
 export function NqaPlanScreen() {
-  const { nqaPlans, addNqaPlan, updateNqaPlan, removeNqaPlan, nqaScenarios, nqaSystems, jiraConfig } = useApp();
+  const { nqaPlans, addNqaPlan, updateNqaPlan, removeNqaPlan, nqaScenarios, nqaSystems, jiraConfig, setNavGuard, goTo } = useApp();
   const [msg, flash] = useToast();
   const list = nqaPlans || [];
   const scns = nqaScenarios || [];
@@ -409,6 +430,8 @@ export function NqaPlanScreen() {
   const [draft, setDraft] = useState({});
   const cfg = { ...pl, ...draft };
   const dirty = Object.keys(draft).length > 0;
+  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
+  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const setPlan = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const setSla = (patch) => setPlan({ sla: { ...(cfg.sla || {}), ...patch } });
   const jgc = jiraConfig || {};
@@ -440,8 +463,7 @@ export function NqaPlanScreen() {
     const np = { id, name, scenarioId: nf.scenarioId, status: "초안", sla: { p95: 2000, p99: 3000, errRate: 1.0, ...shapeDefaults(s0) } };
     guardSwitch(() => { addNqaPlan(np); setSel(0); setModal(false); flash(name + " 생성 (초안)"); });
   };
-  const delPlan = (i, p) => { if (list.length <= 1) { flash("최소 1개 계획은 유지해야 합니다"); return; } if (!window.confirm(p.name + " 계획을 삭제할까요?")) return; guardSwitch(() => { removeNqaPlan(p.id); setSel(0); flash(p.name + " 삭제됨"); }); };
-  if (!list.length) return <div className="p-8 text-center text-sm text-slate-500">측정 계획이 없습니다.</div>;
+  const delPlan = (i, p) => { if (!window.confirm(p.name + " 계획을 삭제할까요?" + (list.length <= 1 ? "\n\n마지막 계획입니다 — 삭제하면 실행할 계획이 없어집니다." : ""))) return; guardSwitch(() => { removeNqaPlan(p.id); setSel(0); flash(p.name + " 삭제됨"); }); };
   const workloadTxt = scn.id ? (((epCorrelated(scn.endpoints) || scn.forceOrder) ? "순차 진행" : "비율 혼합") + " · " + scn.shape + " · 피크 " + scn.peak + " " + ((scn.unit || "").indexOf("VU") >= 0 ? "VU" : "RPS")) : "";
   const slaParts = [];
   if (sla.p95) slaParts.push("p95 ≤ " + sla.p95 + "ms");
@@ -457,7 +479,8 @@ export function NqaPlanScreen() {
       <PageToolbar desc="측정 시나리오 + SLA 판정 임계(합격/불합격) — 계획이 아우름" />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-3">
-          <Btn kind="primary" icon={Plus} className="w-full" onClick={openModal}>새 계획</Btn>
+          <Btn kind="primary" icon={Plus} className="w-full" onClick={openModal} disabled={scns.length === 0} title={scns.length === 0 ? "부하 테스트를 먼저 만드세요" : ""}>새 계획</Btn>
+          {list.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 계획이 없습니다.</div>}
           {list.map((p, i) => {
             const ps = scns.find((s) => s.id === p.scenarioId) || {};
             const pu = systems.find((s) => s.id === ps.sutId) || {};
@@ -474,6 +497,23 @@ export function NqaPlanScreen() {
           })}
         </div>
         <div className="col-span-9 space-y-3">
+          {list.length === 0 ? (
+            <Card className="flex flex-col items-center justify-center py-16 text-center">
+              <Layers size={26} className="text-slate-600" />
+              <div className="mt-3 text-sm font-medium text-slate-300">측정 계획을 만드세요</div>
+              <div className="mt-1.5 max-w-md text-xs text-slate-500">계획은 부하 테스트와 SLA 임계를 묶어 무엇을 어떤 기준으로 측정할지 정합니다.</div>
+              {systems.length === 0 ? <Btn className="mt-3" icon={Server} onClick={() => goTo("nqa-targets")}>부하 대상 등록하러 가기</Btn> : scns.length === 0 ? <Btn className="mt-3" icon={Activity} onClick={() => goTo("nqa-scenarios")}>부하 테스트 만들러 가기</Btn> : null}
+              <div className="mt-4 w-64 space-y-1.5 text-left">
+                {[["부하 대상 등록", systems.length > 0], ["부하 테스트 등록", scns.length > 0]].map(([label, ok]) => (
+                  <div key={label} className="flex items-center gap-2 text-xs">
+                    {ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertTriangle size={13} className="text-amber-400" />}
+                    <span className={ok ? "text-slate-400" : "text-amber-300"}>{label}</span>
+                    <span className="ml-auto text-slate-600">{ok ? "완료" : "필요"}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : (<>
           <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5"><div className="w-64 shrink-0"><Input value={cfg.name || ""} onChange={(e) => setPlan({ name: e.target.value })} /></div><span className="shrink-0"><Badge kind="info">{sut.name || "대상 미지정"}</Badge></span></div>
             <div className="flex items-center gap-3"><div className="flex items-center gap-2 text-sm text-slate-300"><span>{cfg.status === "활성" ? "활성" : "초안"}</span><Toggle on={cfg.status === "활성"} onClick={() => setPlan({ status: cfg.status === "활성" ? "초안" : "활성" })} /></div>{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>계획 저장</Btn></div>
@@ -523,6 +563,7 @@ export function NqaPlanScreen() {
             )}
           </Card>
           )}
+          </>)}
         </div>
       </div>
       {modal && (
@@ -655,7 +696,7 @@ const simResult = (scn, sla) => {
 };
 
 export function NqaRunScreen({ nav }) {
-  const { nqaPlans, nqaScenarios, nqaSystems, nqaRuns, addNqaRun, updateNqaRun, removeNqaRun, currentUser, defects, addDefect, jiraConfig, notify } = useApp();
+  const { nqaPlans, nqaScenarios, nqaSystems, nqaRuns, addNqaRun, updateNqaRun, removeNqaRun, currentUser, defects, addDefect, jiraConfig, notify, goTo } = useApp();
   const [msg, flash] = useToast();
   const plans = (nqaPlans || []).filter((p) => p.status === "활성");
   const [planId, setPlanId] = useState((plans[0] || {}).id || 0);
@@ -724,7 +765,17 @@ export function NqaRunScreen({ nav }) {
   };
   const promote = (r) => { const p = plans.find((x) => x.id === r.planId) || {}; const s = (nqaScenarios || []).find((x) => x.id === p.scenarioId) || {}; const target = simResult(s, p.sla || {}); const ag = s.agents || 1; const fits = usedWorkers + ag <= RUNNER_POOL; updateNqaRun(r.id, { status: fits ? "실행중" : "대기", startedAt: fits ? nqaNow() : "", durationSec: durMinOf(s) * 60, simStart: fits ? Date.now() : null, agents: ag, target, queuedAt: Date.now() }); flash(fits ? "실행 시작 · " + (p.name || "부하 테스트") : "러너 여유 없음 — 대기열에 추가됨"); };
   const cancelResv = (r) => { removeNqaRun(r.id); flash("예약 취소됨"); };
-  if (!plans.length) return <div className="space-y-4"><PageToolbar desc="부하 주입 · 백그라운드 실행" /><div className="p-8 text-center text-sm text-slate-500">실행할 부하 테스트가 없습니다 — 부하 테스트를 먼저 만드세요.</div></div>;
+  if (!plans.length) return (
+    <div className="space-y-4">
+      <PageToolbar desc="부하 주입 · 백그라운드 실행" />
+      <Card className="flex flex-col items-center justify-center py-16 text-center">
+        <Play size={26} className="text-slate-600" />
+        <div className="mt-3 text-sm font-medium text-slate-300">실행할 부하 테스트가 없습니다</div>
+        <div className="mt-1.5 max-w-md text-xs text-slate-500">부하 테스트를 만들고 활성화해야 부하를 주입할 수 있습니다.</div>
+        <Btn className="mt-3" icon={Code2} onClick={() => goTo("nqa-scenarios")}>부하 테스트 만들러 가기</Btn>
+      </Card>
+    </div>
+  );
   return (
     <div className="space-y-4">
       <PageToolbar desc="부하 주입 · 백그라운드 실행 + 실시간 관측(트래픽·오류·응답시간·VU)" />

@@ -115,8 +115,15 @@ export default function App() {
     level: c.level, steps: c.steps || [], code: c.code || "",
     name: c.name, suite: c.suite, tags: c.tags || "", dataset: c.dataset || "-", acctRole: c.acctRole || "",
   });
+  /* 🔑 미저장 변경 보호 — dirty 상태는 각 화면 안에 있고 사이드바는 그것을 모른다.
+     화면이 setNavGuard로 등록하고, 모든 이동 경로가 goTo를 거치게 한다.
+     ref를 쓰는 이유: 리렌더를 유발하지 않고, 클릭 시점의 최신 값을 본다.
+     이동에 성공하면 가드를 비운다 — 화면이 정리를 빠뜨려도 다음 이동에서 자동 해소된다. */
+  const navGuardRef = useRef(null);
+  const setNavGuard = (msg) => { navGuardRef.current = msg || null; };
+  const goTo = (v) => { if (navGuardRef.current && !window.confirm(navGuardRef.current)) return false; navGuardRef.current = null; setView(v); return true; };
   const api = {
-    currentUser,
+    currentUser, setNavGuard, goTo,
     goto: setView, env, setEnv, reportCfg, setReportCfg, toast, notify, openModal: (type, data) => setModal({ type, data }),
     cases, addCases: (arr) => setCases((c) => [...arr.map(withCreate), ...c]),
     setCaseStatus: (id, status) => setCases((c) => c.map((x) => (x.id === id ? { ...x, ...withUpdate({ status }) } : x))),
@@ -197,7 +204,7 @@ export default function App() {
   const cur = [...ALL_SECTIONS.flatMap((s) => s.items), ...FQA_HIDDEN, ...LQA_HIDDEN, MEMBERS_ITEM].find((n) => n.id === view) || NAV[0];
   const curSection = ((ALL_SECTIONS.find((s) => s.items.some((i) => i.id === view)) || {}).group) || (FQA_HIDDEN.find((i) => i.id === view) || {}).group || (LQA_HIDDEN.find((i) => i.id === view) || {}).group;
   const tenantName = (tenants.find((t) => t.id === tenantId) || {}).name;
-  const screens = { dashboard: <Dashboard />, plans: <Plans />, cases: <Cases />, run: <Run key="run" />, "lqa-result": <Run key="lqa-result" />, history: <RunHistory />, compare: <Compare />, variables: <VariablesScreen />, datasets: <DatasetsScreen />, defects: <Defects />, report: <Report />, targets: <Targets />, settings: <Settings />, members: <MembersView />, "fqa-dashboard": <FqaDashboardScreen nav={(v, arg) => { if (v === "fqa-result-detail" && arg) { setFqaResultRun(arg); setFqaResultFrom("fqa-dashboard"); } setView(v); }} />, "fqa-targets": <FqaTargetScreen />, "fqa-suites": <FqaSuiteScreen />, "fqa-cases": <FqaCasesScreen />, "fqa-plan": <FqaPlanScreen nav={(v, rid) => { if (rid) setFqaResultRun(rid); setView(v); }} />, "fqa-run": <FqaRunScreen nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-run"); setView("fqa-result-detail"); }} />, "fqa-history": <FqaHistoryScreen nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-history"); setView("fqa-result-detail"); }} />, "fqa-regression": <FqaResultScreen mode="회귀" />, "fqa-flaky": <FqaResultScreen mode="불안정" nav={(v, tc) => { if (tc) setFqaEditTc(tc); setView(v); }} />, "fqa-result-detail": <FqaResultScreen mode="상세" runId={fqaResultRun} back={() => setView(fqaResultFrom || "fqa-history")} backLabel={{ "fqa-run": "실행", "fqa-history": "실행 이력", "fqa-dashboard": "대시보드" }[fqaResultFrom] || "뒤로"} />, "nqa-dashboard": <NqaDashboardScreen nav={(v) => setView(v)} />, "nqa-targets": <NqaTargetScreen />, "nqa-scenarios": <NqaScenarioScreen />, "nqa-run": <NqaRunScreen nav={(v) => setView(v)} />, "nqa-history": <NqaHistoryScreen />,"perf-targets": <PqaTargetScreen />, "perf-scenarios": <PqaScenarioScreen />, "perf-plan": <PqaPlanScreen />, "perf-run": <PqaRunScreen />, "perf-history": <PqaHistoryScreen />, "perf-trend": <PqaTrendScreen />, "perf-dashboard": <PqaDashboardScreen /> };
+  const screens = { dashboard: <Dashboard />, plans: <Plans />, cases: <Cases />, run: <Run key="run" />, "lqa-result": <Run key="lqa-result" />, history: <RunHistory />, compare: <Compare />, variables: <VariablesScreen />, datasets: <DatasetsScreen />, defects: <Defects />, report: <Report />, targets: <Targets />, settings: <Settings />, members: <MembersView />, "fqa-dashboard": <FqaDashboardScreen nav={(v, arg) => { if (v === "fqa-result-detail" && arg) { setFqaResultRun(arg); setFqaResultFrom("fqa-dashboard"); } setView(v); }} />, "fqa-targets": <FqaTargetScreen />, "fqa-suites": <FqaSuiteScreen />, "fqa-cases": <FqaCasesScreen />, "fqa-plan": <FqaPlanScreen nav={(v, rid) => { if (rid) setFqaResultRun(rid); setView(v); }} />, "fqa-run": <FqaRunScreen nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-run"); setView("fqa-result-detail"); }} />, "fqa-history": <FqaHistoryScreen nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-history"); setView("fqa-result-detail"); }} />, "fqa-regression": <FqaResultScreen mode="회귀" nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-regression"); setView("fqa-result-detail"); }} />, "fqa-flaky": <FqaResultScreen mode="불안정" nav={(v, tc) => { if (tc) setFqaEditTc(tc); setView(v); }} />, "fqa-result-detail": <FqaResultScreen mode="상세" runId={fqaResultRun} back={() => setView(fqaResultFrom || "fqa-history")} backLabel={{ "fqa-run": "실행", "fqa-history": "실행 이력", "fqa-dashboard": "대시보드", "fqa-regression": "회귀 비교" }[fqaResultFrom] || "뒤로"} />, "nqa-dashboard": <NqaDashboardScreen nav={(v) => setView(v)} />, "nqa-targets": <NqaTargetScreen />, "nqa-scenarios": <NqaScenarioScreen />, "nqa-run": <NqaRunScreen nav={(v) => setView(v)} />, "nqa-history": <NqaHistoryScreen />,"perf-targets": <PqaTargetScreen />, "perf-scenarios": <PqaScenarioScreen />, "perf-plan": <PqaPlanScreen />, "perf-run": <PqaRunScreen />, "perf-history": <PqaHistoryScreen />, "perf-trend": <PqaTrendScreen />, "perf-dashboard": <PqaDashboardScreen /> };
   const tk = { ok: "border-emerald-700 bg-emerald-900", warn: "border-amber-700 bg-amber-900", err: "border-red-700 bg-red-900", info: "border-slate-700 bg-slate-800" };
   const nIcon = { play: Play, bug: Bug, send: Send };
 
@@ -217,7 +224,7 @@ export default function App() {
                     {nqaMenu && (
                       <div className="absolute left-0 top-full z-30 mt-1 w-24 rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-lg">
                         {NQA_SUBTYPES.map((s) => { const on = domain === "NQA" && nqaWs === s.id; return s.ready ? (
-                          <button key={s.id} onClick={() => { setDomain("NQA"); setNqaWs(s.id); setView(s.id === "load" ? "nqa-dashboard" : "perf-dashboard"); setNqaMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (on ? "bg-slate-800 text-teal-300 font-semibold" : "text-slate-300 hover:bg-slate-800")}>{s.label}</button>
+                          <button key={s.id} onClick={() => { if (!goTo(s.id === "load" ? "nqa-dashboard" : "perf-dashboard")) return; setDomain("NQA"); setNqaWs(s.id); setNqaMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (on ? "bg-slate-800 text-teal-300 font-semibold" : "text-slate-300 hover:bg-slate-800")}>{s.label}</button>
                         ) : (
                           <button key={s.id} disabled title="향후 확장 예정" className="flex w-full cursor-not-allowed items-center px-3 py-1.5 text-sm text-slate-600">{s.label}</button>
                         ); })}
@@ -225,7 +232,7 @@ export default function App() {
                     )}
                   </div>
                 ) : (
-                  <button key={d.id} onClick={() => { if (!d.ready) { toast(d.label + "는 준비 중입니다 (확장 예정)", "info"); return; } setDomain(d.id); setNqaMenu(false); setView(d.id === "FQA" ? "fqa-dashboard" : "dashboard"); }} className={"shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold " + (domain === d.id ? "bg-teal-600 text-white" : d.ready ? "text-slate-300 hover:bg-slate-800" : "text-slate-600")}>
+                  <button key={d.id} onClick={() => { if (!d.ready) { toast(d.label + "는 준비 중입니다 (확장 예정)", "info"); return; } if (!goTo(d.id === "FQA" ? "fqa-dashboard" : "dashboard")) return; setDomain(d.id); setNqaMenu(false); }} className={"shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold " + (domain === d.id ? "bg-teal-600 text-white" : d.ready ? "text-slate-300 hover:bg-slate-800" : "text-slate-600")}>
                     {d.label}
                   </button>
                 ))}
@@ -259,7 +266,7 @@ export default function App() {
                   <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{sec.group}</div>
                   <div className="space-y-1">
                     {sec.items.map((n) => { const Icon = n.icon; const on = view === n.id; return (
-                      <button key={n.id} onClick={() => setView(n.id)} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (on ? "bg-teal-600 text-white font-semibold" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200")}><Icon size={16} />{n.label}</button>
+                      <button key={n.id} onClick={() => goTo(n.id)} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (on ? "bg-teal-600 text-white font-semibold" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200")}><Icon size={16} />{n.label}</button>
                     ); })}
                   </div>
                 </div>
