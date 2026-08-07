@@ -10,7 +10,7 @@ import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Toast, useToast, nowStamp, RunTime } from "../common/ui.jsx";
 import { Plus, X, Smartphone, Cpu, Zap, Package, Save, RefreshCw, Copy, Play, Activity, Code2, Gauge, ChevronLeft, Download, Bug, CheckCircle2, TrendingUp, AlertTriangle, ClipboardList } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from "recharts";
-import { PERF_PLATFORMS, PERF_BUILD_SOURCES, PERF_VARIANTS, PERF_METRICS, PERF_DEVICES } from "./data.js";
+import { PERF_PLATFORMS, PERF_BUILD_SOURCES, PERF_VARIANTS, PERF_METRICS, PERF_DEVICES, PERF_LAB } from "./data.js";
 
 const PQA_EVENTS = [{ key: "deploy", label: "배포 시", desc: "대상 앱에 새 빌드가 배포되면 자동 측정합니다", short: "배포", fields: [{ k: "detect", type: "readonly", label: "감지 방식", value: "대상 앱의 CI 배포 웹훅 (상속)" }] }];
 const genSecret = () => "whsec_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
@@ -35,30 +35,34 @@ export function PqaTargetScreen() {
   const [draft, setDraft] = useState({});
   const [syncedId, setSyncedId] = useState(null);
   useEffect(() => {
-    if (app) { setDraft({ name: (app || {}).name, pkg: (app || {}).pkg, version: (app || {}).version, versionCode: (app || {}).versionCode || "", variant: (app || {}).variant || PERF_VARIANTS[0], source: (app || {}).source, build: (app || {}).build, signed: !!(app || {}).signed, artifactUrl: (app || {}).artifactUrl || "", tokenRef: (app || {}).tokenRef || "", track: (app || {}).track || "운영(Production)", buildFile: (app || {}).buildFile || "", benchModule: (app || {}).benchModule || ":benchmark", deploySecret: (app || {}).deploySecret || "" }); setSyncedId((app || {}).id); }
+    if (app) { setDraft({ name: (app || {}).name, pkg: (app || {}).pkg, version: (app || {}).version, versionCode: (app || {}).versionCode || "", variant: (app || {}).variant || PERF_VARIANTS[0], source: (app || {}).source, build: (app || {}).build, signed: !!(app || {}).signed, artifactUrl: (app || {}).artifactUrl || "", benchApkUrl: (app || {}).benchApkUrl || "", benchApk: (app || {}).benchApk || "", tokenRef: (app || {}).tokenRef || "", buildFile: (app || {}).buildFile || "", benchModule: (app || {}).benchModule || ":benchmark", deploySecret: (app || {}).deploySecret || "" }); setSyncedId((app || {}).id); }
   }, [app && (app || {}).id]);
   const setD = (patch) => setDraft((d) => ({ ...d, ...patch }));
-  const FIELDS = ["name", "pkg", "version", "versionCode", "variant", "source", "build", "signed", "artifactUrl", "tokenRef", "track", "buildFile", "benchModule", "deploySecret"];
+  const FIELDS = ["name", "pkg", "version", "versionCode", "variant", "source", "build", "signed", "artifactUrl", "benchApkUrl", "benchApk", "tokenRef", "buildFile", "benchModule", "deploySecret"];
   const nz = (v) => (v == null ? "" : v);
   const dirty = !!app && syncedId === (app || {}).id && FIELDS.some((k) => (k === "signed" ? !!draft[k] !== !!app[k] : k === "variant" ? (draft[k] || PERF_VARIANTS[0]) !== (app[k] || PERF_VARIANTS[0]) : nz(draft[k]) !== nz(app[k])));
   /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
   useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
   const saveCfg = () => {
     if (!(draft.name || "").trim() || !(draft.pkg || "").trim()) { toast("앱 이름과 패키지 id는 비울 수 없습니다", "warn"); return; }
-    updatePerfApp((app || {}).id, { name: draft.name.trim(), pkg: draft.pkg.trim(), version: draft.version, versionCode: draft.versionCode, variant: draft.variant, source: draft.source, build: draft.build, signed: draft.signed, artifactUrl: draft.artifactUrl, tokenRef: draft.tokenRef, track: draft.track, buildFile: draft.buildFile, benchModule: draft.benchModule, deploySecret: draft.deploySecret });
+    updatePerfApp((app || {}).id, { name: draft.name.trim(), pkg: draft.pkg.trim(), version: draft.version, versionCode: draft.versionCode, variant: draft.variant, source: draft.source, build: draft.build, signed: draft.signed, artifactUrl: draft.artifactUrl, benchApkUrl: draft.benchApkUrl, benchApk: draft.benchApk, tokenRef: draft.tokenRef, buildFile: draft.buildFile, benchModule: draft.benchModule, deploySecret: draft.deploySecret });
     toast("저장되었습니다", "ok");
   };
   const parseBuild = () => {
     const src = draft.source;
-    const ok = src === "CI 아티팩트" ? (draft.artifactUrl || "").trim() : src === "직접 업로드" ? (draft.buildFile || "").trim() : (draft.track || "").trim();
-    if (!ok) { toast(src === "직접 업로드" ? "빌드 파일을 먼저 선택하세요" : src === "CI 아티팩트" ? "아티팩트 URL을 먼저 입력하세요" : "트랙을 먼저 선택하세요", "warn"); return; }
-    const fname = src === "직접 업로드" ? draft.buildFile : src === "CI 아티팩트" ? ((draft.artifactUrl || "").split("/").pop() || "app-release.aab") : "(Play 배포본)";
+    const ok = src === "CI 아티팩트" ? (draft.artifactUrl || "").trim() : (draft.buildFile || "").trim();
+    // 벤치마크 APK가 없으면 파싱이 통과해도 측정할 수 없다 — 여기서 알려준다
+    const benchOk = src === "CI 아티팩트" ? (draft.benchApkUrl || "").trim() : (draft.benchApk || "").trim();
+    if (!ok) { toast(src === "직접 업로드" ? "빌드 파일을 먼저 선택하세요" : "아티팩트 URL을 먼저 입력하세요", "warn"); return; }
+    const fname = src === "직접 업로드" ? draft.buildFile : ((draft.artifactUrl || "").split("/").pop() || "app-release.aab");
     setD({ version: draft.version && draft.version !== "-" ? draft.version : "1.0.0", versionCode: draft.versionCode && draft.versionCode !== "-" ? draft.versionCode : "10000", signed: true, build: fname });
-    toast(src === "스토어(Play)" ? "Play Developer API에서 트랙 버전·서명을 조회했습니다" : "매니페스트에서 버전·versionCode·서명을 추출했습니다", "ok");
+    setD({ benchApk: benchOk ? (src === "CI 아티팩트" ? ((draft.benchApkUrl || "").split("/").pop() || "macrobenchmark.apk") : draft.benchApk) : "" });
+    toast(benchOk ? "앱·벤치마크 APK에서 버전·versionCode·서명을 추출했습니다"
+      : "앱 빌드는 확인했으나 벤치마크 테스트 APK가 없습니다 — 측정할 수 없습니다", benchOk ? "ok" : "warn");
   };
   const add = () => {
     if (!nf.name.trim() || !nf.pkg.trim()) { toast("앱 이름과 패키지 id를 입력하세요", "warn"); return; }
-    addPerfApp({ id: Date.now(), name: nf.name.trim(), platform: "Android", pkg: nf.pkg.trim(), version: "-", versionCode: "-", variant: "release·profileable", source: "CI 아티팩트", build: "-", signed: false, artifactUrl: "", tokenRef: "", track: "운영(Production)", buildFile: "", benchModule: ":benchmark", deploySecret: genSecret() });
+    addPerfApp({ id: Date.now(), name: nf.name.trim(), platform: "Android", pkg: nf.pkg.trim(), version: "-", versionCode: "-", variant: "release·profileable", source: "CI 아티팩트", build: "-", signed: false, artifactUrl: "", tokenRef: "", buildFile: "", benchModule: ":benchmark", deploySecret: genSecret() });
     setSel(0); setModal(false); toast("대상 앱 추가됨 — 상세에서 빌드를 연결하고 '빌드 파싱'을 실행하세요", "ok");
   };
   const deployHook = app ? ("https://autoqa.io/api/hooks/perf/" + (app || {}).id + "-" + String((app || {}).pkg || "app").replace(/[^a-z0-9]+/gi, "-") + "-9c1e") : "";
@@ -114,16 +118,12 @@ export function PqaTargetScreen() {
               {draft.source === "CI 아티팩트" && (
                 <div className="space-y-3">
                   <Field label="아티팩트 URL"><Input value={draft.artifactUrl || ""} onChange={(e) => setD({ artifactUrl: e.target.value })} placeholder="https://ci.onmarket.io/artifacts/app/9.12.0/app-release.aab" className="font-mono text-xs" /></Field>
+                  {/* 러너는 APK를 두 개 설치한다 — 앱과 벤치마크 테스트. 벤치마크 APK가 없으면 실행 자체가 불가능하다 */}
+                  <Field label="벤치마크 테스트 APK URL" hint="Macrobenchmark 모듈의 androidTest 산출물"><Input value={draft.benchApkUrl || ""} onChange={(e) => setD({ benchApkUrl: e.target.value })} placeholder="https://ci.example.io/artifacts/macrobenchmark-1.0.0.apk" className="font-mono text-xs" /></Field>
                   <Field label="인증 토큰 (변수 참조)"><VarRefInput value={draft.tokenRef || ""} onChange={(v) => setD({ tokenRef: v })} placeholder="${ci_token}" /></Field>
                   <Field label="배포 웹훅 (CI가 호출)"><div className="flex items-center gap-2"><div className="flex-1 truncate rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 font-mono text-xs text-slate-300" title={deployHook}>{deployHook}</div><Btn icon={Copy} onClick={() => { if (navigator.clipboard) navigator.clipboard.writeText(deployHook); toast("웹훅 URL 복사됨", "ok"); }}>복사</Btn></div></Field>
                   <Field label="웹훅 서명 시크릿 (CI에서 HMAC 서명에 사용)"><div className="flex items-center gap-2"><div className="flex-1 truncate rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 font-mono text-xs text-slate-400">{draft.deploySecret ? "whsec_" + "•".repeat(20) + draft.deploySecret.slice(-4) : <span className="text-slate-600">미발급</span>}</div><Btn icon={Copy} onClick={() => { if (navigator.clipboard && draft.deploySecret) navigator.clipboard.writeText(draft.deploySecret); toast("서명 시크릿 복사됨", "ok"); }}>복사</Btn><Btn icon={RefreshCw} onClick={() => setD({ deploySecret: genSecret() })}>재생성</Btn></div></Field>
                   <div className="text-xs text-slate-500">CI 배포 잡 마지막에 이 웹훅을 <span className="text-slate-300">서명 시크릿으로 HMAC 서명</span>해 호출하면 측정 계획의 '배포 시' 이벤트가 트리거됩니다. 재생성 시 CI 설정도 갱신하세요.</div>
-                </div>
-              )}
-              {draft.source === "스토어(Play)" && (
-                <div className="space-y-2">
-                  <Field label="트랙"><Select value={draft.track || "운영(Production)"} onChange={(e) => setD({ track: e.target.value })}><option>운영(Production)</option><option>베타(Beta)</option><option>내부 테스트(Internal)</option></Select></Field>
-                  <div className="text-xs text-slate-500">버전·서명은 Play Developer API로 <span className="text-slate-300">패키지·트랙 기준 조회</span>합니다 — 다운로드 URL 불필요. 단 Play 재서명·바이너리 제약으로 상세 프로파일링은 제한(baseline 참조용).</div>
                 </div>
               )}
               {draft.source === "직접 업로드" && (
@@ -132,6 +132,10 @@ export function PqaTargetScreen() {
                     <label className="cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 hover:border-teal-500">파일 선택<input type="file" accept=".apk,.aab" className="hidden" onChange={(e) => { const f = (e.target.files || [])[0]; if (f) setD({ buildFile: f.name }); }} /></label>
                     <span className="font-mono text-xs text-slate-400">{draft.buildFile || "선택된 파일 없음 (.apk / .aab)"}</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 hover:border-slate-600">벤치마크 APK 선택<input type="file" className="hidden" onChange={(e) => setD({ benchApk: (e.target.files && e.target.files[0] && e.target.files[0].name) || "" })} /></label>
+                    <span className="font-mono text-xs text-slate-400">{draft.benchApk || "선택된 파일 없음 (macrobenchmark-*.apk)"}</span>
+                  </div>
                   <div className="text-xs text-slate-500">CI 밖의 로컬·수동 빌드를 직접 업로드합니다.</div>
                 </div>
               )}
@@ -139,10 +143,11 @@ export function PqaTargetScreen() {
 
             <div className="mt-3">
               <div className="mb-1.5 text-xs font-semibold text-slate-400">빌드 메타 <span className="font-normal text-slate-500">· 빌드에서 자동 추출 (읽기 전용)</span></div>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-5 gap-3">
                 <Field label="버전 이름"><div className="rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 text-sm text-slate-300">{draft.version && draft.version !== "-" ? draft.version : <span className="text-slate-600">미확인</span>}</div></Field>
                 <Field label="versionCode"><div className="rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 text-sm text-slate-300">{draft.versionCode && draft.versionCode !== "-" ? draft.versionCode : <span className="text-slate-600">미확인</span>}</div></Field>
                 <Field label="빌드 아티팩트"><div className="truncate rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 font-mono text-xs text-slate-300" title={draft.build}>{draft.build && draft.build !== "-" ? draft.build : <span className="text-slate-600">미확인</span>}</div></Field>
+                <Field label="벤치마크 APK"><div className={"truncate rounded-lg border px-2.5 py-2 font-mono text-xs " + (draft.benchApk ? "border-slate-800 bg-slate-800/50 text-slate-300" : "border-red-900 bg-red-950 text-red-300")}>{draft.benchApk || "없음 — 측정 불가"}</div></Field>
                 <Field label="서명"><div className="rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2"><Badge kind={draft.signed ? "pass" : "warn"}>{draft.signed ? "서명됨" : "미서명"}</Badge></div></Field>
               </div>
             </div>
@@ -180,30 +185,32 @@ export function PqaScenarioScreen() {
     if (scn) { setDraft({ scriptRef: (scn || {}).scriptRef || "" }); setSyncedId((scn || {}).id); }
   }, [scn && (scn || {}).id]);
   const setD = (patch) => setDraft((d) => ({ ...d, ...patch }));
-  const isStartup = String((scn && (scn || {}).journey) || "").startsWith("앱 시작");
-  const refDirty = !!scn && syncedId === (scn || {}).id && (draft.scriptRef || "") !== ((scn || {}).scriptRef || "");
-  const syncBench = () => {
+  /* 🔑 테스트 참조가 바뀌면 다른 테스트를 가리키게 된다 — 기존 확정 지표는 그 테스트의 것이 아니다.
+     미확정으로 되돌려 다음 측정에서 다시 확정하게 한다. F7 리비전 원칙과 같다(참조가 바뀌면 연결이 끊긴다). */
+  const applyRef = () => {
     const ref = (draft.scriptRef || "").trim();
     if (!ref) { toast("테스트(클래스#메서드)를 먼저 입력하세요", "warn"); return; }
-    const method = ref.includes("#") ? ref.split("#")[1] : ref;
-    const pkg = scnApp.pkg || "com.app";
-    const section = method.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
-    const startup = /startup|cold|warm|hot|launch/i.test(ref);
-    const patch = startup
-      ? { journey: "앱 시작(Startup)", startMode: "Cold", iterations: 10, steps: [], metrics: ["e2e", "mem"], traceSection: "", scriptRef: ref, benchSource: "@Test\nfun " + method + "() = rule.measureRepeated(\n  packageName = \"" + pkg + "\",\n  metrics = listOf(StartupTimingMetric(), MemoryUsageMetric(Mode.Last)),\n  iterations = 10, startupMode = StartupMode.COLD,\n) { pressHome(); startActivityAndWait() }" }
-      : { journey: "사용 흐름(Flow)", startMode: "", iterations: 10, steps: ["앱 진입", "대상 화면 이동", "스크롤·조작"], metrics: ["e2e", "frame", "jank", "mem"], traceSection: section, scriptRef: ref, benchSource: "@Test\nfun " + method + "() = rule.measureRepeated(\n  packageName = \"" + pkg + "\",\n  metrics = listOf(TraceSectionMetric(\"" + section + "\"), FrameTimingMetric(), MemoryUsageMetric(Mode.Last)),\n  iterations = 10, startupMode = StartupMode.WARM,\n) {\n  startActivityAndWait()\n  trace(\"" + section + "\") { onView(res(\"target\")).fling(DOWN) }\n}" };
-    updatePerfScenario((scn || {}).id, patch);
-    toast("벤치마크에서 유형·지표·흐름·E2E·소스를 인식했습니다", "ok");
+    const was = (scn.metrics || []).length > 0;
+    updatePerfScenario(scn.id, was ? { scriptRef: ref, metrics: [], journey: "", startMode: "", iterations: 0 } : { scriptRef: ref });
+    setSyncedId(scn.id); setDraft({ scriptRef: ref });
+    toast(was ? "다른 테스트이므로 미확정으로 되돌립니다 — 다음 측정에서 지표가 다시 확정됩니다" : "테스트 참조 저장됨", was ? "warn" : "ok");
   };
-  const selectScn = (i) => { if (i === sel) return; if (refDirty && !window.confirm("동기화하지 않은 테스트 참조 변경이 있습니다. 그대로 이동할까요?")) return; setSel(i); };
+  const isStartup = String((scn && (scn || {}).journey) || "").startsWith("앱 시작");
+  const refDirty = !!scn && syncedId === (scn || {}).id && (draft.scriptRef || "") !== ((scn || {}).scriptRef || "");
+  /* 🔑 벤치마크 동기화를 하지 않는다.
+     Macrobenchmark 코드는 앱 저장소에 있고 앱 개발자가 작성한다 — 플랫폼은 그 소스에 접근하지 않는다.
+     무엇이 측정되는지는 '돌려봐야' 안다. 첫 측정 결과(benchmarkData)에서 지표·반복·유형이 확정된다.
+     소스 파싱은 저장소 연동과 Kotlin 파싱을 요구하고, 상수 참조·헬퍼 래핑에서 조용히 깨진다. */
+  const confirmed = (scn && (scn.metrics || []).length > 0);
+  const selectScn = (i) => { if (i === sel) return; if (refDirty && !window.confirm("저장하지 않은 테스트 참조 변경이 있습니다. 그대로 이동할까요?")) return; setSel(i); };
   const add = () => {
     if (!nf.name.trim() || !nf.appId) { toast("이름과 대상 앱을 선택하세요", "warn"); return; }
-    addPerfScenario({ id: Date.now(), name: nf.name.trim(), appId: Number(nf.appId), scriptRef: (nf.scriptRef || "").trim(), journey: "", startMode: "", steps: [], metrics: [], traceSection: "", iterations: null, benchSource: "", status: "초안" });
-    setSel(0); setModal(false); toast("측정 시나리오 추가됨 — 테스트를 지정하고 '벤치마크 동기화'를 실행하세요", "ok");
+    addPerfScenario({ id: Date.now(), name: nf.name.trim(), appId: Number(nf.appId), scriptRef: (nf.scriptRef || "").trim(), journey: "", startMode: "", desc: "", metrics: [], traceSection: "", iterations: 0, status: "초안" });
+    setSel(0); setModal(false); toast("측정 시나리오 추가됨 — 첫 측정을 하면 산출 지표가 확정됩니다", "ok");
   };
   return (
     <div className="space-y-4">
-      <PageToolbar desc="벤치마크 테스트 참조 · 동기화로 유형·지표·흐름 인식" />
+      <PageToolbar desc="벤치마크 테스트 참조 · 산출 지표는 첫 측정에서 확정" />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-2">
           <Btn kind="primary" icon={Plus} className="w-full" disabled={(perfApps || []).length === 0} title={(perfApps || []).length === 0 ? "대상 앱을 먼저 등록하세요" : ""} onClick={() => { setNf({ name: "", appId: perfApps[0] ? String(perfApps[0].id) : "", scriptRef: "" }); setModal(true); }}>시나리오 추가</Btn>
@@ -212,12 +219,12 @@ export function PqaScenarioScreen() {
             <Card key={s.id} className={cardCls(sel === i)}>
               <div onClick={() => selectScn(i)}>
                 <div className="flex items-center justify-between gap-1.5"><span className="truncate text-sm font-semibold text-slate-100">{s.name}</span><button onClick={(e) => { e.stopPropagation(); const used = (perfPlans || []).filter((p) => (p.scenarioIds || []).includes(s.id)).length; const warn = used ? "\n\n측정 계획 " + used + "건이 이 시나리오를 참조합니다. 삭제하면 해당 계획에서 제외됩니다." : ""; if (!window.confirm(s.name + " 시나리오를 삭제할까요?" + warn)) return; removePerfScenario(s.id); setSel(0); toast(s.name + " 삭제됨", "warn"); }} className="shrink-0 text-slate-500 hover:text-red-400"><X size={12} /></button></div>
-                <div className="mt-1 flex items-center gap-1.5"><Badge kind="info">{appName(s.appId)}</Badge><span className="text-xs text-slate-500">지표 {(s.metrics || []).length}</span></div>
+                <div className="mt-1 flex items-center gap-1.5"><Badge kind="info">{appName(s.appId)}</Badge>{(s.metrics || []).length ? <span className="text-xs text-slate-500">지표 {(s.metrics || []).length}</span> : <Badge kind="warn">미확정</Badge>}</div>
               </div>
             </Card>
           ))}
         </div>
-        {scn && (
+        {(scn || perfScenarios.length === 0) && (
         <Card className="col-span-9 p-4 space-y-4">
           {perfScenarios.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -240,16 +247,17 @@ export function PqaScenarioScreen() {
             <div className="w-64 shrink-0"><Input value={scn.name} onChange={(e) => updatePerfScenario(scn.id, { name: e.target.value })} className="text-base font-semibold" /></div><Badge kind="info">{appName(scn.appId)}</Badge>
           </div>
           <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-900 p-3">
-            <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-slate-300">Macrobenchmark 테스트 참조</span><div className="flex items-center gap-2">{refDirty && <span className="text-xs text-amber-300">동기화 필요</span>}<Btn icon={RefreshCw} onClick={syncBench}>벤치마크 동기화</Btn></div></div>
+            <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-slate-300">Macrobenchmark 테스트 참조 <span className="font-normal text-slate-500">· 앱 개발자가 작성한 코드를 가리킨다</span></span><div className="flex items-center gap-2">{refDirty && <><span className="text-xs text-amber-300">미저장 변경</span><Btn kind="primary" icon={Save} onClick={applyRef}>참조 저장</Btn></>}{confirmed ? <Badge kind="pass">확정</Badge> : <Badge kind="warn">미확정</Badge>}</div></div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="모듈" hint="대상 앱 설정에서 상속"><div className="rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 font-mono text-xs text-slate-400">{scnApp.benchModule || ":benchmark"}</div></Field>
               <Field label="테스트 (클래스#메서드)"><Input value={draft.scriptRef || ""} onChange={(e) => setD({ scriptRef: e.target.value })} placeholder="HomeScrollBenchmark#scrollHome" className="font-mono text-xs" /></Field>
             </div>
-            <pre className="overflow-x-auto rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400">{scn.benchSource || "// 테스트를 지정하고 ‘벤치마크 동기화’를 실행하면 유형·지표·흐름·마커·소스가 인식됩니다."}</pre>
+            <Field label="흐름 설명" hint="플랫폼은 코드를 읽지 않는다 — 어떤 조작인지는 사람이 적는다"><Input value={scn.desc || ""} onChange={(e) => updatePerfScenario(scn.id, { desc: e.target.value })} placeholder="예: 로그인 → 홈 진입 → 상품 탭 → 리스트 스크롤 10회" /></Field>
+            {!confirmed && <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-2 text-xs text-amber-300">아직 측정한 적이 없어 산출 지표를 모릅니다 — <span className="font-semibold">첫 측정을 마치면 지표·반복·유형이 확정</span>됩니다. 계획에는 지금도 담을 수 있고, 지표 임계(SLA)는 확정 후 설정합니다.</div>}
           </div>
 
           <div>
-            <div className="mb-1.5 text-xs font-semibold text-slate-400">벤치마크 파생 <span className="font-normal text-slate-500">· 동기화로 인식 (읽기 전용)</span></div>
+            <div className="mb-1.5 text-xs font-semibold text-slate-400">측정에서 확정된 값 <span className="font-normal text-slate-500">· 첫 측정 결과에서 파생 (읽기 전용)</span></div>
             <div className="grid grid-cols-3 gap-3">
               <Field label="측정 유형"><div className="rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 text-sm text-slate-300">{scn.journey || <span className="text-slate-600">미인식</span>}</div></Field>
               {isStartup && <Field label="시작 모드"><div className="rounded-lg border border-slate-800 bg-slate-800/50 px-2.5 py-2 text-sm text-slate-300">{scn.startMode || "Cold"}</div></Field>}
@@ -260,12 +268,12 @@ export function PqaScenarioScreen() {
           <div>
             <div className="mb-1.5 text-xs font-semibold text-slate-400">산출 지표</div>
             <div className="flex flex-wrap gap-1.5">
-              {(scn.metrics || []).length === 0 ? <span className="text-xs text-slate-500">동기화 시 인식됩니다.</span> : (scn.metrics || []).map((mid) => { const m = PERF_METRICS.find((x) => x.id === mid) || { label: mid, unit: "" }; return <span key={mid} className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-teal-200">{m.label} <span className="text-slate-500">({[m.agg, m.unit].filter(Boolean).join(" ") || "-"})</span></span>; })}
+              {(scn.metrics || []).length === 0 ? <span className="text-xs text-amber-400">첫 측정을 마치면 확정됩니다.</span> : (scn.metrics || []).map((mid) => { const m = PERF_METRICS.find((x) => x.id === mid) || { label: mid, unit: "" }; return <span key={mid} className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-teal-200">{m.label} <span className="text-slate-500">({[m.agg, m.unit].filter(Boolean).join(" ") || "-"})</span></span>; })}
             </div>
           </div>
 
-          {!isStartup && (scn.steps || []).length > 0 && (
-            <div><div className="mb-1 text-xs font-semibold text-slate-400">흐름</div><div className="flex flex-wrap gap-1.5">{scn.steps.map((st, i) => <span key={i} className="rounded bg-slate-800 px-2 py-1 text-xs text-slate-300">{i + 1}. {st}</span>)}</div></div>
+          {(scn.desc || "").trim() && (
+            <div><div className="mb-1 text-xs font-semibold text-slate-400">흐름 <span className="font-normal text-slate-500">· 사람이 적은 설명 (시스템이 쓰지 않음)</span></div><div className="text-sm text-slate-300">{scn.desc}</div></div>
           )}
 
           {isStartup ? (
@@ -300,7 +308,7 @@ export function PqaScenarioScreen() {
 
 /* ═══════════ 측정 계획 (조립 + 예산 + 트리거) ═══════════ */
 export function PqaPlanScreen() {
-  const { perfPlans, perfScenarios, perfApps, addPerfPlan, updatePerfPlan, removePerfPlan, toast, setNavGuard, goTo } = useApp();
+  const { perfPlans, perfScenarios, perfApps, perfRuns, addPerfPlan, updatePerfPlan, removePerfPlan, toast, setNavGuard, goTo } = useApp();
   const [sel, setSel] = useState(0);
   const [modal, setModal] = useState(false);
   const [nf, setNf] = useState({ name: "", appId: "" });
@@ -336,11 +344,20 @@ export function PqaPlanScreen() {
     toast("저장되었습니다", "ok");
   };
   const selectPlan = (i) => { if (i === sel) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 저장하지 않고 다른 계획으로 이동할까요?")) return; setSel(i); };
+  /* 임계는 실제로 얼마가 나오는지 봐야 정할 수 있다 — 결과 화면을 오가지 않도록 최근 측정 범위를 여기서 보여준다 */
+  const lastRange = (sid, mid) => {
+    const rs = (perfRuns || []).filter((r) => r.planId === (plan || {}).id && r.status === "완료").slice(0, 3);
+    const vs = rs.flatMap((r) => (r.subjobs || []).filter((x) => x.sid === sid && x.metrics && x.metrics[mid] != null).map((x) => x.metrics[mid]));
+    if (!vs.length) return null;
+    return { lo: Math.min(...vs), hi: Math.max(...vs) };
+  };
   const scnsOf = (id) => perfScenarios.filter((s) => s.appId === id);
   const selScns = perfScenarios.filter((s) => (draft.scenarioIds || []).includes(s.id));
   const setBudget = (sid, mid, val) => { const b = draft.budget || {}; const sb = { ...(b[String(sid)] || {}), [mid]: val === "" ? undefined : +val }; setD({ budget: { ...b, [String(sid)]: sb } }); };
   const planApp = perfApps.find((a) => a.id === (plan && (plan || {}).appId)) || {};
   const ciSource = planApp.source === "CI 아티팩트";
+  // 러너는 앱 APK와 벤치마크 테스트 APK를 함께 설치한다 — 하나라도 없으면 이 계획은 실행 자체가 안 된다
+  const planBuildOk = !!planApp.signed && planApp.build && planApp.build !== "-" && !!planApp.benchApk;
   const toggleScn = (sid) => { const has = (draft.scenarioIds || []).includes(sid); setD({ scenarioIds: has ? draft.scenarioIds.filter((x) => x !== sid) : [...(draft.scenarioIds || []), sid] }); };
   const toggleDevice = (did) => { const ids = draft.deviceIds || []; const has = ids.includes(did); setD({ deviceIds: has ? ids.filter((x) => x !== did) : [...ids, did] }); };
   const selDevices = PERF_DEVICES.filter((d) => (draft.deviceIds || []).includes(d.id));
@@ -362,7 +379,7 @@ export function PqaPlanScreen() {
             </Card>
           ))}
         </div>
-        {plan && (
+        {(plan || perfPlans.length === 0) && (
         <Card className="col-span-9 p-4 space-y-4">
           {perfPlans.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -393,7 +410,7 @@ export function PqaPlanScreen() {
             <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-400"><Code2 size={13} className="text-teal-400" />측정 시나리오</div>
             <div className="flex flex-wrap gap-1.5">
               {scnsOf(plan.appId).map((s) => { const on = (draft.scenarioIds || []).includes(s.id); return (
-                <button key={s.id} onClick={() => toggleScn(s.id)} className={"rounded-lg border px-2.5 py-1.5 text-xs " + (on ? "border-teal-500 bg-teal-900 text-teal-200" : "border-slate-700 bg-slate-800 text-slate-400")}>{s.name}</button>
+                <button key={s.id} onClick={() => toggleScn(s.id)} className={"rounded-lg border px-2.5 py-1.5 text-xs " + (on ? "border-teal-500 bg-teal-900 text-teal-200" : "border-slate-700 bg-slate-800 text-slate-400")}>{s.name}{!(s.metrics || []).length && <span className="ml-1 text-amber-400" style={{ fontSize: 10 }}>미확정</span>}</button>
               ); })}
               {scnsOf(plan.appId).length === 0 && <span className="text-xs text-slate-500">이 앱의 시나리오가 없습니다 — 측정 시나리오에서 추가하세요.</span>}
             </div>
@@ -418,8 +435,14 @@ export function PqaPlanScreen() {
               </table>
             </div>
           </div>
+          {!planBuildOk && (
+            <div className="rounded-lg border border-red-800 bg-red-950 px-2.5 py-2 text-xs text-red-300">
+              <span className="font-semibold">{planApp.name || "대상 앱"}</span>은 측정할 수 없습니다 — {!planApp.benchApk ? "벤치마크 테스트 APK가 없습니다" : "앱 빌드가 확보되지 않았습니다"}. 이 계획은 실행 시 차단됩니다.
+              <Btn className="mt-2" icon={Smartphone} onClick={() => goTo("perf-targets")}>대상 앱에서 연결하기</Btn>
+            </div>
+          )}
           <div>
-            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-400"><Gauge size={13} className="text-teal-400" />지표별 SLA <span className="font-normal text-slate-500">· 시나리오별 지표 임계 · 비우면 게이트 제외</span></div>
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-slate-400"><Gauge size={13} className="text-teal-400" />지표별 SLA <span className="font-normal text-slate-500">· 시나리오별 지표 임계 · 비우면 게이트 제외 · 미확정은 첫 측정 후 설정</span></div>
             {selScns.length === 0 ? (
               <div className="rounded-lg bg-slate-800 px-3 py-2 text-xs text-slate-500">시나리오를 선택하면 시나리오별 지표 SLA를 설정할 수 있습니다.</div>
             ) : (
@@ -428,16 +451,24 @@ export function PqaPlanScreen() {
                   <div key={s.id} className="rounded-lg border border-slate-800 bg-slate-900 p-3">
                     <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-300">{s.name}{s.journey && <Badge kind="info">{s.journey}</Badge>}</div>
                     {(s.metrics || []).length === 0 ? (
-                      <div className="text-xs text-slate-500">동기화되지 않아 지표가 없습니다 — 측정 시나리오에서 벤치마크 동기화하세요.</div>
+                      /* 미확정 시나리오 — 지표를 모르니 임계도 정할 수 없다. 계획에는 담기되 게이트에서 빠진다(AP-011). */
+                      <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-2 text-xs text-amber-300"><span className="font-semibold">미확정</span> — 아직 측정한 적이 없어 산출 지표를 모릅니다. <span className="font-semibold">첫 측정에서 지표가 확정</span>되며 그 회차는 임계가 없어 게이트에서 제외됩니다. 확정 후 여기서 임계를 설정하세요.</div>
                     ) : (
+                      <>
+                      {/* 지표는 확정됐는데 임계가 하나도 없으면 이 시나리오는 영원히 미판정이다 — 조용히 두지 않는다 */}
+                      {!PERF_METRICS.some((m) => (s.metrics || []).includes(m.id) && (draft.budget || {})[String(s.id)] && (draft.budget || {})[String(s.id)][m.id] != null) && (
+                        <div className="mb-2 rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-1.5 text-xs text-amber-300">임계가 하나도 없습니다 — 이 시나리오는 계속 <span className="font-semibold">미판정</span>으로 남습니다.</div>
+                      )}
                       <div className="grid grid-cols-3 gap-2">
                         {PERF_METRICS.filter((m) => (s.metrics || []).includes(m.id)).map((m) => (
                           <div key={m.id} className="rounded-lg bg-slate-800 px-2.5 py-1.5">
                             <div className="mb-0.5 text-xs text-slate-400">{m.label} <span className="text-slate-500">· {m.agg} {m.dir === "up" ? "≥" : "≤"} {m.unit}</span></div>
                             <input type="number" value={(draft.budget && draft.budget[String(s.id)] && draft.budget[String(s.id)][m.id]) != null ? draft.budget[String(s.id)][m.id] : ""} onChange={(e) => setBudget(s.id, m.id, e.target.value)} placeholder="—" className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-200 outline-none focus:border-teal-500" />
+                            {(() => { const r = lastRange(s.id, m.id); return r ? <div className="mt-0.5 text-slate-500" style={{ fontSize: 10 }}>최근 3회 {r.lo === r.hi ? r.lo : r.lo + "~" + r.hi}{m.unit}</div> : null; })()}
                           </div>
                         ))}
                       </div>
+                      </>
                     )}
                   </div>
                 ))}
@@ -463,10 +494,10 @@ export function PqaPlanScreen() {
   );
 }
 
-/* ═══════════ 측정 실행 (단일 러너 FIFO 큐 · 시나리오×단말 매트릭스) ═══════════ */
+/* ═══════════ 측정 실행 (계획 단위 직렬 큐 · 계획 안에서는 단말 병렬 · 시나리오 순차) ═══════════ */
 const PRUN_MBASE = { e2e: 1500, frame: 20, jank: 6, mem: 380, batt: 300 };
 export function PqaRunScreen() {
-  const { perfPlans, perfScenarios, perfApps, perfRuns, addPerfRun, updatePerfRun, removePerfRun, currentUser } = useApp();
+  const { perfPlans, perfScenarios, perfApps, perfRuns, addPerfRun, updatePerfRun, removePerfRun, currentUser, updatePerfScenario } = useApp();
   const [msg, flash] = useToast();
   const appNm = (id) => (perfApps.find((a) => a.id === id) || {}).name || "-";
   const runnable = (perfPlans || []).filter((p) => p.status === "활성");
@@ -476,14 +507,28 @@ export function PqaRunScreen() {
   const rpDevs = PERF_DEVICES.filter((d) => ((runPlan.matrix && runPlan.matrix.deviceIds) || []).includes(d.id));
   const rpScns = (perfScenarios || []).filter((s) => (runPlan.scenarioIds || []).includes(s.id));
   const rpApp = perfApps.find((a) => a.id === runPlan.appId) || {};
-  const rpBuildOk = !!rpApp.signed && rpApp.build && rpApp.build !== "-";
+  const rpBuildOk = !!rpApp.signed && rpApp.build && rpApp.build !== "-" && !!rpApp.benchApk;
   const rpNeedsPower = rpScns.some((s) => (s.metrics || []).includes("batt"));
   const rpHasPowerDev = rpDevs.some((d) => d.caps.power);
   const rpSlaN = Object.values(runPlan.budget || {}).reduce((a, o) => a + Object.values(o || {}).filter((v) => v != null).length, 0);
 
+  /* 🔑 미확정 시나리오는 첫 측정에서 지표가 드러난다.
+     benchmarkData에 "무엇이 측정됐는가"가 들어 있다 — 소스를 읽지 않아도 결과로 알 수 있다.
+     다만 '어떤 조작을 했는가'는 결과에 없으므로 흐름 설명은 사람이 적는다. */
+  const discovered = (scn) => {
+    const startup = /startup|cold|warm|hot|launch/i.test(scn.scriptRef || "");
+    return startup
+      ? { journey: "앱 시작(Startup)", startMode: "Cold", iterations: 10, metrics: ["e2e", "mem"] }
+      : { journey: "사용 흐름(Flow)", startMode: "", iterations: 10, metrics: ["e2e", "frame", "jank", "mem"] };
+  };
+  const metricsOfScn = (scn) => ((scn.metrics || []).length ? scn.metrics : discovered(scn).metrics);
+  /* 앱 개발자가 벤치마크에 지표를 추가·제거하면 결과에 그대로 드러난다.
+     확정 목록만 보면 새 지표를 조용히 버리게 되므로 회차마다 결과 기준으로 스탬프한다 —
+     과거 회차와 비교 축이 달라졌음을 추이 화면이 알아야 한다. */
+  const metricSig = (mids) => (mids || []).slice().sort().join(",");
   const simSub = (scn, bdg, dev) => {
     const metrics = {}; let fail = false, gated = false;
-    (scn.metrics || []).forEach((mid) => {
+    metricsOfScn(scn).forEach((mid) => {
       if (mid === "batt" && !(dev && dev.caps && dev.caps.power)) return; // 전력은 전력 단말에서만 수집
       const b = bdg ? bdg[mid] : undefined;
       const base = b != null ? b : (PRUN_MBASE[mid] || 100);
@@ -498,7 +543,7 @@ export function PqaRunScreen() {
     const scns = (perfScenarios || []).filter((s) => (plan.scenarioIds || []).includes(s.id));
     const bud = plan.budget || {};
     const subs = [];
-    devs.forEach((d) => scns.forEach((s) => { const r = simSub(s, bud[String(s.id)], d); subs.push({ did: d.id, model: d.model, slot: d.slot, sid: s.id, scn: s.name, journey: s.journey, iters: s.iterations || 10, iter: 0, status: "대기", metrics: r.metrics, verdict: r.verdict }); }));
+    devs.forEach((d) => scns.forEach((s) => { const r = simSub(s, bud[String(s.id)], d); subs.push({ base: (s.metrics || []).length === 0 || undefined, did: d.id, model: d.model, slot: d.slot, sid: s.id, scn: s.name, journey: s.journey, iters: s.iterations || 10, estIters: !s.iterations || undefined, iter: 0, status: "대기", metrics: r.metrics, verdict: r.verdict }); }));
     return subs;
   };
   const gate = (plan) => {
@@ -508,6 +553,8 @@ export function PqaRunScreen() {
     if (!((plan.matrix && plan.matrix.deviceIds) || []).length) { flash(plan.name + " — 선택된 단말이 없습니다"); return false; }
     const app = perfApps.find((a) => a.id === plan.appId) || {};
     if (!(app.signed && app.build && app.build !== "-")) { flash(plan.name + " — 대상 앱 빌드가 확보되지 않았습니다 (대상 앱에서 빌드 연결·파싱)"); return false; }
+    /* 러너는 앱 APK와 벤치마크 테스트 APK를 함께 설치해 am instrument로 실행한다 — 하나라도 없으면 시작조차 못 한다 */
+    if (!app.benchApk) { flash(plan.name + " — 벤치마크 테스트 APK가 없습니다 (대상 앱에서 연결·파싱)"); return false; }
     return true;
   };
   const nextId = () => "PRUN-" + ((perfRuns || []).reduce((m, r) => Math.max(m, parseInt((r.id.split("-")[1] || "0"), 10)), 1000) + 1);
@@ -519,7 +566,7 @@ export function PqaRunScreen() {
     setSelId(id);
     flash(plan.name + " 실행 요청 · " + id + " — 큐 맨끝에 적재");
   };
-  // 큐 프로세서 — 단일 러너 FIFO(측정 격리). 실행중 계획은 단말 병렬·시나리오 순차로 진행.
+  // 큐 프로세서 — 계획 단위 FIFO(측정 격리). 계획 하나만 돌고, 그 안에서 단말은 병렬·시나리오는 순차.
   useEffect(() => {
     const t = setInterval(() => {
       const running = (perfRuns || []).find((r) => r.status === "실행중");
@@ -533,7 +580,22 @@ export function PqaRunScreen() {
           if (cur.iter >= cur.iters) cur.status = cur.verdict === "FAIL" ? "실패" : "완료";
         });
         const done = subs.every((s) => s.status === "완료" || s.status === "실패");
-        if (done) { const verdict = subs.some((s) => s.verdict === "FAIL") ? "불합격" : (subs.some((s) => s.verdict === "PASS") ? "합격" : "미판정"); updatePerfRun(running.id, { subjobs: subs, status: "완료", endedAt: nowStamp(), verdict }); }
+        if (done) {
+          /* 지표를 확정한다 — 이 회차가 그 시나리오의 첫 측정이었다 */
+          const newly = [...new Set(subs.filter((x) => x.base).map((x) => x.sid))];
+          newly.forEach((sid) => { const sc = (perfScenarios || []).find((x) => x.id === sid); if (sc && (sc.metrics || []).length === 0) { updatePerfScenario(sid, discovered(sc)); flash(sc.name + " — 산출 지표가 확정되었습니다. 측정 계획에서 SLA를 설정하세요"); } });
+          /* 임계가 없어 게이트를 못 태운 회차는 판정이 아니라 '기준선'이다 — 합격/불합격으로 세면 통계가 거짓말을 한다 */
+          const verdict = subs.some((s) => s.verdict === "FAIL") ? "불합격" : (subs.some((s) => s.verdict === "PASS") ? "합격" : (newly.length ? "기준선" : "미판정"));
+          /* 🔴 기준선·미판정은 '통과'가 아니다 — CI 게이트가 초록불로 읽으면 검증이 사라진 것을 아무도 모른다(F9 원칙).
+             gateResult를 따로 남겨 게이트 조회 API가 통과/실패가 아닌 '판정 없음'을 반환하게 한다. */
+          const gateResult = verdict === "합격" ? "통과" : verdict === "불합격" ? "실패" : "판정 없음";
+          /* 단말마다 수집 지표가 다를 수 있다(전력은 전력 단말만) — 덮어쓰면 마지막 단말 값만 남아
+             회차마다 sig가 흔들려 허위 '지표 구성 변경'이 뜬다. 시나리오별 합집합으로 모은다. */
+          const acc = {}; subs.forEach((x) => { (acc[x.sid] = acc[x.sid] || new Set()); Object.keys(x.metrics || {}).forEach((k) => acc[x.sid].add(k)); });
+          const sig = {}; Object.keys(acc).forEach((k) => { sig[k] = metricSig([...acc[k]]); });
+          /* 이 회차에서 지표가 확정된 시나리오 — 판정이 합격이어도 "무엇이 새로 확정됐는지"는 알려야 한다 */
+          const newScns = newly.map((sid) => ((perfScenarios || []).find((x) => x.id === sid) || {}).name).filter(Boolean);
+          updatePerfRun(running.id, { gateResult, metricSig: sig, newScns, subjobs: subs, status: "완료", endedAt: nowStamp(), verdict }); }
         else updatePerfRun(running.id, { subjobs: subs });
         return;
       }
@@ -563,14 +625,14 @@ export function PqaRunScreen() {
   const estSec = (r) => { const per = (j) => (String(j).includes("Startup") ? 4 : 8); const byDev = {}; (r.subjobs || []).forEach((s) => { byDev[s.did] = (byDev[s.did] || 0) + (s.iters || 10) * per(s.journey); }); const v = Object.values(byDev); return v.length ? Math.max(...v) : 0; };
   const mstr = (s) => Object.entries(s.metrics || {}).map(([k, v]) => { const m = PERF_METRICS.find((x) => x.id === k) || { label: k, unit: "" }; return m.label + " " + v + (m.unit || ""); }).join(" · ");
   const sK = { "대기": "info", "실행중": "warn", "완료": "pass" };
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
   const mtxDevs = selRun ? [...new Map((selRun.subjobs || []).map((s) => [s.did, { did: s.did, model: s.model, slot: s.slot }])).values()] : [];
   const mtxScns = selRun ? [...new Map((selRun.subjobs || []).map((s) => [s.sid, { sid: s.sid, scn: s.scn, journey: s.journey }])).values()] : [];
   const cellOf = (did, sid) => (selRun.subjobs || []).find((s) => s.did === did && s.sid === sid);
 
   return (
     <div className="space-y-4">
-      <PageToolbar desc="단일 러너 큐(측정 격리) · 시나리오×단말 매트릭스 · 실시간 진행" />
+      <PageToolbar desc="계획 단위 직렬 큐(측정 격리) · 계획 안에서는 단말 병렬 · 시나리오 순차" />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -586,9 +648,14 @@ export function PqaRunScreen() {
               <div className="flex items-center justify-between"><span className="text-slate-500">대상 앱</span><span className="text-slate-200">{appNm(runPlan.appId)}</span></div>
               <div className="flex items-center justify-between"><span className="text-slate-500">빌드</span><span className="text-slate-300">{rpApp.version || "-"}{rpApp.versionCode && rpApp.versionCode !== "-" ? " (" + rpApp.versionCode + ")" : ""}</span></div>
               <div className="flex items-center justify-between"><span className="text-slate-500">실행 규모</span><span className="text-slate-300">시나리오 {rpScns.length} × 단말 {rpDevs.length} = 서브잡 {rpScns.length * rpDevs.length}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-500">측정 환경</span><span className="text-slate-300">사내 랩 (단일)</span></div>
+              <div className="flex items-center justify-between"><span className="text-slate-500">랩 호스트</span><span className="text-slate-300">{PERF_LAB.name} · <span className="font-mono">{PERF_LAB.host}</span> <Badge kind={PERF_LAB.status === "온라인" ? "pass" : "fail"}>{PERF_LAB.status}</Badge></span></div>
+              {/* 러너는 단말이 USB로 붙은 호스트 PC에 상주한다 — 잡별로 띄우는 Pod가 아니다.
+                  호스트 부하가 측정값을 오염시키므로 동시 실행 상한을 둔다. */}
+              <div className="flex items-center justify-between"><span className="text-slate-500">러너</span><span className="text-slate-300"><span className="font-mono">{PERF_LAB.agent}</span> · adb {PERF_LAB.adb} · 단말 동시 {PERF_LAB.maxParallel}대</span></div>
               <div className="flex items-center justify-between"><span className="text-slate-500">전력 계측</span><span className="text-slate-300">{rpNeedsPower ? (rpHasPowerDev ? "Pixel 리그로 측정" : "단말 없음 · 미측정") : "해당 없음"}</span></div>
               <div className="flex items-center justify-between"><span className="text-slate-500">지표 SLA</span><span className="text-emerald-300">{rpSlaN}개 게이트</span></div>
+              {/* 실행 전에 알린다 — 미확정이 섞이면 그 시나리오는 이번 회차에 확정되고 판정에는 안 들어간다 */}
+              {rpScns.some((x) => !(x.metrics || []).length) && <div className="rounded border border-teal-800 bg-teal-950 px-2 py-1 text-teal-300">미확정 시나리오 {rpScns.filter((x) => !(x.metrics || []).length).length}건 포함 — 이번 회차에 지표가 확정되며 임계가 없어 판정에서 제외됩니다.</div>}
               {!rpBuildOk && <div className="rounded border border-amber-800 bg-amber-950 px-2 py-1 text-amber-300">대상 앱 빌드 미확보 — 대상 앱에서 빌드 연결·파싱 필요</div>}
             </Card>
           )}
@@ -619,7 +686,7 @@ export function PqaRunScreen() {
             ) : selRun.status === "대기" ? (
               <div className="space-y-3 p-5">
                 <div className="flex items-center justify-between"><div><div className="text-sm font-semibold text-slate-200">{selRun.plan}</div><div className="font-mono text-xs text-teal-400">{selRun.id}</div></div><Badge kind="info">대기</Badge></div>
-                <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">러너 배정 대기 · 앞선 {queue.filter((r) => r.status === "대기").findIndex((r) => r.id === selRun.id)}건 · 단일 러너라 앞 실행이 끝나면 자동 시작됩니다.</div>
+                <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">랩 배정 대기 · 앞선 {queue.filter((r) => r.status === "대기").findIndex((r) => r.id === selRun.id)}건 · 계획 단위로 직렬 실행하므로 앞 실행이 끝나면 자동 시작됩니다.</div>
               </div>
             ) : (() => {
               const pg = progOf(selRun); const running = selRun.status === "실행중"; const eDur = estSec(selRun); const elapsed = Math.round(eDur * pg.pct / 100); const remain = Math.max(0, eDur - elapsed);
@@ -629,7 +696,7 @@ export function PqaRunScreen() {
                     <div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-200">{selRun.plan}</div><div className="font-mono text-xs text-teal-400">{selRun.id} · {selRun.app}{selRun.ver && selRun.ver !== "-" ? " · v" + selRun.ver + (selRun.verCode && selRun.verCode !== "-" ? " (" + selRun.verCode + ")" : "") : ""}</div></div>
                     {running ? <span className="flex shrink-0 items-center gap-1 text-xs text-red-300"><span className="h-1.5 w-1.5 rounded-full bg-red-400" />LIVE</span> : <Badge kind={vK[selRun.verdict] || "info"}>{selRun.verdict || "완료"}</Badge>}
                   </div>
-                  <div className="flex items-center gap-3 border-b border-slate-800 px-3 py-2 text-xs text-slate-400"><span>서브잡 <span className="text-slate-200">{pg.d}/{pg.t}</span></span><div className="h-1.5 flex-1 rounded bg-slate-800"><div className="h-1.5 rounded bg-teal-500" style={{ width: pg.pct + "%" }} /></div><span>{running ? "경과 " + fmtDur(elapsed) + " / 예상 " + fmtDur(eDur) : "완료"}</span></div>
+                  <div className="flex items-center gap-3 border-b border-slate-800 px-3 py-2 text-xs text-slate-400"><span>서브잡 <span className="text-slate-200">{pg.d}/{pg.t}</span></span><div className="h-1.5 flex-1 rounded bg-slate-800"><div className="h-1.5 rounded bg-teal-500" style={{ width: pg.pct + "%" }} /></div><span>{running ? "경과 " + fmtDur(elapsed) + " / 예상 " + fmtDur(eDur) + (((selRun.subjobs || []).some((x) => x.estIters)) ? " (추정 — 미확정 시나리오 포함)" : "") : "완료"}</span></div>
                   <div className="overflow-x-auto p-3">
                     <table className="w-full text-xs">
                       <thead><tr className="text-left text-slate-500"><th className="px-2 py-1.5 font-medium">단말 \ 시나리오</th>{mtxScns.map((c) => <th key={c.sid} className="px-2 py-1.5 font-medium">{c.scn}<div className="font-normal text-slate-600">{c.journey}</div></th>)}</tr></thead>
@@ -637,7 +704,8 @@ export function PqaRunScreen() {
                         {mtxDevs.map((d) => (
                           <tr key={d.did} className="border-t border-slate-800">
                             <td className="px-2 py-2 text-slate-300">{d.model}<div className="font-mono text-slate-600">{d.slot}</div></td>
-                            {mtxScns.map((c) => { const s = cellOf(d.did, c.sid); if (!s) return <td key={c.sid} className="px-2 py-2 text-slate-700">·</td>; const cls = s.status === "대기" ? "bg-slate-800 text-slate-500" : s.status === "실행중" ? "bg-amber-950 text-amber-300" : s.status === "실패" ? "bg-red-950 text-red-300" : "bg-emerald-950 text-emerald-300"; const txt = s.status === "대기" ? "대기" : s.status === "실행중" ? (s.iter + "/" + s.iters) : s.status === "실패" ? "✗ 불합격" : (s.verdict === "—" ? "✓" : "✓ 합격"); return <td key={c.sid} className="px-2 py-2"><span title={mstr(s)} className={"inline-block rounded px-2 py-1 " + cls}>{txt}</span></td>; })}
+                            {mtxScns.map((c) => { const s = cellOf(d.did, c.sid); if (!s) return <td key={c.sid} className="px-2 py-2 text-slate-700">·</td>; /* 임계가 없어 판정하지 않은 셀을 초록으로 칠하면 합격처럼 읽힌다 — 색을 나눈다 */
+                              const cls = s.status === "대기" ? "bg-slate-800 text-slate-500" : s.status === "실행중" ? "bg-amber-950 text-amber-300" : s.status === "실패" ? "bg-red-950 text-red-300" : (s.verdict === "—" ? "bg-slate-800 text-slate-400" : "bg-emerald-950 text-emerald-300"); const txt = s.status === "대기" ? "대기" : s.status === "실행중" ? (s.iter + "/" + s.iters) : s.status === "실패" ? "✗ 불합격" : (s.verdict === "—" ? "측정됨" : "✓ 합격"); return <td key={c.sid} className="px-2 py-2"><span title={mstr(s)} className={"inline-block rounded px-2 py-1 " + cls}>{txt}</span></td>; })}
                           </tr>
                         ))}
                       </tbody>
@@ -664,14 +732,14 @@ export function PqaHistoryScreen() {
   const [fVerdict, setFVerdict] = useState("all");
   const planName = (id) => ((perfPlans || []).find((p) => p.id === id) || {}).name || "-";
   const tK = { "수동": "info", "스케줄": "pass", "이벤트": "warn" };
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
   const shown = runs.filter((r) => (fPlan === "all" || String(r.planId) === fPlan) && (fVerdict === "all" || r.verdict === fVerdict)).slice().sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""));
   if (detail) return <PqaResultView run={detail} back={() => setDetail(null)} />;
   return (
     <div className="space-y-4">
       <PageToolbar desc="측정 실행 이력 · 행 클릭 → 실행 결과 상세" />
       <div className="flex items-center gap-2">
-        <div style={{ width: 120 }}><Select value={fVerdict} onChange={(e) => setFVerdict(e.target.value)}><option value="all">전체 판정</option><option value="합격">합격</option><option value="불합격">불합격</option><option value="미판정">미판정</option></Select></div>
+        <div style={{ width: 120 }}><Select value={fVerdict} onChange={(e) => setFVerdict(e.target.value)}><option value="all">전체 판정</option><option value="합격">합격</option><option value="불합격">불합격</option><option value="미판정">미판정</option><option value="기준선">기준선</option></Select></div>
         <div style={{ width: 220 }}><Select value={fPlan} onChange={(e) => setFPlan(e.target.value)}><option value="all">전체 계획</option>{(perfPlans || []).map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}</Select></div>
       </div>
       <Card className="overflow-hidden p-0">
@@ -687,7 +755,7 @@ export function PqaHistoryScreen() {
                 <td className="text-xs text-slate-400">단말 {r.devices} · 시나리오 {r.scns}</td>
                 <td className="text-xs"><RunTime start={r.startedAt} end={r.endedAt} /></td>
                 <td><Badge kind={vK[r.verdict] || "info"}>{r.verdict}</Badge></td>
-                <td className="pr-3 text-xs text-slate-400">{failN > 0 ? <span className="text-red-300">{failN}건 불합격</span> : "전체 합격"}</td>
+                <td className="pr-3 text-xs text-slate-400">{failN > 0 ? <span className="text-red-300">{failN}건 불합격</span> : (r.verdict === "합격" ? "전체 합격" : <span className="text-slate-500">판정 없음</span>)}</td>
               </tr>
             ); })}
           </tbody>
@@ -723,7 +791,7 @@ function PqaResultView({ run, back, backLabel = "실행 이력" }) {
       artifacts: [{ k: "bench", label: "benchmarkData", file: "benchmarkData.json", size: "24 KB" }, { k: "trace", label: "Perfetto 트레이스", file: "trace.perfetto-trace", size: "8 MB" }, { k: "summary", label: "판정 요약", file: "verdict_summary.csv", size: "4 KB" }],
     });
   };
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
   const thr = (sid, mid) => { const b = (plan.budget || {})[String(sid)]; return b ? b[mid] : undefined; };
   const metricsOf = (sid) => PERF_METRICS.filter((m) => subs.some((s) => s.sid === sid && s.metrics && s.metrics[m.id] != null));
   const cell = (did, sid) => subs.find((s) => s.did === did && s.sid === sid);
@@ -737,6 +805,9 @@ function PqaResultView({ run, back, backLabel = "실행 이력" }) {
         <div className="flex items-center justify-between">
           <div><div className="text-base font-semibold text-slate-100">{run.plan}</div><div className="mt-0.5 text-xs text-slate-500">{run.app}{run.ver && run.ver !== "-" ? " · v" + run.ver + (run.verCode && run.verCode !== "-" ? " (" + run.verCode + ")" : "") : ""} · {run.trig} · <RunTime start={run.startedAt} end={run.endedAt} /></div></div>
           <Badge kind={vK[run.verdict] || "info"}>{run.verdict}</Badge>
+          {run.gateResult && run.gateResult !== "통과" && run.gateResult !== "실패" && <Badge kind="warn">게이트 판정 없음</Badge>}
+          {(run.newScns || []).length > 0 && <span className="text-xs text-teal-300"><span className="font-semibold">{(run.newScns || []).join(", ")}</span> — 이 회차에서 산출 지표가 확정되었습니다. 측정 계획에서 SLA를 설정하면 다음 회차부터 판정합니다.</span>}
+          {run.verdict === "기준선" && <span className="text-xs text-amber-300">임계가 하나도 없어 합격/불합격을 판정하지 않았습니다 — CI 게이트에는 &quot;판정 없음&quot;으로 전달되며 통과로 처리되지 않습니다.</span>}
         </div>
         <div className="mt-3 grid grid-cols-4 gap-3 text-center">
           <div className="rounded-lg bg-slate-800 p-2.5"><div className="text-lg font-semibold text-slate-100">{subs.length}</div><div className="text-xs text-slate-500">서브잡</div></div>
@@ -786,8 +857,12 @@ export function PqaDashboardScreen() {
   const completed = (perfRuns || []).filter((r) => r.status === "완료" && inScope(r.planId));
   const desc = completed.slice().sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""));
   const recent = desc.slice(0, 10);
-  const passN = recent.filter((r) => r.verdict === "합격").length;
-  const rate = recent.length ? Math.round(passN / recent.length * 100) : 0;
+  /* 🔑 합격률은 '판정한 회차' 안에서만 센다 — 기준선·미판정을 분모에 넣으면 판정하지 않은 것이 불합격처럼 비율을 깎는다.
+     판정 없음 건수는 따로 밝혀 감춰지지 않게 한다. */
+  const judged = recent.filter((r) => r.verdict === "합격" || r.verdict === "불합격");
+  const passN = judged.filter((r) => r.verdict === "합격").length;
+  const noJudgeN = recent.length - judged.length;
+  const rate = judged.length ? Math.round(passN / judged.length * 100) : null;
   const openDef = (defects || []).filter((d) => d.domain === "PQA" && d.status !== "Resolved" && d.status !== "Closed").length;
   const running = (perfRuns || []).filter((r) => r.status === "실행중" && inScope(r.planId));
   const queuedN = (perfRuns || []).filter((r) => r.status === "대기" && inScope(r.planId)).length;
@@ -831,7 +906,7 @@ export function PqaDashboardScreen() {
   regItems.sort((a, b) => { if (stRank[a.status] !== stRank[b.status]) return stRank[a.status] - stRank[b.status]; if (a.status === "현재 초과") return (b.slaOver || 0) - (a.slaOver || 0); if (a.status === "회귀") return (b.reg || 0) - (a.reg || 0); return (b.recentWorst || 0) - (a.recentWorst || 0); });
   const regNowCount = regItems.filter((x) => x.status !== "해소").length;
   const planName = (id) => (plans.find((p) => p.id === id) || {}).name || "-";
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
   if (detail) return <PqaResultView run={detail} back={() => setDetail(null)} backLabel="대시보드" />;
   return (
     <div className="space-y-4">
@@ -840,7 +915,7 @@ export function PqaDashboardScreen() {
         <div className="w-56 shrink-0"><Select value={fPlan} onChange={(e) => setFPlan(e.target.value)}><option value="all">전체 계획</option>{plans.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}</Select></div>
       </div>
       <div className="grid grid-cols-4 gap-3">
-        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-teal-400" />SLA 합격률</div><div className="mt-1 text-2xl font-semibold text-slate-100">{rate}<span className="text-sm text-slate-500">%</span></div><div className="text-xs text-slate-500">최근 {recent.length}회 중 {passN} 합격</div></Card>
+        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-teal-400" />SLA 합격률</div><div className="mt-1 text-2xl font-semibold text-slate-100">{rate == null ? "—" : rate}{rate != null && <span className="text-sm text-slate-500">%</span>}</div><div className="text-xs text-slate-500">판정 {judged.length}회 중 {passN} 합격{noJudgeN > 0 && <span className="text-amber-400"> · 판정 없음 {noJudgeN}회</span>}</div></Card>
         <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Bug size={14} className="text-red-400" />미해결 성능 결함</div><div className={"mt-1 text-2xl font-semibold " + (openDef > 0 ? "text-red-300" : "text-slate-100")}>{openDef}</div><div className="text-xs text-slate-500">앱 성능 결함 (Open)</div></Card>
         <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><TrendingUp size={14} className="text-amber-400" />회귀·초과</div><div className={"mt-1 text-2xl font-semibold " + (regNowCount > 0 ? "text-amber-300" : "text-slate-100")}>{regNowCount}</div><div className="text-xs text-slate-500">현재 SLA 초과·회귀 지표</div></Card>
         <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Activity size={14} className="text-teal-400" />진행 중 실행</div><div className={"mt-1 text-2xl font-semibold " + (running.length > 0 ? "text-teal-300" : "text-slate-100")}>{running.length}</div><div className="text-xs text-slate-500">대기 {queuedN}건</div></Card>
@@ -870,7 +945,7 @@ export function PqaDashboardScreen() {
                 <td className="px-3 py-2 font-mono text-xs text-slate-400">{r.ver && r.ver !== "-" ? r.ver : "-"}</td>
                 <td className="px-3 py-2 text-xs"><RunTime start={r.startedAt} end={r.endedAt} /></td>
                 <td className="px-3 py-2 text-xs text-slate-400">단말 {r.devices} · 시나리오 {r.scns}</td>
-                <td className="px-3 py-2 text-xs">{failN > 0 ? <span className="text-red-300">{failN}건 불합격</span> : <span className="text-slate-500">전체 합격</span>}</td>
+                <td className="px-3 py-2 text-xs">{failN > 0 ? <span className="text-red-300">{failN}건 불합격</span> : <span className="text-slate-500">{r.verdict === "합격" ? "전체 합격" : "판정 없음"}</span>}</td>
                 <td className="px-3 py-2 text-center"><Badge kind={vK[r.verdict] || "info"}>{r.verdict}</Badge></td>
               </tr>
             ); })}</tbody></table>
@@ -900,7 +975,7 @@ export function PqaTrendScreen() {
   const metricDef = PERF_METRICS.find((m) => m.id === realMid) || { label: realMid, unit: "", agg: "", dir: "down" };
   const devs = [...new Map(runs.flatMap((r) => (r.subjobs || []).filter((s) => s.sid === realSid)).map((s) => [s.did, { did: s.did, model: s.model, slot: s.slot }])).values()];
   const thr = ((plan.budget || {})[String(realSid)] || {})[realMid];
-  const data = runs.map((r) => { const pt = { build: r.ver, date: (r.startedAt || "").slice(5, 10), verdict: r.verdict, runId: r.id }; devs.forEach((d) => { const s = (r.subjobs || []).find((x) => x.did === d.did && x.sid === realSid); pt[d.did] = s && s.metrics && s.metrics[realMid] != null ? s.metrics[realMid] : null; }); return pt; });
+  const data = runs.map((r) => { const pt = { build: r.ver, date: (r.startedAt || "").slice(5, 10), verdict: r.verdict, runId: r.id, __sig: (r.metricSig || {})[realSid] || "" }; devs.forEach((d) => { const s = (r.subjobs || []).find((x) => x.did === d.did && x.sid === realSid); pt[d.did] = s && s.metrics && s.metrics[realMid] != null ? s.metrics[realMid] : null; }); return pt; });
   const REG_PCT = 10; // 마지막 합격 빌드 대비 ±10% 초과 시 회귀
   const baseIdx = data.map((pt, i) => { for (let j = i - 1; j >= 0; j--) { if (data[j].verdict === "합격") return j; } return -1; });
   const vals = data.flatMap((pt) => devs.map((d) => pt[d.did]).filter((v) => v != null));
@@ -909,7 +984,7 @@ export function PqaTrendScreen() {
   const yDomain = vals.length ? [Math.max(0, Math.floor(lo - pad)), Math.ceil(hi + pad)] : [0, 1];
   const dlt = (cur, prv) => (prv == null || cur == null || prv === 0) ? null : Math.round((cur - prv) / prv * 1000) / 10;
   const rows = [...data].reverse();
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
   if (detail) return <PqaResultView run={detail} back={() => setDetail(null)} backLabel="성능 추이" />;
   return (
     <div className="space-y-4">
@@ -948,7 +1023,10 @@ export function PqaTrendScreen() {
                 {rows.map((pt, ri) => { const ai = data.length - 1 - ri; const base = baseIdx[ai] >= 0 ? data[baseIdx[ai]] : null; const run = runs.find((r) => r.id === pt.runId); return (
                   <tr key={pt.build} onClick={() => run && setDetail(run)} className="cursor-pointer border-t border-slate-800 hover:bg-slate-800/50">
                     <td className="px-3 py-2 text-slate-300">{pt.build}<div className="text-slate-600">{pt.date}</div></td>
-                    <td className="px-3 py-2"><Badge kind={vK[pt.verdict] || "info"}>{pt.verdict}</Badge></td>
+                    <td className="px-3 py-2"><Badge kind={vK[pt.verdict] || "info"}>{pt.verdict}</Badge>
+                      {/* 지표 구성이 직전 회차와 다르면 비교 축이 달라진 것이다 — 판정을 뒤집지 않고 사실만 알린다(F7·F8 원칙) */}
+                      {(() => { const prev = data[ai - 1]; return pt.__sig && prev && prev.__sig && pt.__sig !== prev.__sig ? <div className="mt-0.5 text-amber-400" style={{ fontSize: 10 }} title={"직전 회차와 수집 지표가 다릅니다 — 비교 축이 달라졌습니다"}>지표 구성 변경</div> : null; })()}
+                    </td>
                     {devs.map((d) => { const v = pt[d.did]; const bad = thr != null && v != null && (metricDef.dir === "up" ? v < thr : v > thr); const dv = base ? dlt(v, base[d.did]) : null; const reg = dv != null && (metricDef.dir === "up" ? dv <= -REG_PCT : dv >= REG_PCT); const imp = dv != null && (metricDef.dir === "up" ? dv >= REG_PCT : dv <= -REG_PCT); return (
                       <td key={d.did} className="px-3 py-2">
                         <span className={bad ? "font-semibold text-red-300" : "text-slate-300"}>{v != null ? v : "-"}</span>
