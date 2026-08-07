@@ -21,6 +21,7 @@ export const INIT_VARIABLES = [
   { id: "v2", key: "stg_onmarket_token", value: "eyJhbGciOiJIUzI1Ni-stg", secret: true, desc: "온마켓 스테이징 API 토큰", createdAt: "2026-02-03 14:20", updatedAt: "2026-06-28 11:05" },
   { id: "v3", key: "dev_onmarket_token", value: "eyJhbGciOiJIUzI1Ni-dev", secret: true, desc: "온마켓 개발 API 토큰", createdAt: "2026-02-03 14:22", updatedAt: "2026-02-03 14:22" },
   { id: "v4", key: "stg_test_pw", value: "P@ssw0rd!23", secret: true, desc: "스테이징 테스트 계정 비밀번호", createdAt: "2026-03-15 10:00", updatedAt: "2026-05-02 16:40" },
+  { id: "v6", key: "stg_booking_token", value: "eyJhbGciOiJIUzI1Ni-bkg", secret: true, desc: "예약 스테이징 API 토큰", createdAt: "2026-02-03 14:25", updatedAt: "2026-06-28 11:05" },
   { id: "v5", key: "vip_account_id", value: "1000482", secret: false, desc: "VIP 시나리오 대표 계정", createdAt: "2026-01-10 09:15", updatedAt: "2026-04-11 13:30" },
 ];
 

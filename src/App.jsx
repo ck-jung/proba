@@ -24,7 +24,7 @@ import { VariablesScreen } from "./common/variables.jsx";
 import { DatasetsScreen } from "./common/datasets.jsx";
 import { FQA_SECTIONS, INIT_FQA_CASES, INIT_FQA_SUITES, INIT_FQA_SYSTEMS, INIT_FQA_RUNS, INIT_FQA_PLANS, FQA_HIDDEN } from "./fqa/data.js";
 import { NQA_SECTIONS, NQA_SUBTYPES, INIT_NQA_SYSTEMS, INIT_NQA_SCENARIOS, INIT_NQA_RUNS } from "./nqa/data.js";
-import { NqaScreen, NqaDashboardScreen, NqaTargetScreen, NqaScenarioScreen, NqaRunScreen, NqaHistoryScreen } from "./nqa/screens.jsx";
+import { NqaDashboardScreen, NqaTargetScreen, NqaScenarioScreen, NqaRunScreen, NqaHistoryScreen } from "./nqa/screens.jsx";
 import { PQA_SECTIONS, INIT_PERF_APPS, INIT_PERF_SCENARIOS, INIT_PERF_PLANS, INIT_PERF_RUNS } from "./pqa/data.js";
 import { PqaTargetScreen, PqaScenarioScreen, PqaPlanScreen, PqaRunScreen, PqaHistoryScreen, PqaTrendScreen, PqaDashboardScreen } from "./pqa/screens.jsx";
 import { NewPlanForm, AiGenForm, NewCaseForm, JiraForm, AddPromptForm, PlanCasesForm, JiraConfigForm, AddChatbotForm, Targets, Dashboard, Plans, RunHistory, CategoryManager, ImportCasesForm, Cases, Run, Compare, Defects, Report, Settings, InviteMemberForm, MembersView } from "./lqa/screens.jsx";
@@ -64,7 +64,6 @@ export default function App() {
   const [fqaSystems, setFqaSystems] = useState(stampSeeds(INIT_FQA_SYSTEMS));
   const [nqaSystems, setNqaSystems] = useState(stampSeeds(INIT_NQA_SYSTEMS));
   const [nqaScenarios, setNqaScenarios] = useState(stampSeeds(INIT_NQA_SCENARIOS));
-  const nqaPlans = (nqaScenarios || []).map((s) => ({ id: s.id, name: s.name, scenarioId: s.id, status: "활성", sla: s.sla || {}, jira: s.jira }));
   const [perfApps, setPerfApps] = useState(INIT_PERF_APPS);
   const [perfScenarios, setPerfScenarios] = useState(INIT_PERF_SCENARIOS);
   const [perfPlans, setPerfPlans] = useState(INIT_PERF_PLANS);
@@ -167,7 +166,6 @@ export default function App() {
     fqaSystems, addFqaSystem: (sy) => setFqaSystems((x) => [withCreate(sy), ...x]), updateFqaSystem: (id, patch) => setFqaSystems((x) => x.map((sy) => (sy.id === id ? { ...sy, ...withUpdate(patch) } : sy))), removeFqaSystem: (id) => setFqaSystems((x) => x.filter((sy) => sy.id !== id)),
     nqaSystems, addNqaSystem: (sy) => setNqaSystems((x) => [withCreate(sy), ...x]), updateNqaSystem: (id, patch) => setNqaSystems((x) => x.map((sy) => (sy.id === id ? { ...sy, ...withUpdate(patch) } : sy))), removeNqaSystem: (id) => setNqaSystems((x) => x.filter((sy) => sy.id !== id)),
     nqaScenarios, addNqaScenario: (s) => setNqaScenarios((x) => [withCreate(s), ...x]), updateNqaScenario: (id, patch) => setNqaScenarios((x) => x.map((s) => (s.id === id ? { ...s, ...withUpdate(patch) } : s))), removeNqaScenario: (id) => setNqaScenarios((x) => x.filter((s) => s.id !== id)),
-    nqaPlans,
     nqaRuns, addNqaRun: (r) => setNqaRuns((x) => [r, ...x]), updateNqaRun: (id, patch) => setNqaRuns((x) => x.map((r) => (r.id === id ? { ...r, ...patch } : r))), removeNqaRun: (id) => setNqaRuns((x) => x.filter((r) => r.id !== id)),
     perfApps, addPerfApp: (a) => setPerfApps((x) => [a, ...x]), updatePerfApp: (id, patch) => setPerfApps((x) => x.map((a) => (a.id === id ? { ...a, ...patch } : a))), removePerfApp: (id) => setPerfApps((x) => x.filter((a) => a.id !== id)),
     perfScenarios, addPerfScenario: (s) => setPerfScenarios((x) => [s, ...x]), updatePerfScenario: (id, patch) => setPerfScenarios((x) => x.map((s) => (s.id === id ? { ...s, ...patch } : s))), removePerfScenario: (id) => setPerfScenarios((x) => x.filter((s) => s.id !== id)),

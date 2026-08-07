@@ -4,15 +4,8 @@ import { VarRefInput } from "../common/VarRefInput.jsx";
 import { DatasetPicker } from "../common/DatasetPicker.jsx";
 import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Seg, Toast, useToast, RunTime, stampPlus } from "../common/ui.jsx";
 import { Gauge, Plus, X, Save, Smartphone, Cpu, Wifi, Package, Upload, Link2, CheckCircle2, Globe, Monitor, Server, Zap, Activity, AlertTriangle, TrendingUp, Bug, Pencil, ChevronLeft, FileDown, Layers, Code2, Play, ClipboardList } from "lucide-react";
-import { NQA_SUBTYPES, NQA_PLATFORMS, NQA_PLAT_K, NQA_TIERS, NQA_TOOLS, NQA_TOOL_METRICS, NQA_NETWORKS, NQA_STARTS, NQA_THERMAL_LEVELS, NQA_PROVIDERS, NQA_DEV_STATUS, NQA_DEV_ST_K, NQA_CAP_LABELS, NQA_PROVIDER_CAPS, NQA_SCN_SOURCES, NQA_SCN_SRC_K, NQA_MARKERS, NQA_SCN_TEMPLATES, NQA_BROWSERS, NQA_VIEWPORTS, NQA_WEB_NET, NQA_CPU_THROTTLE, NQA_CACHE, NQA_PROTOCOLS, NQA_LOAD_ENVS, NQA_HTTP_METHODS, NQA_AUTH_TYPES, NQA_MAX_AGENTS, NQA_LOAD_UNITS, NQA_LOAD_SHAPES } from "./data.js";
+import { NQA_SUBTYPES, NQA_HTTP_METHODS, NQA_AUTH_TYPES, NQA_LOAD_UNITS, NQA_LOAD_SHAPES } from "./data.js";
 
-const NQA_META = {
-  "nqa-dashboard": ["대시보드", "부하 KPI · SLA 위반 추이 · 대상별 처리량/지연 요약"],
-  "nqa-targets": ["환경", "부하를 보낼 환경 · 연결(URL·프로토콜·TLS) · 인증"],
-  "nqa-scenarios": ["부하 테스트", "환경 · 워크로드(비율 혼합/순차 진행) · 부하 형상 · SLA 판정"],
-  "nqa-run": ["측정 실행", "부하 주입 + 실시간 관측(RPS/에러율/p95)"],
-  "nqa-history": ["실행 이력", "부하 실행 이력 · 처리량·p95·에러율·SLA 결과"],
-};
 
 // 워크스페이스 전환(앱 성능/부하)은 App.jsx 사이드바에서 1회 선택 — 화면별 탭 제거(2026-07).
 
@@ -46,11 +39,11 @@ export function NqaTargetScreen() {
   const loadgen = cfg.loadgen || {};
   const auth = cfg.auth || {};
   const secretRef = (val, setVal, ph) => <VarRefInput value={val} onChange={setVal} placeholder={ph} />;
-  const runCheck = () => { setChk({ s: "run" }); setTimeout(() => { setChk({ s: cfg.baseUrl ? "ok" : "warn", m: (cfg.baseUrl ? "대상 접근 OK" : "⚠ Base URL 없음") + " · 부하 생성 워커 " + (loadgen.agents || 1) }); }, 800); };
+  const runCheck = () => { setChk({ s: "run" }); setTimeout(() => { setChk({ s: cfg.baseUrl ? "ok" : "warn", m: (cfg.baseUrl ? "대상 접근 OK" : "⚠ Base URL 없음") }); }, 800); };
   const addSut = () => {
     if (!nf.name.trim()) { flash("대상 이름을 입력하세요"); return; }
     if (!nf.baseUrl.trim()) { flash("Base URL을 입력하세요"); return; }
-    guardSwitch(() => { const ns = { id: Date.now(), name: nf.name, subtype: "load", baseUrl: nf.baseUrl, protocol: nf.protocol, loadgen: { tool: "k6", agents: 1 }, auth: { type: "없음" } }; addNqaSystem(ns); setSel(0); setModal(false); flash("부하 대상이 추가되었습니다"); });
+    guardSwitch(() => { const ns = { id: Date.now(), name: nf.name, subtype: "load", baseUrl: nf.baseUrl, protocol: nf.protocol, loadgen: { tool: "k6" }, auth: { type: "없음" } }; addNqaSystem(ns); setSel(0); setModal(false); flash("부하 대상이 추가되었습니다"); });
   };
   const delSut = (i, sy) => { if (!window.confirm(sy.name + " 대상을 삭제할까요?" + (systems.length <= 1 ? "\n\n마지막 대상입니다 — 삭제하면 부하 테스트를 만들 대상이 없어집니다." : ""))) return; guardSwitch(() => { removeNqaSystem(sy.id); setSel(0); flash(sy.name + " 삭제됨"); }); };
   return (
@@ -193,10 +186,7 @@ export function NqaScenarioScreen() {
   if (sla.p95) slaParts.push("p95 ≤ " + sla.p95 + "ms");
   if (sla.p99) slaParts.push("p99 ≤ " + sla.p99 + "ms");
   if (sla.errRate !== "" && sla.errRate != null) slaParts.push("에러율 ≤ " + sla.errRate + "%");
-  if (isStress) { if (sla.capacity) slaParts.push("용량 ≥ " + sla.capacity + " " + mag); }
-  else if (isSoak) { if (sla.driftPct != null && sla.driftPct !== "") slaParts.push("p95 드리프트 ≤ " + sla.driftPct + "%"); }
-  else if (isSpike) { if (sla.recoverySec != null && sla.recoverySec !== "") slaParts.push("복구 ≤ " + sla.recoverySec + "초"); }
-  else { if (sla.minRps) slaParts.push("처리량 ≥ " + sla.minRps + " RPS"); }
+  if (sla.minRps) slaParts.push("처리량 ≥ " + sla.minRps + " RPS");
   const slaText = slaParts.length ? slaParts.join(" · ") : "임계 미설정";
   const k6Constant = cfg.shape === "스테디" || cfg.shape === "소크";
   const k6Exec = isVu ? (k6Constant ? "constant-vus" : "ramping-vus") : (k6Constant ? "constant-arrival-rate" : "ramping-arrival-rate");
@@ -233,7 +223,7 @@ export function NqaScenarioScreen() {
     const s0 = systems.find((s) => s.id === nf.sutId) || {};
     const name = nf.name.trim() || (s0.name || "부하") + " 부하";
     const id = Math.max(0, ...list.map((x) => x.id)) + 1;
-    const ns = { id, name, sutId: nf.sutId, unit: "가상 사용자(VU)", shape: nf.shape, peak: 500, rampUp: 3, sustain: 15, rampDown: 2, thinkTime: 2, maxVU: 1000, baseline: 100, spikeHold: 30, start: 100, step: 100, steps: 5, stepHold: 3, soakH: 2, agents: 1, sla: { p95: 2000, p99: 3000, errRate: 1.0, minRps: 360, capacity: 300, driftPct: 10, recoverySec: 60 }, endpoints: [], dataset: "", forceOrder: false, journey: [] };
+    const ns = { id, name, sutId: nf.sutId, unit: "가상 사용자(VU)", shape: nf.shape, peak: 500, rampUp: 3, sustain: 15, rampDown: 2, thinkTime: 2, maxVU: 1000, baseline: 100, spikeHold: 30, start: 100, step: 100, steps: 5, stepHold: 3, soakH: 2, sla: { p95: 2000, p99: 3000, errRate: 1.0, minRps: 360}, endpoints: [], dataset: "", forceOrder: false, journey: [] };
     guardSwitch(() => { addNqaScenario(ns); setSel(0); setModal(false); flash(name + " 생성"); });
   };
   const delScn = (i, s) => { if (!window.confirm(s.name + " 시나리오를 삭제할까요?" + (list.length <= 1 ? "\n\n마지막 부하 테스트입니다 — 삭제하면 측정 계획을 만들 수 없습니다." : ""))) return; guardSwitch(() => { removeNqaScenario(s.id); setSel(0); flash(s.name + " 삭제됨"); }); };
@@ -293,7 +283,7 @@ export function NqaScenarioScreen() {
           </Card>
           <Card className="p-4 space-y-3">
             <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Link2 size={15} className="text-teal-400" />테스트 데이터</div>
-            <Field label="데이터셋" hint="컬럼을 ${row.X}로 참조"><DatasetPicker value={cfg.dataset || ""} onChange={(v) => setScn({ dataset: v })} noneLabel="선택 안 함" /></Field>
+            <Field label="데이터셋" hint="컬럼을 ${row.X}로 참조 · 반복마다 행을 순환"><DatasetPicker value={cfg.dataset || ""} onChange={(v) => setScn({ dataset: v })} noneLabel="선택 안 함" /></Field>
             {selDataset && <div className="text-xs text-slate-500">컬럼: <span className="text-slate-300">{selDataset.columns.join(", ")}</span> · {(selDataset.rowCount != null ? selDataset.rowCount : selDataset.rows.length).toLocaleString()}행{selDataset.desc ? " · " + selDataset.desc : ""}</div>}
             {usedRowVars.length > 0 && <div className="text-xs text-slate-500">본문/헤더 참조: <span className="text-slate-300">{usedRowVars.join(", ")}</span>{!cfg.dataset ? <span className="text-amber-300"> · ⚠ 데이터셋 미선택</span> : missingCols.length > 0 && <span className="text-amber-300"> · ⚠ 데이터셋에 없는 컬럼: {missingCols.join(", ")}</span>}</div>}
           </Card>
@@ -350,7 +340,7 @@ export function NqaScenarioScreen() {
               {isVu
                 ? <Field label="생각시간(초)"><Input type="number" value={cfg.thinkTime || 0} onChange={(e) => setScn({ thinkTime: Number(e.target.value) })} /></Field>
                 : <Field label="최대 VU" hint="도착률 유지에 필요한 VU 상한 · 부족하면 목표 도착률 미달"><Input type="number" value={cfg.maxVU || 0} onChange={(e) => setScn({ maxVU: Number(e.target.value) })} /></Field>}
-              <div className="text-right"><div className="text-xs font-semibold text-slate-400 mb-1.5">부하 생성기 수 (워커)</div><div className="flex justify-end"><div className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 p-1"><button onClick={() => setScn({ agents: Math.max(1, (cfg.agents || 1) - 1) })} disabled={(cfg.agents || 1) <= 1} className="flex h-7 w-7 items-center justify-center rounded text-slate-300 hover:bg-slate-700 disabled:opacity-30">−</button><span className="w-10 text-center text-sm text-slate-100">{cfg.agents || 1}</span><button onClick={() => setScn({ agents: Math.min(NQA_MAX_AGENTS, (cfg.agents || 1) + 1) })} disabled={(cfg.agents || 1) >= NQA_MAX_AGENTS} className="flex h-7 w-7 items-center justify-center rounded text-slate-300 hover:bg-slate-700 disabled:opacity-30">+</button></div></div></div>
+              <div className="text-right"><div className="text-xs font-semibold text-slate-400 mb-1.5">부하 생성기</div><div className="text-sm text-slate-200">전용 VM 1대</div><div className="text-xs text-slate-500">k6는 단일 프로세스로 전 코어를 씁니다</div></div>
             </div>
             {shapeHint && <div className="text-xs text-slate-500">{shapeHint}</div>}
             <ShapeChart cfg={cfg} />
@@ -359,7 +349,7 @@ export function NqaScenarioScreen() {
             {cfg.shape === "스파이크" && <div className="grid grid-cols-3 gap-2"><Field label={"기저 " + mag}><Input type="number" value={cfg.baseline || 0} onChange={(e) => setScn({ baseline: Number(e.target.value) })} /></Field><Field label={"피크 " + mag}><Input type="number" value={cfg.peak || 0} onChange={(e) => setScn({ peak: Number(e.target.value) })} /></Field><Field label="피크 유지(초)"><Input type="number" value={cfg.spikeHold || 0} onChange={(e) => setScn({ spikeHold: Number(e.target.value) })} /></Field></div>}
             {cfg.shape === "스트레스" && <div className="grid grid-cols-4 gap-2"><Field label={"시작 " + mag}><Input type="number" value={cfg.start || 0} onChange={(e) => setScn({ start: Number(e.target.value) })} /></Field><Field label={"단계 증가 " + mag}><Input type="number" value={cfg.step || 0} onChange={(e) => setScn({ step: Number(e.target.value) })} /></Field><Field label="단계 유지(분)"><Input type="number" value={cfg.stepHold || 0} onChange={(e) => setScn({ stepHold: Number(e.target.value) })} /></Field><Field label="단계 수"><Input type="number" value={cfg.steps || 0} onChange={(e) => setScn({ steps: Number(e.target.value) })} /></Field></div>}
             {cfg.shape === "소크" && <div className="grid grid-cols-2 gap-2"><Field label={"목표 " + mag}><Input type="number" value={cfg.peak || 0} onChange={(e) => setScn({ peak: Number(e.target.value) })} /></Field><Field label="지속(시간)"><Input type="number" value={cfg.soakH || 0} onChange={(e) => setScn({ soakH: Number(e.target.value) })} /></Field></div>}
-            <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400"><span className="text-slate-300">→ k6:</span> {k6Summary} · {isVu ? "닫힌 모델" : "열린 모델"}</div>
+            <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400"><span className="text-slate-300">→ k6:</span> {k6Summary} · {isVu ? "닫힌 모델" : "열린 모델"}<span className="text-slate-500"> · 전용 VM 1대</span></div>
           </Card>
 
           <Card className="p-4 space-y-3">
@@ -368,11 +358,11 @@ export function NqaScenarioScreen() {
               <Field label="p95 응답 ≤ (ms)"><Input type="number" value={sla.p95 ?? ""} onChange={(e) => setSla({ p95: numv(e.target.value) })} /></Field>
               <Field label="p99 응답 ≤ (ms)" hint="비우면 미적용"><Input type="number" value={sla.p99 ?? ""} onChange={(e) => setSla({ p99: numv(e.target.value) })} /></Field>
               <Field label="에러율 ≤ (%)"><Input type="number" value={sla.errRate ?? ""} onChange={(e) => setSla({ errRate: numv(e.target.value) })} /></Field>
-              {isStress ? <Field label={"용량 목표 ≥ (" + mag + ")"} hint="SLA 유지 최대 부하"><Input type="number" value={sla.capacity ?? ""} onChange={(e) => setSla({ capacity: numv(e.target.value) })} /></Field>
-                : isSoak ? <Field label="허용 드리프트 ≤ (%)" hint="초기 대비 p95 증가"><Input type="number" value={sla.driftPct ?? ""} onChange={(e) => setSla({ driftPct: numv(e.target.value) })} /></Field>
-                : isSpike ? <Field label="복구 시간 ≤ (초)" hint="피크 후 정상 복귀"><Input type="number" value={sla.recoverySec ?? ""} onChange={(e) => setSla({ recoverySec: numv(e.target.value) })} /></Field>
-                : <Field label="최소 처리량 ≥ (RPS)" hint="비우면 미적용"><Input type="number" value={sla.minRps ?? ""} onChange={(e) => setSla({ minRps: numv(e.target.value) })} /></Field>}
+              <Field label="최소 처리량 ≥ (RPS)" hint="비우면 미적용"><Input type="number" value={sla.minRps ?? ""} onChange={(e) => setSla({ minRps: numv(e.target.value) })} /></Field>
             </div>
+            {(isStress || isSoak || isSpike) && <div className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-400">
+              {isStress ? "용량(포화점)" : isSoak ? "성능 드리프트" : "복구 시간"}은 k6 요약에 없는 <strong>시계열 파생값</strong>이라 자동 판정하지 않습니다 — 결과에서 사람이 읽습니다.
+            </div>}
             <div className="rounded-lg border border-emerald-900 bg-emerald-950 px-2.5 py-1.5 text-xs text-emerald-300">합격 조건: <span className="text-emerald-100">{slaText}</span> 를 모두 만족</div>
           </Card>
           </>)}
@@ -419,175 +409,11 @@ export function NqaScenarioScreen() {
   );
 }
 
-export function NqaPlanScreen() {
-  const { nqaPlans, addNqaPlan, updateNqaPlan, removeNqaPlan, nqaScenarios, nqaSystems, jiraConfig, setNavGuard, goTo } = useApp();
-  const [msg, flash] = useToast();
-  const list = nqaPlans || [];
-  const scns = nqaScenarios || [];
-  const systems = nqaSystems || [];
-  const [sel, setSel] = useState(0);
-  const pl = list[sel] || list[0] || {};
-  const [draft, setDraft] = useState({});
-  const cfg = { ...pl, ...draft };
-  const dirty = Object.keys(draft).length > 0;
-  /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
-  useEffect(() => { setNavGuard(dirty ? "저장하지 않은 변경이 있습니다. 이동하면 사라집니다.\n\n이동할까요?" : null); return () => setNavGuard(null); }, [dirty]);
-  const setPlan = (patch) => setDraft((d) => ({ ...d, ...patch }));
-  const setSla = (patch) => setPlan({ sla: { ...(cfg.sla || {}), ...patch } });
-  const jgc = jiraConfig || {};
-  const cjira = cfg.jira || { override: false };
-  const setJira = (patch) => setPlan({ jira: { ...cjira, ...patch } });
-  const toggleJira = () => setPlan({ jira: cjira.override ? { override: false } : { override: true, project: cjira.project || jgc.project || "", issueType: cjira.issueType || jgc.issueType || "Bug", assignee: cjira.assignee != null ? cjira.assignee : (jgc.assignee || ""), labels: cjira.labels != null ? cjira.labels : (jgc.labels || ""), titleTpl: cjira.titleTpl || jgc.titleTpl || "" } });
-  const scn = scns.find((s) => s.id === cfg.scenarioId) || {};
-  const sut = systems.find((s) => s.id === scn.sutId) || {};
-  const sla = cfg.sla || {};
-  const shape = scn.shape || "";
-  const isStress = shape === "스트레스"; const isSoak = shape === "소크"; const isSpike = shape === "스파이크";
-  const mag = (scn.unit || "").indexOf("VU") >= 0 ? "VU" : "RPS";
-  const num = (v) => (v === "" || v == null ? "" : Number(v));
-  const shapeDefaults = (s) => { const vu = (s.unit || "").indexOf("VU") >= 0; const tput = vu ? Math.round((s.peak || 500) * 0.8) : (s.peak || 500); const mx = (s.start || 0) + (s.step || 0) * (s.steps || 0); return { minRps: Math.round(tput * 0.9), capacity: mx ? Math.round(mx * 0.6) : tput, driftPct: 10, recoverySec: 60 }; };
-  const onScenario = (id) => { const s = scns.find((x) => x.id === id) || {}; const d = shapeDefaults(s); const cur = cfg.sla || {}; const add = {}; ["minRps", "capacity", "driftPct", "recoverySec"].forEach((k) => { if (cur[k] == null || cur[k] === "") add[k] = d[k]; }); const patch = { scenarioId: id }; if (Object.keys(add).length) patch.sla = { ...cur, ...add }; setPlan(patch); };
-  const saveCfg = () => { if (!cfg.scenarioId) { flash("측정 시나리오를 선택하세요"); return; } updateNqaPlan(pl.id, draft); setDraft({}); flash("측정 계획 저장됨"); };
-  const guardSwitch = (fn) => { if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; setDraft({}); fn(); };
-  useEffect(() => { setDraft({}); }, [pl.id]);
-  const choose = (i) => guardSwitch(() => setSel(i));
-  const [modal, setModal] = useState(false);
-  const [nf, setNf] = useState({ name: "", scenarioId: 0 });
-  const nfSut = systems.find((x) => x.id === ((scns.find((s) => s.id === nf.scenarioId) || {}).sutId)) || {};
-  const openModal = () => { setNf({ name: "", scenarioId: (scns[0] || {}).id || 0 }); setModal(true); };
-  const create = () => {
-    if (!nf.scenarioId) { flash("측정 시나리오를 선택하세요"); return; }
-    const s0 = scns.find((s) => s.id === nf.scenarioId) || {};
-    const name = nf.name.trim() || (s0.name || "부하") + " 계획";
-    const id = Math.max(0, ...list.map((x) => x.id)) + 1;
-    const np = { id, name, scenarioId: nf.scenarioId, status: "초안", sla: { p95: 2000, p99: 3000, errRate: 1.0, ...shapeDefaults(s0) } };
-    guardSwitch(() => { addNqaPlan(np); setSel(0); setModal(false); flash(name + " 생성 (초안)"); });
-  };
-  const delPlan = (i, p) => { if (!window.confirm(p.name + " 계획을 삭제할까요?" + (list.length <= 1 ? "\n\n마지막 계획입니다 — 삭제하면 실행할 계획이 없어집니다." : ""))) return; guardSwitch(() => { removeNqaPlan(p.id); setSel(0); flash(p.name + " 삭제됨"); }); };
-  const workloadTxt = scn.id ? (((epCorrelated(scn.endpoints) || scn.forceOrder) ? "순차 진행" : "비율 혼합") + " · " + scn.shape + " · 피크 " + scn.peak + " " + ((scn.unit || "").indexOf("VU") >= 0 ? "VU" : "RPS")) : "";
-  const slaParts = [];
-  if (sla.p95) slaParts.push("p95 ≤ " + sla.p95 + "ms");
-  if (sla.p99) slaParts.push("p99 ≤ " + sla.p99 + "ms");
-  if (sla.errRate !== "" && sla.errRate != null) slaParts.push("에러율 ≤ " + sla.errRate + "%");
-  if (isStress) { if (sla.capacity) slaParts.push("용량 ≥ " + sla.capacity + " " + mag); }
-  else if (isSoak) { if (sla.driftPct != null && sla.driftPct !== "") slaParts.push("p95 드리프트 ≤ " + sla.driftPct + "%"); }
-  else if (isSpike) { if (sla.recoverySec != null && sla.recoverySec !== "") slaParts.push("복구 ≤ " + sla.recoverySec + "초"); }
-  else { if (sla.minRps) slaParts.push("처리량 ≥ " + sla.minRps + " RPS"); }
-  const slaText = slaParts.length ? slaParts.join(" · ") : "임계 미설정";
-  return (
-    <div className="space-y-4">
-      <PageToolbar desc="측정 시나리오 + SLA 판정 임계(합격/불합격) — 계획이 아우름" />
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-3 space-y-3">
-          <Btn kind="primary" icon={Plus} className="w-full" onClick={openModal} disabled={scns.length === 0} title={scns.length === 0 ? "부하 테스트를 먼저 만드세요" : ""}>새 계획</Btn>
-          {list.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 계획이 없습니다.</div>}
-          {list.map((p, i) => {
-            const ps = scns.find((s) => s.id === p.scenarioId) || {};
-            const pu = systems.find((s) => s.id === ps.sutId) || {};
-            return (
-              <Card key={p.id} className={"cursor-pointer p-3 " + (sel === i ? "border-teal-500" : "hover:border-slate-700")}>
-                <div onClick={() => choose(i)}>
-                  <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-100">{p.name}</span><div className="flex items-center gap-1.5"><Badge kind={p.status === "활성" ? "pass" : "draft"}>{p.status}</Badge><button onClick={(e) => { e.stopPropagation(); delPlan(i, p); }} className="text-slate-500 hover:text-red-400" title="삭제"><X size={12} /></button></div></div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1"><Badge kind="info">{pu.name || "대상 미지정"}</Badge></div>
-                  <div className="mt-1 text-xs text-slate-500">p95 ≤ {(p.sla || {}).p95}ms · 에러 ≤ {(p.sla || {}).errRate}%</div>
-                  <div className="mt-0.5 text-xs text-slate-600">수정 {p.updatedBy || "—"} · {p.updatedAt || "—"}</div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-        <div className="col-span-9 space-y-3">
-          {list.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center py-16 text-center">
-              <Layers size={26} className="text-slate-600" />
-              <div className="mt-3 text-sm font-medium text-slate-300">측정 계획을 만드세요</div>
-              <div className="mt-1.5 max-w-md text-xs text-slate-500">계획은 부하 테스트와 SLA 임계를 묶어 무엇을 어떤 기준으로 측정할지 정합니다.</div>
-              {systems.length === 0 ? <Btn className="mt-3" icon={Server} onClick={() => goTo("nqa-targets")}>부하 대상 등록하러 가기</Btn> : scns.length === 0 ? <Btn className="mt-3" icon={Activity} onClick={() => goTo("nqa-scenarios")}>부하 테스트 만들러 가기</Btn> : null}
-              <div className="mt-4 w-64 space-y-1.5 text-left">
-                {[["부하 대상 등록", systems.length > 0], ["부하 테스트 등록", scns.length > 0]].map(([label, ok]) => (
-                  <div key={label} className="flex items-center gap-2 text-xs">
-                    {ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertTriangle size={13} className="text-amber-400" />}
-                    <span className={ok ? "text-slate-400" : "text-amber-300"}>{label}</span>
-                    <span className="ml-auto text-slate-600">{ok ? "완료" : "필요"}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ) : (<>
-          <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5"><div className="w-64 shrink-0"><Input value={cfg.name || ""} onChange={(e) => setPlan({ name: e.target.value })} /></div><span className="shrink-0"><Badge kind="info">{sut.name || "대상 미지정"}</Badge></span></div>
-            <div className="flex items-center gap-3"><div className="flex items-center gap-2 text-sm text-slate-300"><span>{cfg.status === "활성" ? "활성" : "초안"}</span><Toggle on={cfg.status === "활성"} onClick={() => setPlan({ status: cfg.status === "활성" ? "초안" : "활성" })} /></div>{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>계획 저장</Btn></div>
-          </Card>
-          <div className="text-xs text-slate-500">생성 <span className="text-slate-400">{pl.createdBy || "—"}</span> · {pl.createdAt || "—"} · 수정 <span className="text-slate-400">{pl.updatedBy || "—"}</span> · {pl.updatedAt || "—"}</div>
-
-          <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Link2 size={15} className="text-teal-400" />측정 시나리오 <span className="text-xs font-normal text-slate-500">· 대상·워크로드·부하 형상 포함</span></div>
-            <Field label="측정 시나리오"><Select value={cfg.scenarioId || ""} onChange={(e) => onScenario(Number(e.target.value))}><option value="">선택하세요</option>{scns.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
-            {scn.id ? (
-              <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400">대상 환경 <span className="text-slate-200">{sut.name}</span> · <span className="font-mono">{sut.baseUrl}</span><br />워크로드 <span className="text-slate-300">{workloadTxt}</span></div>
-            ) : <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-1.5 text-xs text-amber-300">시나리오를 선택하면 대상 환경·부하 형상이 계획에 반영됩니다.</div>}
-          </Card>
-
-          <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Activity size={15} className="text-teal-400" />SLA 판정 임계</div>
-            <div className="grid grid-cols-4 gap-3">
-              <Field label="p95 응답 ≤ (ms)"><Input type="number" value={sla.p95 ?? ""} onChange={(e) => setSla({ p95: num(e.target.value) })} /></Field>
-              <Field label="p99 응답 ≤ (ms)" hint="비우면 미적용"><Input type="number" value={sla.p99 ?? ""} onChange={(e) => setSla({ p99: num(e.target.value) })} /></Field>
-              <Field label="에러율 ≤ (%)"><Input type="number" value={sla.errRate ?? ""} onChange={(e) => setSla({ errRate: num(e.target.value) })} /></Field>
-              {isStress ? <Field label={"용량 목표 ≥ (" + mag + ")"} hint="SLA 유지 최대 부하"><Input type="number" value={sla.capacity ?? ""} onChange={(e) => setSla({ capacity: num(e.target.value) })} /></Field>
-                : isSoak ? <Field label="허용 드리프트 ≤ (%)" hint="초기 대비 p95 증가"><Input type="number" value={sla.driftPct ?? ""} onChange={(e) => setSla({ driftPct: num(e.target.value) })} /></Field>
-                : isSpike ? <Field label="복구 시간 ≤ (초)" hint="피크 후 정상 복귀"><Input type="number" value={sla.recoverySec ?? ""} onChange={(e) => setSla({ recoverySec: num(e.target.value) })} /></Field>
-                : <Field label="최소 처리량 ≥ (RPS)" hint="비우면 미적용"><Input type="number" value={sla.minRps ?? ""} onChange={(e) => setSla({ minRps: num(e.target.value) })} /></Field>}
-            </div>
-            <div className="text-xs text-slate-500">{isStress ? "단계별로 집계 · SLA를 유지하는 최대 부하를 용량으로 산출 · 에러 = 연결 실패·타임아웃·5xx·검증 실패." : isSoak ? "전 구간 시계열 집계 · 초기 대비 p95 드리프트로 열화 판정 · 에러 = 연결 실패·타임아웃·5xx·검증 실패." : isSpike ? "기저·스파이크·복구 구간 분리 집계 · 피크 후 정상 복귀까지를 복구 시간으로 판정 · 에러 = 연결 실패·타임아웃·5xx·검증 실패." : "측정 구간 = 워밍업(초기 램프업) 제외, 목표 부하 도달 이후 구간에서 집계 · 지표 = 전체 트랜잭션 기준 p95/p99·에러율·처리량 · 에러 = 연결 실패·타임아웃·HTTP 5xx·검증 실패."}</div>
-            <div className="rounded-lg border border-emerald-900 bg-emerald-950 px-2.5 py-1.5 text-xs text-emerald-300">합격 조건: <span className="text-emerald-100">{slaText}</span> 를 모두 만족</div>
-          </Card>
-          {(jgc.connected !== false) && (
-          <Card className="mt-3 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={15} className="text-amber-400" />결함 트래커 (Jira)</div>
-              <div className="flex items-center gap-2 text-xs text-slate-400">이 계획 재정의 <Toggle on={!!cjira.override} onClick={toggleJira} /></div>
-            </div>
-            {!cjira.override ? (
-              <div className="mt-2 rounded-lg bg-slate-800 p-3 text-xs text-slate-400">전역 Jira 설정 사용 · 프로젝트 <span className="text-slate-300">{jgc.project || "—"}</span> · 이슈유형 {jgc.issueType || "—"} <span className="text-slate-600">(결함 화면의 Jira 연동에서 관리)</span></div>
-            ) : (
-              <div className="mt-3 space-y-3">
-                <div className="text-xs text-slate-500">연결(URL·인증)은 전역, 이 계획의 결함 라우팅만 재정의합니다.</div>
-                <div className="grid grid-cols-3 gap-2">
-                  <Field label="프로젝트 키"><Input value={cjira.project || ""} onChange={(e) => setJira({ project: e.target.value })} placeholder="PERFQA" /></Field>
-                  <Field label="이슈 유형"><Select value={cjira.issueType || "Bug"} onChange={(e) => setJira({ issueType: e.target.value })}><option>Bug</option><option>Task</option><option>Story</option></Select></Field>
-                  <Field label="기본 담당자"><Input value={cjira.assignee || ""} onChange={(e) => setJira({ assignee: e.target.value })} placeholder="assignee" /></Field>
-                </div>
-                <Field label="라벨 (쉼표 구분)"><Input value={cjira.labels || ""} onChange={(e) => setJira({ labels: e.target.value })} placeholder="nqa, load" /></Field>
-              </div>
-            )}
-          </Card>
-          )}
-          </>)}
-        </div>
-      </div>
-      {modal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" onClick={() => setModal(false)}>
-          <div className="w-full max-w-md space-y-3 rounded-xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="text-sm font-semibold text-slate-100">새 측정 계획</div>
-            <Field label="이름 (비우면 자동)"><Input value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} placeholder="계획 이름" /></Field>
-            <Field label="측정 시나리오"><Select value={nf.scenarioId || ""} onChange={(e) => setNf({ ...nf, scenarioId: Number(e.target.value) })}><option value="">선택하세요</option>{scns.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
-            {nf.scenarioId ? <div className="text-xs text-slate-500">→ 대상 환경 <span className="text-slate-300">{nfSut.name || "-"}</span></div> : null}
-            <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400">SLA 임계는 생성 후 기본값으로 채워지며, 상세에서 조정합니다.</div>
-            <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setModal(false)}>취소</Btn><Btn kind="primary" icon={Plus} onClick={create}>생성</Btn></div>
-          </div>
-        </div>
-      )}
-      <Toast msg={msg} />
-    </div>
-  );
-}
-
 /* ═══════════ 측정 실행 · 실행 이력 · 성능 추이 ═══════════ */
 const nqaNow = () => { const d = new Date(); const z = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()) + " " + z(d.getHours()) + ":" + z(d.getMinutes()); };
 const durMinOf = (s) => { if (s.shape === "소크") return Math.round((s.soakH || 0) * 60) || 60; if (s.shape === "스트레스") return ((s.steps || 0) * (s.stepHold || 0)) || 15; if (s.shape === "스테디") return (s.sustain || 0) || 15; return ((s.rampUp || 0) + (s.sustain || 0) + (s.rampDown || 0)) || 10; };
 const SIM_MS = 54000;
-const RUNNER_POOL = 12;
+
 const nqaPhaseOf = (s, pr) => {
   const sh = s.shape;
   if (sh === "스트레스") { const n = Math.min(s.steps || 1, Math.floor(pr * (s.steps || 1)) + 1); return "단계 " + n + "/" + (s.steps || 1); }
@@ -677,6 +503,20 @@ function TSMulti({ title, points, series, unit }) {
     </div>
   );
 }
+/* 목표 부하 미달 임계(초안) — 순간 스파이크로 몇 건 밀리는 것까지 미달로 보지 않는다. */
+export const SHORTFALL_PCT = 1;
+export const VK = (v) => (v === "합격" ? "pass" : v === "불합격" ? "fail" : "warn");
+export const GATE_OF = (v) => (v === "합격" ? "통과" : v === "불합격" ? "실패" : "판정 없음");
+/* 회차에 부하 조건을 스탬프한다 — 시나리오는 나중에 바뀐다(F5·F7). */
+/* 생성기를 고치면 같은 시나리오가 다른 스크립트를 낸다 — 버전을 회차에 남긴다(F8 러너 버전과 같은 원칙) */
+export const SCRIPT_GEN = "1.4.0";
+/* 생성 스크립트 지문 — 엔드포인트·본문까지 반영한다. cond 스냅샷이 못 덮는 부분을 이것이 덮는다. */
+export const scriptSigOf = (scn) => {
+  const src = JSON.stringify([scn.unit, scn.shape, scn.peak, scn.maxVU, scn.thinkTime, scn.dataset, scn.endpoints, scn.journey]);
+  let h = 0; for (let i = 0; i < src.length; i++) { h = ((h << 5) - h + src.charCodeAt(i)) | 0; }
+  return (h >>> 0).toString(16).padStart(8, "0").slice(0, 6);
+};
+export const condOf = (scn) => ({ unit: scn.unit, shape: scn.shape, peak: scn.peak, maxVU: scn.maxVU, gen: SCRIPT_GEN, sig: scriptSigOf(scn) });
 const simResult = (scn, sla) => {
   const isVu = (scn.unit || "").indexOf("VU") >= 0;
   const peak = scn.peak || 500;
@@ -692,18 +532,26 @@ const simResult = (scn, sla) => {
   if (sla.p99 && p99 > sla.p99) breaches.push("p99 " + p99 + " > " + sla.p99 + "ms");
   if (sla.errRate != null && sla.errRate !== "" && errRate > sla.errRate) breaches.push("에러율 " + errRate + " > " + sla.errRate + "%");
   if (sla.minRps && rps < sla.minRps) breaches.push("처리량 " + rps + " < " + sla.minRps + " RPS");
-  return { rps, errRate, p50, p95, p99, throughput: rps, totalReq, verdict: breaches.length ? "불합격" : "합격", breaches };
+  /* 🔑 목표 부하 미달 — RPS 목표(개방형 executor)에서만 발생한다.
+     VU 단위는 우리가 띄우는 값이라 미달 개념이 없다.
+     스트레스(계단)도 제외한다 — 포화점을 찾는 것이 목적이라 목표 미달이 곧 결과다. */
+  const short = (!isVu && scn.shape !== "스트레스") ? Math.max(0, +(((peak - rps) / peak) * 100).toFixed(1)) : 0;
+  const shortfall = short > SHORTFALL_PCT ? short : 0;
+  /* 🔑 한 방향으로만 유효하다 — 더 적게 쐈는데도 무너졌으면 불합격은 유효하다.
+     반대로 합격은 무효다: 낮은 부하에서 좋았을 뿐 목표를 검증한 적이 없다. */
+  const verdict = breaches.length ? "불합격" : (shortfall ? "판정 없음" : "합격");
+  return { rps, errRate, p50, p95, p99, throughput: rps, totalReq, verdict, gateResult: GATE_OF(verdict), breaches, target: peak, shortfall, cond: condOf(scn) };
 };
 
 export function NqaRunScreen({ nav }) {
-  const { nqaPlans, nqaScenarios, nqaSystems, nqaRuns, addNqaRun, updateNqaRun, removeNqaRun, currentUser, defects, addDefect, jiraConfig, notify, goTo } = useApp();
+  const { nqaScenarios, nqaSystems, nqaRuns, addNqaRun, updateNqaRun, removeNqaRun, currentUser, defects, addDefect, jiraConfig, notify, goTo } = useApp();
   const [msg, flash] = useToast();
-  const plans = (nqaPlans || []).filter((p) => p.status === "활성");
-  const [planId, setPlanId] = useState((plans[0] || {}).id || 0);
-  const plan = plans.find((p) => p.id === planId) || plans[0] || {};
-  const scn = (nqaScenarios || []).find((s) => s.id === plan.scenarioId) || {};
+  /* 🔑 실행 단위는 부하 테스트(시나리오)다 — 별도 계획 계층을 두지 않는다. */
+  const scns = nqaScenarios || [];
+  const [scnId, setScnId] = useState((scns[0] || {}).id || 0);
+  const scn = scns.find((x) => x.id === scnId) || scns[0] || {};
   const sut = (nqaSystems || []).find((s) => s.id === scn.sutId) || {};
-  const sla = plan.sla || {};
+  const sla = scn.sla || {};
   const magR = (scn.unit || "").indexOf("VU") >= 0 ? "VU" : "RPS";
   const peakR = scn.shape === "스트레스" ? (scn.start || 0) + (scn.step || 0) * (scn.steps || 0) : (scn.peak || 0);
   const modeR = (epCorrelated(scn.endpoints) || scn.forceOrder) ? "순차 진행" : "비율 혼합";
@@ -711,10 +559,7 @@ export function NqaRunScreen({ nav }) {
   if (sla.p95) slaBits.push("p95 ≤ " + sla.p95 + "ms");
   if (sla.p99) slaBits.push("p99 ≤ " + sla.p99 + "ms");
   if (sla.errRate != null && sla.errRate !== "") slaBits.push("에러율 ≤ " + sla.errRate + "%");
-  if (scn.shape === "스트레스") { if (sla.capacity) slaBits.push("용량 ≥ " + sla.capacity + " " + magR); }
-  else if (scn.shape === "소크") { if (sla.driftPct != null && sla.driftPct !== "") slaBits.push("드리프트 ≤ " + sla.driftPct + "%"); }
-  else if (scn.shape === "스파이크") { if (sla.recoverySec != null && sla.recoverySec !== "") slaBits.push("복구 ≤ " + sla.recoverySec + "초"); }
-  else { if (sla.minRps) slaBits.push("처리량 ≥ " + sla.minRps + " RPS"); }
+  if (sla.minRps) slaBits.push("처리량 ≥ " + sla.minRps + " RPS");
   const [, setTick] = useState(0);
   const [resv, setResv] = useState(false);
   const [when, setWhen] = useState("");
@@ -724,31 +569,37 @@ export function NqaRunScreen({ nav }) {
     const t = setInterval(() => {
       setTick((x) => x + 1);
       const runs = nqaRuns || [];
-      runs.forEach((r) => { if (r.status === "실행중" && r.simStart && Date.now() - r.simStart >= SIM_MS) { updateNqaRun(r.id, { status: "완료", endedAt: stampPlus(r.durationSec || 0), result: r.target }); const p = (nqaPlans || []).find((x) => x.id === r.planId) || {}; if (notify) notify({ icon: "play", text: "부하 테스트 완료 · " + (p.name || "부하") + " · " + (r.target || {}).verdict }); } });
-      let used = runs.filter((r) => r.status === "실행중" && !(r.simStart && Date.now() - r.simStart >= SIM_MS)).reduce((a, r) => a + (r.agents || 1), 0);
-      runs.filter((r) => r.status === "대기").sort((a, b) => (a.queuedAt || 0) - (b.queuedAt || 0)).forEach((r) => { if (used + (r.agents || 1) <= RUNNER_POOL) { updateNqaRun(r.id, { status: "실행중", startedAt: nqaNow(), simStart: Date.now() }); used += (r.agents || 1); } });
+      runs.forEach((r) => { if (r.status === "실행중" && r.simStart && Date.now() - r.simStart >= SIM_MS) { updateNqaRun(r.id, { status: "완료", endedAt: stampPlus(r.durationSec || 0), result: r.target }); const p = (nqaScenarios || []).find((x) => x.id === r.scnId) || {}; if (notify) notify({ icon: "play", text: "부하 테스트 완료 · " + (p.name || "부하") + " · " + (r.target || {}).verdict }); } });
+      /* 🔑 부하 생성기는 전용 VM 1대다 — 두 부하가 한 머신에서 겹치면 양쪽 측정이 다 흔들린다.
+         워커 산술이 아니라 '실행 중이면 대기'다 (PQA P4와 같은 모델). */
+      let busy = runs.some((r) => r.status === "실행중" && !(r.simStart && Date.now() - r.simStart >= SIM_MS));
+      runs.filter((r) => r.status === "대기").sort((a, b) => (a.queuedAt || 0) - (b.queuedAt || 0)).forEach((r) => { if (!busy) { updateNqaRun(r.id, { status: "실행중", startedAt: nqaNow(), simStart: Date.now() }); busy = true; } });
     }, 1000);
     return () => clearInterval(t);
   }, [nqaRuns]);
   const runningRuns = (nqaRuns || []).filter((r) => r.status === "실행중");
   const queued = (nqaRuns || []).filter((r) => r.status === "대기").slice().sort((a, b) => (a.queuedAt || 0) - (b.queuedAt || 0));
-  const usedWorkers = runningRuns.reduce((a, r) => a + (r.agents || 1), 0);
-  const thisRunning = runningRuns.some((r) => r.planId === planId) || queued.some((r) => r.planId === planId);
+  const anyRunning = runningRuns.length > 0;
+  /* 🔑 같은 SUT에 두 부하가 겹치면 서로의 부하를 자기 결과로 읽는다 — 시나리오가 아니라 대상 기준으로 막는다.
+     읽기·쓰기를 섞고 싶으면 한 시나리오 안에서 엔드포인트 가중치로 한다(이미 지원). */
+  const sutOf = (id) => (scns.find((x) => x.id === id) || {}).sutId;
+  const busySut = (r) => sutOf(r.scnId) != null && sutOf(r.scnId) === scn.sutId;
+  const thisRunning = runningRuns.some(busySut) || queued.some(busySut);
+  const sameSutOther = (runningRuns.concat(queued)).find((r) => busySut(r) && r.scnId !== scnId);
   const prog = (r) => Math.max(0, Math.min(1, (Date.now() - (r.simStart || Date.now())) / SIM_MS));
   const fmtDur = (m) => (m >= 60 ? Math.round((m / 60) * 10) / 10 + "시간" : Math.round(m) + "분");
   const runNow = () => {
-    if (!plan.id) { flash("실행할 부하 테스트를 선택하세요"); return; }
-    if (thisRunning) { flash("이미 실행 중이거나 대기 중입니다"); return; }
+    if (!scn.id) { flash("실행할 부하 테스트를 선택하세요"); return; }
+    if (thisRunning) { flash(sameSutOther ? "같은 대상에 " + (scns.find((x) => x.id === sameSutOther.scnId) || {}).name + " 이(가) 진행 중입니다 — 부하가 섞이면 양쪽 결과가 무의미해집니다" : "이미 실행 중이거나 대기 중입니다"); return; }
     const target = simResult(scn, sla);
     const dm = durMinOf(scn);
-    const ag = scn.agents || 1;
-    const fits = usedWorkers + ag <= RUNNER_POOL;
+    const fits = !anyRunning;
     const runId = "RUN-" + nqaNow().slice(5, 16).replace(/[- :]/g, "") + "-" + Math.floor(Math.random() * 90 + 10);
-    const no = (nqaRuns || []).filter((r) => r.planId === plan.id).length + 1;
-    addNqaRun({ id: runId, planId: plan.id, no, startedAt: fits ? nqaNow() : "", status: fits ? "실행중" : "대기", by: currentUser || "이민준", durationSec: dm * 60, simStart: fits ? Date.now() : null, agents: ag, target, queuedAt: Date.now() });
-    flash(fits ? "실행 시작 · " + (plan.name || "부하 테스트") : "러너 여유 없음 — 대기열에 추가됨");
+    const no = (nqaRuns || []).filter((r) => r.scnId === scn.id).length + 1;
+    addNqaRun({ id: runId, scnId: scn.id, no, startedAt: fits ? nqaNow() : "", status: fits ? "실행중" : "대기", by: currentUser || "이민준", durationSec: dm * 60, simStart: fits ? Date.now() : null, target, queuedAt: Date.now() });
+    flash(fits ? "실행 시작 · " + (scn.name || "부하 테스트") : "다른 부하가 실행 중입니다 — 대기열에 추가됨");
   };
-  const abort = (r) => { if (!window.confirm("실행을 중단할까요?")) return; removeNqaRun(r.id); let free = RUNNER_POOL - (usedWorkers - (r.agents || 1)); queued.forEach((q) => { if ((q.agents || 1) <= free) { updateNqaRun(q.id, { status: "실행중", startedAt: nqaNow(), simStart: Date.now() }); free -= (q.agents || 1); } }); flash("실행 중단됨"); };
+  const abort = (r) => { if (!window.confirm("실행을 중단할까요?")) return; removeNqaRun(r.id); const nx = queued[0]; if (nx) updateNqaRun(nx.id, { status: "실행중", startedAt: nqaNow(), simStart: Date.now() }); flash("실행 중단됨"); };
   const padz = (n) => String(n).padStart(2, "0");
   const fmtDt = (d) => d.getFullYear() + "-" + padz(d.getMonth() + 1) + "-" + padz(d.getDate()) + "T" + padz(d.getHours()) + ":" + padz(d.getMinutes());
   const presetTonight = () => { const d = new Date(); d.setHours(22, 0, 0, 0); return fmtDt(d); };
@@ -757,15 +608,15 @@ export function NqaRunScreen({ nav }) {
   const scheduled = (nqaRuns || []).filter((r) => r.status === "예약").slice().sort((a, b) => (a.scheduledAt || "").localeCompare(b.scheduledAt || ""));
   const openResv = () => { setWhen(presetTonight()); setResv(true); };
   const reserve = () => {
-    if (!plan.id) { flash("부하 테스트를 선택하세요"); return; }
+    if (!scn.id) { flash("부하 테스트를 선택하세요"); return; }
     if (!when) { flash("실행 시각을 지정하세요"); return; }
     const at = when.replace("T", " ");
-    addNqaRun({ id: "RUN-" + when.replace(/[-T:]/g, "").slice(0, 12), planId: plan.id, no: (nqaRuns || []).filter((r) => r.planId === plan.id).length + 1, status: "예약", scheduledAt: at, by: currentUser || "이민준" });
+    addNqaRun({ id: "RUN-" + when.replace(/[-T:]/g, "").slice(0, 12), scnId: scn.id, no: (nqaRuns || []).filter((r) => r.scnId === scn.id).length + 1, status: "예약", scheduledAt: at, by: currentUser || "이민준" });
     setResv(false); flash("예약됨 · " + at);
   };
-  const promote = (r) => { const p = plans.find((x) => x.id === r.planId) || {}; const s = (nqaScenarios || []).find((x) => x.id === p.scenarioId) || {}; const target = simResult(s, p.sla || {}); const ag = s.agents || 1; const fits = usedWorkers + ag <= RUNNER_POOL; updateNqaRun(r.id, { status: fits ? "실행중" : "대기", startedAt: fits ? nqaNow() : "", durationSec: durMinOf(s) * 60, simStart: fits ? Date.now() : null, agents: ag, target, queuedAt: Date.now() }); flash(fits ? "실행 시작 · " + (p.name || "부하 테스트") : "러너 여유 없음 — 대기열에 추가됨"); };
+  const promote = (r) => { const p = scns.find((x) => x.id === r.scnId) || {}; const target = simResult(p, p.sla || {}); const fits = !anyRunning; updateNqaRun(r.id, { status: fits ? "실행중" : "대기", startedAt: fits ? nqaNow() : "", durationSec: durMinOf(s) * 60, simStart: fits ? Date.now() : null, target, queuedAt: Date.now() }); flash(fits ? "실행 시작 · " + (p.name || "부하 테스트") : "러너 여유 없음 — 대기열에 추가됨"); };
   const cancelResv = (r) => { removeNqaRun(r.id); flash("예약 취소됨"); };
-  if (!plans.length) return (
+  if (!scns.length) return (
     <div className="space-y-4">
       <PageToolbar desc="부하 주입 · 백그라운드 실행" />
       <Card className="flex flex-col items-center justify-center py-16 text-center">
@@ -783,19 +634,19 @@ export function NqaRunScreen({ nav }) {
         <div className="col-span-3 space-y-3">
           <Card className="p-4 space-y-3">
             <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Gauge size={15} className="text-teal-400" />실행할 부하 테스트</div>
-            <Field label="부하 테스트"><Select value={planId} onChange={(e) => setPlanId(Number(e.target.value))}>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+            <Field label="부하 테스트"><Select value={scnId} onChange={(e) => setScnId(Number(e.target.value))}>{scns.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
             <div className="rounded-lg bg-slate-800 p-3 text-xs space-y-2">
               <div><div className="text-slate-500">대상</div><div className="text-slate-200">{sut.name || "-"}{sut.baseUrl && <span className="font-mono text-slate-500"> · {sut.baseUrl}</span>}</div></div>
               <div><div className="text-slate-500">워크로드</div><div className="text-slate-300">{modeR} · 요청 {(scn.endpoints || []).length}개{scn.dataset ? " · 데이터셋 " + scn.dataset : ""}</div></div>
-              <div><div className="text-slate-500">부하 형상</div><div className="text-slate-300">{scn.shape || "-"} · 목표 {peakR.toLocaleString()} {magR} · 워커 {scn.agents || 1} · 예상 소요 {fmtDur(durMinOf(scn))}</div></div>
+              <div><div className="text-slate-500">부하 형상</div><div className="text-slate-300">{scn.shape || "-"} · 목표 {peakR.toLocaleString()} {magR} · 예상 소요 {fmtDur(durMinOf(scn))}</div></div>
               <div><div className="text-slate-500">합격 기준</div><div className="text-emerald-300">{slaBits.join(" · ") || "미설정"}</div></div>
             </div>
-            <div className="flex gap-2"><Btn kind="primary" icon={Gauge} onClick={runNow} disabled={thisRunning}>{thisRunning ? "실행 중…" : "즉시 실행"}</Btn><Btn icon={Zap} onClick={openResv}>예약 실행</Btn></div>
+            <div className="flex gap-2"><Btn kind="primary" icon={Gauge} onClick={runNow} disabled={thisRunning}>{thisRunning ? sameSutOther ? "대상 사용 중" : "실행 중…" : "즉시 실행"}</Btn><Btn icon={Zap} onClick={openResv}>예약 실행</Btn></div>
           </Card>
           {scheduled.length > 0 && (
             <Card className="p-4 space-y-2">
               <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Zap size={15} className="text-teal-400" />예약된 실행 <span className="text-xs font-normal text-slate-500">· {scheduled.length}건</span></div>
-              {scheduled.map((r) => { const p = plans.find((x) => x.id === r.planId) || {}; return (
+              {scheduled.map((r) => { const p = scns.find((x) => x.id === r.scnId) || {}; return (
                 <div key={r.id} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm">
                   <Badge kind="warn">예약</Badge>
                   <div className="min-w-0 flex-1"><div className="truncate text-slate-300">{p.name || "-"}</div><div className="text-xs text-slate-500">{r.scheduledAt}</div></div>
@@ -808,17 +659,16 @@ export function NqaRunScreen({ nav }) {
         </div>
         <div className="col-span-9 space-y-3">
           <Card className="p-3">
-            <div className="flex items-center justify-between text-xs"><span className="text-slate-400">러너 사용량</span><span className="text-slate-300">{usedWorkers} / {RUNNER_POOL} 워커</span></div>
-            <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-teal-500" style={{ width: Math.round(usedWorkers / RUNNER_POOL * 100) + "%" }} /></div>
+            <div className="flex items-center justify-between text-xs"><span className="text-slate-400">부하 생성기</span><span className={anyRunning ? "text-amber-300" : "text-slate-300"}>{anyRunning ? "사용 중 — 한 번에 하나만 실행합니다" : "대기 중"}</span></div>
             {queued.length > 0 && <div className="mt-1.5 text-xs text-amber-300">대기 {queued.length}건 — 러너 여유가 생기면 자동 시작됩니다.</div>}
           </Card>
           {runningRuns.length === 0 && queued.length === 0 ? (
             <Card className="flex flex-col items-center justify-center gap-2 p-10 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800"><Activity size={22} className="text-teal-400" /></div><div className="text-sm text-slate-400">부하 테스트를 선택하고 &quot;즉시 실행&quot;을 누르면 백그라운드로 실행됩니다.</div></Card>
           ) : (<>
             {runningRuns.map((r) => {
-              const p = plans.find((x) => x.id === r.planId) || {};
-              const s = (nqaScenarios || []).find((x) => x.id === p.scenarioId) || {};
-              const su = (nqaSystems || []).find((x) => x.id === s.sutId) || {};
+              const p = scns.find((x) => x.id === r.scnId) || {};
+              const s = p;
+              const su = (nqaSystems || []).find((x) => x.id === p.sutId) || {};
               const pr = prog(r); const dm = (r.durationSec || 0) / 60; const el = pr * dm; const t = r.target || {}; const rsla = p.sla || {};
               const isVuModel = (s.unit || "").indexOf("VU") >= 0;
               const peakLoad = s.shape === "스트레스" ? (s.start || 0) + (s.step || 0) * (s.steps || 0) : (s.peak || 0);
@@ -836,7 +686,7 @@ export function NqaRunScreen({ nav }) {
               return (
                 <Card key={r.id} className="p-4 space-y-3">
                   <div className="flex items-center justify-between"><div className="text-sm font-semibold text-slate-200">{p.name || "부하"} · <span className="text-teal-300">실행 중</span></div><div className="flex items-center gap-2"><Badge kind="info">{phase}</Badge><Badge kind="warn">실행중</Badge></div></div>
-                  <div className="text-xs text-slate-500">대상 {su.name || "-"} · 러너 {r.agents || 1}개 · 경과 {fmtDur(el)} / {fmtDur(dm)} · 남음 {fmtDur(Math.max(0, dm - el))}</div>
+                  <div className="text-xs text-slate-500">대상 {su.name || "-"} · 경과 {fmtDur(el)} / {fmtDur(dm)} · 남음 {fmtDur(Math.max(0, dm - el))}</div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-teal-500" style={{ width: Math.round(pr * 100) + "%" }} /></div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-lg bg-slate-800 p-2.5"><div className="text-xs text-slate-500">활성 VU</div><div className={"text-lg font-semibold " + (vuLimited ? "text-amber-300" : "text-slate-100")}>{activeVU.toLocaleString()}<span className="text-xs text-slate-500"> / {vuCap.toLocaleString()}</span></div></div>
@@ -858,12 +708,10 @@ export function NqaRunScreen({ nav }) {
             {queued.length > 0 && (
               <Card className="p-4 space-y-2">
                 <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Activity size={15} className="text-amber-400" />대기 중 <span className="text-xs font-normal text-slate-500">· {queued.length}건</span></div>
-                {queued.map((r, i) => { const p = plans.find((x) => x.id === r.planId) || {}; return (
+                {queued.map((r, i) => { const p = scns.find((x) => x.id === r.scnId) || {}; return (
                   <div key={r.id} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm">
                     <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-800 text-xs text-slate-400">{i + 1}</span>
                     <div className="min-w-0 flex-1 truncate text-slate-300">{p.name || "-"}</div>
-                    <span className="text-xs text-slate-500">워커 {r.agents || 1}</span>
-                    {(r.agents || 1) > (RUNNER_POOL - usedWorkers) && <span className="text-xs text-amber-300">여유 부족</span>}
                     <button onClick={() => { removeNqaRun(r.id); flash("대기 취소됨"); }} className="text-slate-500 hover:text-red-400" title="대기 취소"><X size={13} /></button>
                   </div>
                 ); })}
@@ -876,7 +724,7 @@ export function NqaRunScreen({ nav }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setResv(false)}>
           <div className="w-full max-w-sm space-y-3 rounded-xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
             <div className="text-base font-semibold text-slate-100">예약 실행</div>
-            <div className="text-xs text-slate-500">{plan.name || "-"} 을(를) 지정 시각에 1회 실행합니다.</div>
+            <div className="text-xs text-slate-500">{scn.name || "-"} 을(를) 지정 시각에 1회 실행합니다.</div>
             <div className="flex flex-wrap gap-1.5">
               <button onClick={() => setWhen(presetTonight())} className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700">오늘 22:00</button>
               <button onClick={() => setWhen(presetTomorrow())} className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700">내일 02:00</button>
@@ -891,10 +739,13 @@ export function NqaRunScreen({ nav }) {
       {obsId && (() => {
         const r = (nqaRuns || []).find((x) => x.id === obsId);
         if (!r || r.status !== "실행중") return null;
-        const p = plans.find((x) => x.id === r.planId) || {};
-        const s = (nqaScenarios || []).find((x) => x.id === p.scenarioId) || {};
-        const su = (nqaSystems || []).find((x) => x.id === s.sutId) || {};
+        const p = scns.find((x) => x.id === r.scnId) || {};
+        const s = p;
+        const su = (nqaSystems || []).find((x) => x.id === p.sutId) || {};
         const series = nqaSeries(r, s, 48); const errs = nqaErrors(r, s);
+        /* 진행분 기준 실패 추정 — t·pr 은 목록 쪽 지역 변수라 여기서 다시 구한다 */
+        const t = r.target || {}; const pr = prog(r);
+        const failN = (t.totalReq != null && t.errRate != null) ? Math.round(t.totalReq * t.errRate / 100 * pr) : null;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={() => { setObsId(null); setErrRow(null); }}>
             <div className="flex w-full max-w-4xl flex-col gap-4 rounded-xl border border-slate-700 bg-slate-900 p-5" style={{ height: "82vh" }} onClick={(e) => e.stopPropagation()}>
@@ -908,8 +759,9 @@ export function NqaRunScreen({ nav }) {
                 <TSMulti title="응답시간" points={series} unit="ms" series={[{ pick: (d) => d.p50, color: "#94a3b8", label: "p50" }, { pick: (d) => d.p95, color: "#fbbf24", label: "p95" }, { pick: (d) => d.p99, color: "#f87171", label: "p99" }]} />
                 <TSPanel title="활성 VU" points={series} pick={(d) => d.vu} color="#38bdf8" unit="VU" />
               </div>
+              <div className="shrink-0 rounded-lg bg-slate-800/60 px-2.5 py-1.5 text-xs text-slate-500">실시간 값은 <span className="text-slate-300">전체 구간</span>입니다 — 판정은 워밍업을 뺀 <span className="text-slate-300">목표 부하 구간</span>에서 하므로 결과와 다를 수 있습니다.</div>
               <div className="flex min-h-0 flex-1 flex-col">
-                <div className="mb-2 flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={14} className="text-red-400" />오류 <span className="text-xs font-normal text-slate-500">· {errs.length}건 (최근순)</span></div>
+                <div className="mb-2 flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={14} className="text-red-400" />오류 <span className="text-xs font-normal text-slate-500">· 샘플 {errs.length}건{failN != null ? " / 실패 " + failN.toLocaleString() + "건" : ""} · 최근순 <span className="text-slate-600">(전량이 아니라 상한까지만 보관합니다)</span></span></div>
                 {errs.length === 0 ? <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-500">아직 집계된 오류가 없습니다.</div> : (
                   <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-slate-800">
                     {errs.map((e) => (
@@ -943,19 +795,20 @@ export function NqaRunScreen({ nav }) {
 }
 
 function NqaResultView({ run, back }) {
-  const { nqaRuns, nqaPlans, nqaScenarios, nqaSystems, defects, openModal } = useApp();
+  const { nqaRuns, nqaScenarios, nqaSystems, defects, openModal } = useApp();
   const [msg, flash] = useToast();
   const [errRow, setErrRow] = useState(null);
   const r = run;
-  const p = (nqaPlans || []).find((x) => x.id === r.planId) || {};
-  const s = (nqaScenarios || []).find((x) => x.id === p.scenarioId) || {};
-  const su = (nqaSystems || []).find((x) => x.id === s.sutId) || {};
+  const p = (nqaScenarios || []).find((x) => x.id === r.scnId) || {};
+  const s = p;
+  const su = (nqaSystems || []).find((x) => x.id === p.sutId) || {};
   const res = r.result || {};
   const dExists = (defects || []).some((d) => d.tc === r.id);
   const fmtD = (m) => (m >= 60 ? Math.round((m / 60) * 10) / 10 + "시간" : Math.round(m) + "분");
   const series = nqaSeries(r, s, 48, 1);
   const errs = nqaErrors(r, s, 1);
-  const same = (nqaRuns || []).filter((x) => x.planId === r.planId && x.status === "완료").slice().sort((a, b) => (a.startedAt || "").localeCompare(b.startedAt || ""));
+  const failN = (res.totalReq != null && res.errRate != null) ? Math.round(res.totalReq * res.errRate / 100) : null;
+  const same = (nqaRuns || []).filter((x) => x.scnId === r.scnId && x.status === "완료").slice().sort((a, b) => (a.startedAt || "").localeCompare(b.startedAt || ""));
   const idx = same.findIndex((x) => x.id === r.id);
   const prevPass = same.slice(0, idx).reverse().find((x) => (x.result || {}).verdict === "합격");
   const base = prevPass ? (prevPass.result || {}).p95 : null;
@@ -969,11 +822,11 @@ function NqaResultView({ run, back }) {
       domain: "NQA", sev: "Major", tc: r.id, target: su.name || "", labels: "nqa, load",
       title: "SLA 불합격 · " + (p.name || "부하 테스트"),
       desc: "부하 테스트: " + (p.name || "-") + "\n형상: " + (s.shape || "-") + " · 대상 " + (su.name || "-") + " (" + (su.baseUrl || "-") + ")\n결과: 처리량 " + res.rps + " RPS · p95 " + res.p95 + "ms · p99 " + res.p99 + "ms · 에러율 " + res.errRate + "%",
-      steps: "1. 부하 테스트 '" + (p.name || "-") + "' 실행 (워커 " + (s.agents || 1) + " · " + (s.shape || "-") + ")\n2. 목표 부하 도달 후 판정 구간 집계\n3. SLA 임계 대비 판정",
+      steps: "1. 부하 테스트 '" + (p.name || "-") + "' 실행 (" + (s.shape || "-") + " · 전용 VM)\n2. 목표 부하 도달 후 판정 구간 집계\n3. SLA 임계 대비 판정",
       expected: "SLA 충족 — " + (slaStr || "임계 미설정"),
       actual: "SLA 위반 — " + ((res.breaches || []).join(" · ") || "-"),
       env: (su.name || "") + (su.baseUrl ? " · " + su.baseUrl : ""),
-      artifacts: [{ k: "summary", label: "부하 결과 요약", file: "loadtest_summary.json", size: "3 KB" }, { k: "errors", label: "오류 샘플", file: "error_samples.json", size: "5 KB" }, { k: "metrics", label: "시계열 메트릭", file: "metrics.csv", size: "180 KB" }],
+      artifacts: [{ k: "summary", label: "부하 결과 요약", file: "loadtest_summary.json", size: "3 KB" }, { k: "script", label: "실행 스크립트", file: "k6_script.js", size: "4 KB" }, { k: "errors", label: "오류 샘플", file: "error_samples.json", size: "5 KB" }, { k: "metrics", label: "시계열 메트릭", file: "metrics.csv", size: "180 KB" }],
     });
   };
   return (
@@ -989,7 +842,7 @@ function NqaResultView({ run, back }) {
             <div className="text-base font-semibold text-slate-100">{p.name || "부하 테스트"} <span className="text-xs font-normal text-slate-500">· {r.id} · #{r.no}</span></div>
             <div className="mt-0.5 text-xs text-slate-500">대상 {su.name || "-"} · {r.startedAt} ~ {(r.endedAt || "").slice(11) || "-"} · 실행자 {r.by || "-"}</div>
           </div>
-          <Badge kind={res.verdict === "합격" ? "pass" : "fail"}>{res.verdict}</Badge>
+          <Badge kind={VK(res.verdict)}>{res.verdict}</Badge>
         </div>
         <div className="grid grid-cols-4 gap-2 text-xs">
           <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">처리량 </span><span className="text-slate-200">{res.rps} RPS</span></div>
@@ -1001,6 +854,20 @@ function NqaResultView({ run, back }) {
           <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">소요 </span><span className="text-slate-200">{fmtD((r.durationSec || 0) / 60)}</span></div>
           <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">p95 마지막 합격 대비 </span>{deltaPct == null ? <span className="text-slate-400">기준</span> : deltaPct > 10 ? <span className="font-semibold text-amber-300">▲{deltaPct}%</span> : <span className="text-slate-300">{deltaPct >= 0 ? "+" : ""}{deltaPct}%</span>}</div>
         </div>
+        {res.shortfall > 0 && <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-2 text-xs text-amber-300">
+          목표 {res.target} RPS · 실제 {res.rps} — <strong>미달 {res.shortfall}%</strong>{res.verdict === "판정 없음"
+            ? " · 목표 부하에 도달하지 못해 판정하지 않았습니다 (낮은 부하에서 좋았을 뿐입니다)"
+            : " · 더 적은 부하에서도 SLA를 넘었으므로 불합격은 유효합니다"}
+        </div>}
+        {res.cond && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-800/60 px-2.5 py-2 text-xs text-slate-400">
+          <span className="font-semibold text-slate-300">부하 조건</span>
+          <span>{res.cond.shape}</span><span>{res.cond.unit} {res.cond.peak}</span>
+          {res.cond.maxVU ? <span>maxVU {res.cond.maxVU}</span> : null}
+          {res.cond.gen ? <span>생성기 <span className="font-mono text-slate-300">{res.cond.gen}</span></span> : null}
+          <span>집계 <span className="text-slate-300">목표 부하 구간</span>(워밍업 제외)</span>
+          {res.cond.sig ? <span>스크립트 <button onClick={() => flash("k6_script.js 내려받음 · 지문 " + res.cond.sig)} className="font-mono text-teal-300 hover:text-teal-200">{res.cond.sig}</button></span> : null}
+          <span className="text-slate-500">조건이 다르면 회차 간 비교가 성립하지 않습니다</span>
+        </div>}
         {(res.breaches || []).length > 0 ? <div className="rounded-lg border border-red-900 bg-red-950 px-2.5 py-2 text-xs text-red-300">SLA 위반: {res.breaches.join(" · ")}</div> : <div className="rounded-lg border border-emerald-900 bg-emerald-950 px-2.5 py-2 text-xs text-emerald-300">모든 SLA 임계 충족</div>}
         {res.verdict === "불합격" && <div className="flex items-center justify-end">{dExists ? <span className="text-xs text-slate-500">결함 등록됨</span> : <Btn icon={Bug} onClick={regDefect}>결함 등록</Btn>}</div>}
       </Card>
@@ -1014,7 +881,7 @@ function NqaResultView({ run, back }) {
         </div>
       </Card>
       <Card className="p-4 space-y-2">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={14} className="text-red-400" />오류 <span className="text-xs font-normal text-slate-500">· {errs.length}건 (최근순)</span></div>
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={14} className="text-red-400" />오류 <span className="text-xs font-normal text-slate-500">· 샘플 {errs.length}건{failN != null ? " / 실패 " + failN.toLocaleString() + "건" : ""} · 최근순 <span className="text-slate-600">(전량이 아니라 상한까지만 보관합니다)</span></span></div>
         {errs.length === 0 ? <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-500">집계된 오류가 없습니다.</div> : (
           <div className="overflow-hidden rounded-lg border border-slate-800">
             {errs.map((e) => (
@@ -1043,15 +910,15 @@ function NqaResultView({ run, back }) {
   );
 }
 export function NqaHistoryScreen() {
-  const { nqaRuns, nqaPlans } = useApp();
+  const { nqaScenarios, nqaRuns } = useApp();
   const runs = (nqaRuns || []).filter((r) => r.status === "완료");
   const [detail, setDetail] = useState(null);
   const [fPlan, setFPlan] = useState("all");
   const [fVerdict, setFVerdict] = useState("all");
-  const planName = (id) => ((nqaPlans || []).find((p) => p.id === id) || {}).name || "-";
+  const scnName = (id) => ((nqaScenarios || []).find((p) => p.id === id) || {}).name || "-";
   const regMap = {};
   const byPlan = {};
-  runs.forEach((r) => { (byPlan[r.planId] = byPlan[r.planId] || []).push(r); });
+  runs.forEach((r) => { (byPlan[r.scnId] = byPlan[r.scnId] || []).push(r); });
   Object.keys(byPlan).forEach((pid) => {
     const sorted = byPlan[pid].slice().sort((a, b) => (a.startedAt || "").localeCompare(b.startedAt || ""));
     sorted.forEach((r, i) => {
@@ -1062,14 +929,14 @@ export function NqaHistoryScreen() {
       regMap[r.id] = { deltaPct, regression: base != null && deltaPct > 10 };
     });
   });
-  const shown = runs.filter((r) => (fPlan === "all" || String(r.planId) === fPlan) && (fVerdict === "all" || (r.result || {}).verdict === fVerdict)).slice().sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""));
+  const shown = runs.filter((r) => (fPlan === "all" || String(r.scnId) === fPlan) && (fVerdict === "all" || (r.result || {}).verdict === fVerdict)).slice().sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""));
   if (detail) return <NqaResultView run={detail} back={() => setDetail(null)} />;
   return (
     <div className="space-y-4">
       <PageToolbar desc="부하 실행 이력 · 행 클릭 → 실행 결과 상세" />
       <div className="flex items-center gap-2">
         <div style={{ width: 120 }}><Select value={fVerdict} onChange={(e) => setFVerdict(e.target.value)}><option value="all">전체 판정</option><option value="합격">합격</option><option value="불합격">불합격</option></Select></div>
-        <div style={{ width: 200 }}><Select value={fPlan} onChange={(e) => setFPlan(e.target.value)}><option value="all">전체 부하 테스트</option>{(nqaPlans || []).map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}</Select></div>
+        <div style={{ width: 200 }}><Select value={fPlan} onChange={(e) => setFPlan(e.target.value)}><option value="all">전체 부하 테스트</option>{(nqaScenarios || []).map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}</Select></div>
       </div>
       <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
@@ -1078,13 +945,13 @@ export function NqaHistoryScreen() {
             {shown.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-600">{runs.length === 0 ? "실행 이력이 없습니다." : "조건에 맞는 실행이 없습니다."}</td></tr> : shown.map((r) => (
               <tr key={r.id} className="cursor-pointer border-b border-slate-800 last:border-0 hover:bg-slate-800/50" onClick={() => setDetail(r)}>
                 <td className="px-3 py-2 font-mono text-xs text-slate-300">{r.id}</td>
-                <td className="px-3 py-2 text-slate-300">{planName(r.planId)} <span className="text-xs text-slate-500">#{r.no}</span></td>
+                <td className="px-3 py-2 text-slate-300">{scnName(r.scnId)} <span className="text-xs text-slate-500">#{r.no}</span></td>
                 <td className="px-3 py-2 text-xs"><RunTime start={r.startedAt} end={r.endedAt} /></td>
                 <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).rps} RPS</td>
                 <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).p95}ms</td>
                 <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).errRate}%</td>
                 <td className="px-3 py-2 text-center">{(() => { const rg = regMap[r.id] || {}; return rg.deltaPct == null ? <span className="text-slate-600">기준</span> : rg.regression ? <span className="font-semibold text-amber-400">▲{rg.deltaPct}%</span> : <span className="text-slate-500">{rg.deltaPct >= 0 ? "+" : ""}{rg.deltaPct}%</span>; })()}</td>
-                <td className="px-3 py-2 text-center"><Badge kind={(r.result || {}).verdict === "합격" ? "pass" : "fail"}>{(r.result || {}).verdict}</Badge></td>
+                <td className="px-3 py-2 text-center"><Badge kind={VK((r.result || {}).verdict)}>{(r.result || {}).verdict}</Badge></td>
               </tr>
             ))}
           </tbody>
@@ -1094,62 +961,15 @@ export function NqaHistoryScreen() {
   );
 }
 
-export function NqaTrendScreen() {
-  const { nqaRuns, nqaPlans } = useApp();
-  const plans = nqaPlans || [];
-  const [planId, setPlanId] = useState((plans[0] || {}).id || 0);
-  const plan = plans.find((p) => p.id === planId) || {};
-  const sla = plan.sla || {};
-  const runs = (nqaRuns || []).filter((r) => r.planId === planId && r.status === "완료").slice().sort((a, b) => a.no - b.no);
-  const maxP95 = Math.max(sla.p95 || 0, ...runs.map((r) => (r.result || {}).p95 || 0), 1);
-  const withReg = runs.map((r, i) => {
-    const prevPass = runs.slice(0, i).reverse().find((x) => (x.result || {}).verdict === "합격");
-    const base = prevPass ? (prevPass.result || {}).p95 : null;
-    const cur = (r.result || {}).p95 || 0;
-    const deltaPct = base ? Math.round(((cur - base) / base) * 100) : null;
-    return { ...r, base, deltaPct, regression: base != null && deltaPct > 10 };
-  });
-  return (
-    <div className="space-y-4">
-      <PageToolbar desc="회차/빌드 간 처리량·p95·에러율 추이 · 성능 회귀 감지" />
-      <Card className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><TrendingUp size={15} className="text-teal-400" />p95 추이 <span className="text-xs font-normal text-slate-500">· 회차별</span></div>
-          <div style={{ maxWidth: 280 }}><Select value={planId} onChange={(e) => setPlanId(Number(e.target.value))}>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></div>
-        </div>
-        {runs.length === 0 ? <div className="rounded-lg bg-slate-800 p-4 text-center text-xs text-slate-500">이 계획의 실행 이력이 없습니다.</div> : (
-          <div>
-            <div className="flex items-end gap-3 border-b border-slate-800 pb-2" style={{ height: 168 }}>
-              {withReg.map((r) => { const p = (r.result || {}).p95 || 0; const h = Math.round((p / maxP95) * 128); const pass = (r.result || {}).verdict === "합격"; return (
-                <div key={r.id} className="flex flex-1 flex-col items-center justify-end gap-1">
-                  {r.regression && <div className="text-xs font-semibold text-amber-400">▲{r.deltaPct}%</div>}
-                  <div className={"text-xs " + (r.regression ? "text-amber-300" : "text-slate-400")}>{p}</div>
-                  <div className={"w-full rounded-t " + (!pass ? "bg-red-600" : r.regression ? "bg-amber-500" : "bg-teal-600")} style={{ height: h }} />
-                  <div className="text-xs text-slate-500">#{r.no}</div>
-                </div>
-              ); })}
-            </div>
-            <div className="mt-1 text-xs text-slate-500">{sla.p95 ? <>SLA 기준선 p95 ≤ <span className="text-teal-300">{sla.p95}ms</span> · </> : null}<span className="text-red-300">빨강</span>=불합격 · <span className="text-amber-300">노랑</span>=회귀(마지막 합격 대비 p95 +10% 초과)</div>
-            <div className="mt-3 overflow-hidden rounded-lg border border-slate-800">
-              <table className="w-full text-xs"><thead><tr className="border-b border-slate-800 text-slate-500"><th className="px-2 py-1.5 text-left">회차</th><th className="px-2 py-1.5 text-right">처리량</th><th className="px-2 py-1.5 text-right">p95</th><th className="px-2 py-1.5 text-right">에러율</th><th className="px-2 py-1.5 text-center">직전 대비</th><th className="px-2 py-1.5 text-center">판정</th></tr></thead>
-              <tbody>{withReg.slice().reverse().map((r) => <tr key={r.id} className="border-b border-slate-800 last:border-0"><td className="px-2 py-1.5 text-slate-400">#{r.no} · {r.startedAt}</td><td className="px-2 py-1.5 text-right text-slate-300">{(r.result || {}).rps}</td><td className="px-2 py-1.5 text-right text-slate-300">{(r.result || {}).p95}ms</td><td className="px-2 py-1.5 text-right text-slate-300">{(r.result || {}).errRate}%</td><td className="px-2 py-1.5 text-center">{r.deltaPct == null ? <span className="text-slate-600">기준</span> : r.regression ? <span className="font-semibold text-amber-400">▲{r.deltaPct}% 회귀</span> : <span className="text-slate-500">{r.deltaPct >= 0 ? "+" : ""}{r.deltaPct}%</span>}</td><td className="px-2 py-1.5 text-center"><Badge kind={(r.result || {}).verdict === "합격" ? "pass" : "fail"}>{(r.result || {}).verdict}</Badge></td></tr>)}</tbody></table>
-            </div>
-          </div>
-        )}
-      </Card>
-    </div>
-  );
-}
-
 export function NqaDashboardScreen({ nav }) {
-  const { nqaRuns, nqaPlans, nqaScenarios, nqaSystems, defects } = useApp();
-  const plans = nqaPlans || [];
+  const { nqaRuns, nqaScenarios, nqaSystems, defects } = useApp();
+  const scns = nqaScenarios || [];
   const [fPlan, setFPlan] = useState("all");
   const allCompleted = (nqaRuns || []).filter((r) => r.status === "완료");
-  const inScope = (planId) => fPlan === "all" || String(planId) === fPlan;
+  const inScope = (sid) => fPlan === "all" || String(sid) === fPlan;
   const regMap = {};
   const byPlan = {};
-  allCompleted.forEach((r) => { (byPlan[r.planId] = byPlan[r.planId] || []).push(r); });
+  allCompleted.forEach((r) => { (byPlan[r.scnId] = byPlan[r.scnId] || []).push(r); });
   Object.keys(byPlan).forEach((pid) => {
     const sorted = byPlan[pid].slice().sort((a, b) => (a.startedAt || "").localeCompare(b.startedAt || ""));
     sorted.forEach((r, i) => {
@@ -1160,40 +980,42 @@ export function NqaDashboardScreen({ nav }) {
       regMap[r.id] = { deltaPct, regression: base != null && deltaPct > 10 };
     });
   });
-  const completed = allCompleted.filter((r) => inScope(r.planId));
+  const completed = allCompleted.filter((r) => inScope(r.scnId));
   const desc = completed.slice().sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""));
   const asc = completed.slice().sort((a, b) => (a.startedAt || "").localeCompare(b.startedAt || "")).slice(-12);
   const recent = desc.slice(0, 10);
-  const passN = recent.filter((r) => (r.result || {}).verdict === "합격").length;
-  const rate = recent.length ? Math.round((passN / recent.length) * 100) : 0;
-  const scopedRunIds = new Set((nqaRuns || []).filter((r) => inScope(r.planId)).map((r) => r.id));
+  /* 🔑 합격률은 판정한 회차 안에서만 센다 — 판정 없음을 분모에 넣으면 불합격처럼 비율을 깎는다 (P6와 동일) */
+  const judged = recent.filter((r) => { const v = (r.result || {}).verdict; return v === "합격" || v === "불합격"; });
+  const noJudgeN = recent.length - judged.length;
+  const passN = judged.filter((r) => (r.result || {}).verdict === "합격").length;
+  const rate = judged.length ? Math.round((passN / judged.length) * 100) : null;
+  const scopedRunIds = new Set((nqaRuns || []).filter((r) => inScope(r.scnId)).map((r) => r.id));
   const openDef = (defects || []).filter((d) => d.domain === "NQA" && d.status !== "Resolved" && d.status !== "Closed" && (fPlan === "all" || scopedRunIds.has(d.tc))).length;
   const regCount = completed.filter((r) => (regMap[r.id] || {}).regression).length;
-  const running = (nqaRuns || []).filter((r) => r.status === "실행중" && inScope(r.planId));
-  const queuedN = (nqaRuns || []).filter((r) => r.status === "대기" && inScope(r.planId)).length;
-  const usedW = running.reduce((a, r) => a + (r.agents || 1), 0);
+  const running = (nqaRuns || []).filter((r) => r.status === "실행중" && inScope(r.scnId));
+  const queuedN = (nqaRuns || []).filter((r) => r.status === "대기" && inScope(r.scnId)).length;
   const last = desc[0];
-  const planName = (id) => (plans.find((p) => p.id === id) || {}).name || "-";
-  const sutOfPlan = (id) => { const p = plans.find((x) => x.id === id) || {}; const s = (nqaScenarios || []).find((x) => x.id === p.scenarioId) || {}; return (nqaSystems || []).find((x) => x.id === s.sutId) || {}; };
+  const scnName = (id) => (scns.find((p) => p.id === id) || {}).name || "-";
+  const sutOfScn = (id) => { const p = scns.find((x) => x.id === id) || {}; return (nqaSystems || []).find((x) => x.id === p.sutId) || {}; };
   const maxP95 = Math.max(1, ...asc.map((r) => (r.result || {}).p95 || 0));
-  const latestOf = (pid) => desc.find((r) => r.planId === pid);
+  const latestOf = (pid) => desc.find((r) => r.scnId === pid);
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <PageToolbar desc="부하 KPI · SLA 판정 추이 · 부하 테스트별 요약" />
-        <div className="w-56 shrink-0"><Select value={fPlan} onChange={(e) => setFPlan(e.target.value)}><option value="all">전체 부하 테스트</option>{plans.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}</Select></div>
+        <div className="w-56 shrink-0"><Select value={fPlan} onChange={(e) => setFPlan(e.target.value)}><option value="all">전체 부하 테스트</option>{scns.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}</Select></div>
       </div>
       <div className="grid grid-cols-4 gap-3">
-        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-teal-400" />SLA 합격률</div><div className="mt-1 text-2xl font-semibold text-slate-100">{rate}<span className="text-sm text-slate-500">%</span></div><div className="text-xs text-slate-500">최근 {recent.length}회 중 {passN} 합격</div></Card>
+        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-teal-400" />SLA 합격률</div><div className="mt-1 text-2xl font-semibold text-slate-100">{rate == null ? "—" : rate}{rate != null && <span className="text-sm text-slate-500">%</span>}</div>{noJudgeN > 0 && <div className="text-xs text-amber-400">판정 없음 {noJudgeN}건 제외</div>}<div className="text-xs text-slate-500">최근 {recent.length}회 중 {passN} 합격</div></Card>
         <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Bug size={14} className="text-red-400" />미해결 성능 결함</div><div className={"mt-1 text-2xl font-semibold " + (openDef > 0 ? "text-red-300" : "text-slate-100")}>{openDef}</div><div className="text-xs text-slate-500">SLA 불합격 결함 (Open)</div></Card>
         <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><TrendingUp size={14} className="text-amber-400" />성능 회귀</div><div className={"mt-1 text-2xl font-semibold " + (regCount > 0 ? "text-amber-300" : "text-slate-100")}>{regCount}</div><div className="text-xs text-slate-500">마지막 합격 대비 p95 +10% 초과</div></Card>
-        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Activity size={14} className="text-teal-400" />진행 중 실행</div><div className={"mt-1 text-2xl font-semibold " + (running.length > 0 ? "text-teal-300" : "text-slate-100")}>{running.length}</div><div className="text-xs text-slate-500">대기 {queuedN} · 러너 {usedW}/{RUNNER_POOL}</div></Card>
+        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Activity size={14} className="text-teal-400" />진행 중 실행</div><div className={"mt-1 text-2xl font-semibold " + (running.length > 0 ? "text-teal-300" : "text-slate-100")}>{running.length}</div><div className="text-xs text-slate-500">대기 {queuedN} · 한 번에 하나</div></Card>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4 space-y-2">
           <div className="text-sm font-semibold text-slate-200">SLA 판정 추이 <span className="text-xs font-normal text-slate-500">· 최근 {asc.length}회</span></div>
           {asc.length === 0 ? <div className="rounded-lg bg-slate-800 p-4 text-center text-xs text-slate-500">실행 이력이 없습니다.</div> : (
-            <div className="flex flex-wrap gap-1.5">{asc.map((r) => { const pass = (r.result || {}).verdict === "합격"; return <div key={r.id} className={"flex w-16 flex-col items-center justify-center rounded py-1 text-xs " + (pass ? "bg-emerald-950 text-emerald-300" : "bg-red-950 text-red-300")} title={planName(r.planId) + " · " + r.startedAt}>{pass ? "합격" : "불합격"}<span className="text-slate-500">{(r.startedAt || "").slice(5, 10)}</span></div>; })}</div>
+            <div className="flex flex-wrap gap-1.5">{asc.map((r) => { const vd = (r.result || {}).verdict; const pass = vd === "합격"; const nj = vd !== "합격" && vd !== "불합격"; return <div key={r.id} className={"flex w-16 flex-col items-center justify-center rounded py-1 text-xs " + (nj ? "border-amber-700 bg-amber-950 text-amber-300" : pass ? "bg-emerald-950 text-emerald-300" : "bg-red-950 text-red-300")} title={scnName(r.scnId) + " · " + r.startedAt}>{pass ? "합격" : "불합격"}<span className="text-slate-500">{(r.startedAt || "").slice(5, 10)}</span></div>; })}</div>
           )}
         </Card>
         <Card className="p-4 space-y-2">
@@ -1207,7 +1029,7 @@ export function NqaDashboardScreen({ nav }) {
         <div className="text-sm font-semibold text-slate-200">최근 실행 판정 <span className="text-xs font-normal text-slate-500">· 최근 {Math.min(8, desc.length)}건</span></div>
         <div className="overflow-hidden rounded-lg border border-slate-800">
           <table className="w-full text-sm"><thead><tr className="border-b border-slate-800 text-xs text-slate-500"><th className="px-3 py-2 text-left">부하 테스트</th><th className="px-3 py-2 text-left">유형</th><th className="px-3 py-2 text-left">대상 환경</th><th className="px-3 py-2 text-left">실행 시각</th><th className="px-3 py-2 text-right">p95</th><th className="px-3 py-2 text-right">에러율</th><th className="px-3 py-2 text-center">회귀</th><th className="px-3 py-2 text-center">판정</th></tr></thead>
-          <tbody>{desc.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-600">실행 이력이 없습니다.</td></tr> : desc.slice(0, 8).map((r) => { const p = plans.find((x) => x.id === r.planId) || {}; const su = sutOfPlan(r.planId); const psc = (nqaScenarios || []).find((x) => x.id === p.scenarioId) || {}; const reg = regMap[r.id] || {}; return (
+          <tbody>{desc.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-600">실행 이력이 없습니다.</td></tr> : desc.slice(0, 8).map((r) => { const p = scns.find((x) => x.id === r.scnId) || {}; const su = sutOfScn(r.scnId); const psc = p; const reg = regMap[r.id] || {}; return (
             <tr key={r.id} className="border-b border-slate-800 last:border-0">
               <td className="px-3 py-2 text-slate-300">{p.name || "-"}</td>
               <td className="px-3 py-2 text-xs text-slate-400">{psc.shape || "-"}</td>
@@ -1216,26 +1038,10 @@ export function NqaDashboardScreen({ nav }) {
               <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).p95}ms</td>
               <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).errRate}%</td>
               <td className="px-3 py-2 text-center">{reg.regression ? <span className="font-semibold text-amber-400">▲{reg.deltaPct}%</span> : reg.deltaPct != null ? <span className="text-slate-500">{reg.deltaPct >= 0 ? "+" : ""}{reg.deltaPct}%</span> : <span className="text-slate-600">기준</span>}</td>
-              <td className="px-3 py-2 text-center"><Badge kind={(r.result || {}).verdict === "합격" ? "pass" : "fail"}>{(r.result || {}).verdict}</Badge></td>
+              <td className="px-3 py-2 text-center"><Badge kind={VK((r.result || {}).verdict)}>{(r.result || {}).verdict}</Badge></td>
             </tr>
           ); })}</tbody></table>
         </div>
-      </Card>
-    </div>
-  );
-}
-
-export function NqaScreen({ view }) {
-  const [label, desc] = NQA_META[view] || ["", ""];
-  const active = (NQA_SUBTYPES.find((s) => s.ready) || {}).label || "성능";
-  return (
-    <div className="space-y-4">
-      <PageToolbar desc={desc} />
-      <Card className="flex flex-col items-center justify-center gap-2 p-12 text-center">
-        <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800"><Gauge size={22} className="text-teal-400" /></div>
-        <div className="text-sm font-semibold text-slate-200">{active} · {label}</div>
-        <div className="max-w-md text-xs text-slate-500">{desc}</div>
-        <Badge kind="warn">준비 중 — 다음 단계에서 구현</Badge>
       </Card>
     </div>
   );
