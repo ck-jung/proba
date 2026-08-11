@@ -54,7 +54,7 @@ export function PqaTargetScreen() {
     // 벤치마크 APK가 없으면 파싱이 통과해도 측정할 수 없다 — 여기서 알려준다
     const benchOk = src === "CI 아티팩트" ? (draft.benchApkUrl || "").trim() : (draft.benchApk || "").trim();
     if (!ok) { toast(src === "직접 업로드" ? "빌드 파일을 먼저 선택하세요" : "아티팩트 URL을 먼저 입력하세요", "warn"); return; }
-    const fname = src === "직접 업로드" ? draft.buildFile : ((draft.artifactUrl || "").split("/").pop() || "app-release.aab");
+    const fname = src === "직접 업로드" ? draft.buildFile : ((draft.artifactUrl || "").split("/").pop() || "app-release.apk");
     setD({ version: draft.version && draft.version !== "-" ? draft.version : "1.0.0", versionCode: draft.versionCode && draft.versionCode !== "-" ? draft.versionCode : "10000", signed: true, build: fname });
     setD({ benchApk: benchOk ? (src === "CI 아티팩트" ? ((draft.benchApkUrl || "").split("/").pop() || "macrobenchmark.apk") : draft.benchApk) : "" });
     toast(benchOk ? "앱·벤치마크 APK에서 버전·versionCode·서명을 추출했습니다"
@@ -117,7 +117,7 @@ export function PqaTargetScreen() {
               <div className="flex items-center justify-between"><span className="text-xs font-semibold text-slate-300">빌드 연결 · {draft.source}</span><Btn icon={Package} onClick={parseBuild}>빌드 파싱</Btn></div>
               {draft.source === "CI 아티팩트" && (
                 <div className="space-y-3">
-                  <Field label="아티팩트 URL"><Input value={draft.artifactUrl || ""} onChange={(e) => setD({ artifactUrl: e.target.value })} placeholder="https://ci.onmarket.io/artifacts/app/9.12.0/app-release.aab" className="font-mono text-xs" /></Field>
+                  <Field label="아티팩트 URL"><Input value={draft.artifactUrl || ""} onChange={(e) => setD({ artifactUrl: e.target.value })} placeholder="https://ci.onmarket.io/artifacts/app/9.12.0/app-release.apk" className="font-mono text-xs" /></Field>
                   {/* 러너는 APK를 두 개 설치한다 — 앱과 벤치마크 테스트. 벤치마크 APK가 없으면 실행 자체가 불가능하다 */}
                   <Field label="벤치마크 테스트 APK URL" hint="Macrobenchmark 모듈의 androidTest 산출물"><Input value={draft.benchApkUrl || ""} onChange={(e) => setD({ benchApkUrl: e.target.value })} placeholder="https://ci.example.io/artifacts/macrobenchmark-1.0.0.apk" className="font-mono text-xs" /></Field>
                   <Field label="인증 토큰 (변수 참조)"><VarRefInput value={draft.tokenRef || ""} onChange={(v) => setD({ tokenRef: v })} placeholder="${ci_token}" /></Field>
@@ -129,8 +129,8 @@ export function PqaTargetScreen() {
               {draft.source === "직접 업로드" && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <label className="cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 hover:border-teal-500">파일 선택<input type="file" accept=".apk,.aab" className="hidden" onChange={(e) => { const f = (e.target.files || [])[0]; if (f) setD({ buildFile: f.name }); }} /></label>
-                    <span className="font-mono text-xs text-slate-400">{draft.buildFile || "선택된 파일 없음 (.apk / .aab)"}</span>
+                    <label className="cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 hover:border-teal-500">파일 선택<input type="file" accept=".apk" className="hidden" onChange={(e) => { const f = (e.target.files || [])[0]; if (f) setD({ buildFile: f.name }); }} /></label>
+                    <span className="font-mono text-xs text-slate-400">{draft.buildFile || "선택된 파일 없음 (.apk)"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <label className="cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 hover:border-slate-600">벤치마크 APK 선택<input type="file" className="hidden" onChange={(e) => setD({ benchApk: (e.target.files && e.target.files[0] && e.target.files[0].name) || "" })} /></label>
