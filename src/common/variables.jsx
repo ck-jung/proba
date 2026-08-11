@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApp } from "./context.js";
-import { Card, PageToolbar, Badge, Btn, Field, Input, Toggle, Toast, useToast } from "./ui.jsx";
+import { Card, PageToolbar, Badge, Btn, Field, Input, Toggle, Toast, useToast, Portal } from "./ui.jsx";
 import { Plus, X, Save, Eye, EyeOff, KeyRound, Copy, Pencil, Braces, Search, Upload, Download, AlertTriangle, Trash2 } from "lucide-react";
 
 const nowStr = () => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); };
@@ -86,19 +86,19 @@ export function VariablesScreen() {
     <div className="space-y-4">
       <PageToolbar desc="변수·시크릿 (평면 K/V) — 대상/시나리오에서 참조하는 재사용 값. 시크릿은 마스킹 저장." />
       <div className="flex items-center justify-between gap-3">
-        <div className="relative w-72"><Search size={13} className="absolute left-2.5 top-2.5 text-slate-500" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="키·설명 검색" className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-8 pr-3 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-teal-500" /></div>
+        <div className="relative w-72"><Search size={13} className="absolute left-2.5 top-2.5 text-slate-500" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="키·설명 검색" className="w-full rounded-lg border border-slate-300 bg-slate-100 py-2 pl-8 pr-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-sky-500" /></div>
         <div className="flex gap-2"><Btn icon={Upload} onClick={openXl}>엑셀 업로드</Btn><Btn kind="primary" icon={Plus} onClick={openAdd}>변수 추가</Btn></div>
       </div>
       {picked.size > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-teal-700 bg-teal-950 px-3 py-2 text-sm">
-          <span className="flex-1 text-teal-200">{picked.size}건 선택됨</span>
+        <div className="flex items-center gap-2 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-sm">
+          <span className="flex-1 text-sky-700">{picked.size}건 선택됨</span>
           <Btn kind="danger" icon={Trash2} onClick={bulkDel}>선택 삭제</Btn>
           <Btn onClick={() => setPicked(new Set())}>선택 해제</Btn>
         </div>
       )}
       <Card className="p-4 space-y-1.5">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-2 text-xs font-semibold text-slate-500">
-          <div className="flex w-6 justify-center"><input type="checkbox" checked={allShownPicked} onChange={toggleAll} className="accent-teal-500" title="전체 선택" /></div>
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2 text-xs font-semibold text-slate-500">
+          <div className="flex w-6 justify-center"><input type="checkbox" checked={allShownPicked} onChange={toggleAll} className="accent-sky-500" title="전체 선택" /></div>
           <div className="grid flex-1 grid-cols-12 gap-2">
             <div className="col-span-3">키</div><div className="col-span-3">값</div><div className="col-span-1 text-center">참조</div><div className="col-span-2">생성 일시</div><div className="col-span-2">변경 일시</div><div className="col-span-1 text-right">관리</div>
           </div>
@@ -106,73 +106,73 @@ export function VariablesScreen() {
         {shown.length === 0 ? <div className="p-4 text-center text-xs text-slate-500">{list.length === 0 ? "변수가 없습니다 — 추가하세요." : "검색 결과가 없습니다."}</div> : shown.map((v) => {
           const n = refCount(v.key);
           return (
-          <div key={v.id} className={"flex items-center gap-2 border-b border-slate-800/60 py-1.5 text-sm " + (picked.has(v.id) ? "bg-slate-800/40" : "")}>
-            <div className="flex w-6 justify-center"><input type="checkbox" checked={picked.has(v.id)} onChange={() => togglePick(v.id)} className="accent-teal-500" /></div>
+          <div key={v.id} className={"flex items-center gap-2 border-b border-slate-200/60 py-1.5 text-sm " + (picked.has(v.id) ? "bg-slate-100/40" : "")}>
+            <div className="flex w-6 justify-center"><input type="checkbox" checked={picked.has(v.id)} onChange={() => togglePick(v.id)} className="accent-sky-500" /></div>
             <div className="grid flex-1 grid-cols-12 items-center gap-2">
               <div className="col-span-3 min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0"><span className="truncate font-mono text-slate-200">{v.key}</span>{v.secret && <KeyRound size={12} className="shrink-0 text-amber-400" />}</div>
+                <div className="flex items-center gap-1.5 min-w-0"><span className="truncate font-mono text-slate-800">{v.key}</span>{v.secret && <KeyRound size={12} className="shrink-0 text-amber-600" />}</div>
                 {v.desc && <div className="truncate text-xs text-slate-500">{v.desc}</div>}
               </div>
               <div className="col-span-3 flex items-center gap-2 min-w-0">
-                <span className="flex-1 truncate font-mono text-xs text-slate-400">{v.secret && !reveal[v.id] ? mask(v.value) : (v.value || "—")}</span>
-                {v.secret && <button onClick={() => setReveal((r) => ({ ...r, [v.id]: !r[v.id] }))} className="shrink-0 text-slate-500 hover:text-slate-300" title="표시/숨김">{reveal[v.id] ? <EyeOff size={13} /> : <Eye size={13} />}</button>}
-                <button onClick={() => copyRef(v.key)} className="shrink-0 text-slate-500 hover:text-teal-300" title="참조 복사 (${키})"><Copy size={12} /></button>
+                <span className="flex-1 truncate font-mono text-xs text-slate-500">{v.secret && !reveal[v.id] ? mask(v.value) : (v.value || "—")}</span>
+                {v.secret && <button onClick={() => setReveal((r) => ({ ...r, [v.id]: !r[v.id] }))} className="shrink-0 text-slate-500 hover:text-slate-700" title="표시/숨김">{reveal[v.id] ? <EyeOff size={13} /> : <Eye size={13} />}</button>}
+                <button onClick={() => copyRef(v.key)} className="shrink-0 text-slate-500 hover:text-sky-600" title="참조 복사 (${키})"><Copy size={12} /></button>
               </div>
               <div className="col-span-1 text-center" title="이 변수를 참조하는 대상/계정 수"><Badge kind={n > 0 ? "teal" : "draft"}>{n}</Badge></div>
               <div className="col-span-2 truncate text-xs text-slate-500">{v.createdAt || "—"}</div>
-              <div className="col-span-2 truncate text-xs text-slate-400">{v.updatedAt || "—"}</div>
+              <div className="col-span-2 truncate text-xs text-slate-500">{v.updatedAt || "—"}</div>
               <div className="col-span-1 flex items-center justify-end gap-2">
-                <button onClick={() => openEdit(v)} className="text-slate-500 hover:text-slate-200" title="편집"><Pencil size={13} /></button>
-                <button onClick={() => del(v)} className="text-slate-500 hover:text-red-400" title="삭제"><X size={14} /></button>
+                <button onClick={() => openEdit(v)} className="text-slate-500 hover:text-slate-800" title="편집"><Pencil size={13} /></button>
+                <button onClick={() => del(v)} className="text-slate-500 hover:text-red-600" title="삭제"><X size={14} /></button>
               </div>
             </div>
           </div>
           );
         })}
       </Card>
-      <div className="flex items-start gap-2 rounded-lg border border-slate-800 bg-slate-900 p-3 text-xs text-slate-400">
-        <Braces size={14} className="mt-0.5 shrink-0 text-teal-400" />
-        <div>대상·시나리오·인증에서 <span className="font-mono text-slate-300">{"${키}"}</span>로 참조하면 실행 시 해당 값으로 치환됩니다. 환경별로 값이 다르면 <span className="font-mono text-slate-300">stg_토큰 · dev_토큰</span>처럼 접두어로 별도 키를 만드세요. <span className="text-slate-500">참조 수는 테스트 대상 기준 · 0이면 미사용(오펀). 시크릿 값은 마스킹 표시.</span></div>
+      <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">
+        <Braces size={14} className="mt-0.5 shrink-0 text-sky-600" />
+        <div>대상·시나리오·인증에서 <span className="font-mono text-slate-700">{"${키}"}</span>로 참조하면 실행 시 해당 값으로 치환됩니다. 환경별로 값이 다르면 <span className="font-mono text-slate-700">stg_토큰 · dev_토큰</span>처럼 접두어로 별도 키를 만드세요. <span className="text-slate-500">참조 수는 테스트 대상 기준 · 0이면 미사용(오펀). 시크릿 값은 마스킹 표시.</span></div>
       </div>
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModal(false)}>
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-semibold text-slate-100">{editId ? "변수 편집" : "새 변수"}</div>
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setModal(false)}>
+          <div className="w-full max-w-md rounded-xl border border-slate-300 bg-white p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-semibold text-slate-900">{editId ? "변수 편집" : "새 변수"}</div>
             <Field label="키" hint="영문/숫자/밑줄 · 환경별은 stg_/dev_/prd_ 접두어 관례"><Input value={vf.key} onChange={(e) => setVf({ ...vf, key: e.target.value })} placeholder="stg_onmarket_token" /></Field>
-            <div className="flex items-center justify-between rounded-lg border border-slate-800 px-3 py-2 text-sm text-slate-300"><span className="flex items-center gap-1.5"><KeyRound size={13} className={vf.secret ? "text-amber-400" : "text-slate-500"} />시크릿 (마스킹 저장)</span><Toggle on={vf.secret} onClick={() => setVf({ ...vf, secret: !vf.secret })} /></div>
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"><span className="flex items-center gap-1.5"><KeyRound size={13} className={vf.secret ? "text-amber-600" : "text-slate-500"} />시크릿 (마스킹 저장)</span><Toggle on={vf.secret} onClick={() => setVf({ ...vf, secret: !vf.secret })} /></div>
             <Field label="값"><Input type={vf.secret ? "password" : "text"} value={vf.value} onChange={(e) => setVf({ ...vf, value: e.target.value })} placeholder={vf.secret ? "••••••" : "값 입력"} /></Field>
             <Field label="설명 (선택)"><Input value={vf.desc} onChange={(e) => setVf({ ...vf, desc: e.target.value })} placeholder="용도 메모" /></Field>
             {editId && <div className="text-xs text-slate-500">생성 {vf.createdAt || "—"} · 변경 {vf.updatedAt || "—"}</div>}
             <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setModal(false)}>취소</Btn><Btn kind="primary" icon={Save} onClick={save}>{editId ? "저장" : "추가"}</Btn></div>
           </div>
-        </div>
+        </div></Portal>
       )}
 
       {xlModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setXlModal(false)}>
-          <div className="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between"><div className="text-base font-semibold text-slate-100">엑셀 대량 업로드</div><Btn icon={Download} onClick={tmpl}>양식 다운로드</Btn></div>
-            <label className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-700 bg-slate-800 px-3 py-6 text-sm text-slate-400 hover:border-slate-600">
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setXlModal(false)}>
+          <div className="w-full max-w-2xl rounded-xl border border-slate-300 bg-white p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between"><div className="text-base font-semibold text-slate-900">엑셀 대량 업로드</div><Btn icon={Download} onClick={tmpl}>양식 다운로드</Btn></div>
+            <label className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-100 px-3 py-6 text-sm text-slate-500 hover:border-slate-400">
               <Upload size={20} className="text-slate-500" />파일을 클릭해서 선택
-              <span className="text-xs text-slate-600">열: 키 · 값 · 시크릿(Y/N) · 설명 · (.csv)</span>
+              <span className="text-xs text-slate-400">열: 키 · 값 · 시크릿(Y/N) · 설명 · (.csv)</span>
               <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={onXlFile} />
             </label>
-            {xlName && <div className="text-xs text-teal-400">{xlName} · {xlRows.length}행 인식</div>}
+            {xlName && <div className="text-xs text-sky-600">{xlName} · {xlRows.length}행 인식</div>}
             {xlRows.length > 0 && (
-              <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-800">
+              <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200">
                 <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-slate-900"><tr className="border-b border-slate-800 text-left text-slate-500"><th className="px-2.5 py-1.5 font-medium">키</th><th className="font-medium">값</th><th className="font-medium">시크릿</th><th className="font-medium">설명</th><th className="px-2.5 font-medium">상태</th></tr></thead>
+                  <thead className="sticky top-0 bg-white"><tr className="border-b border-slate-200 text-left text-slate-500"><th className="px-2.5 py-1.5 font-medium">키</th><th className="font-medium">값</th><th className="font-medium">시크릿</th><th className="font-medium">설명</th><th className="px-2.5 font-medium">상태</th></tr></thead>
                   <tbody>{xlRows.map((r, i) => (
-                    <tr key={i} className="border-b border-slate-800/60"><td className="px-2.5 py-1.5 font-mono text-slate-200">{r.key || "—"}</td><td className="max-w-[130px] truncate font-mono text-slate-400">{r.secret ? "••••••" : (r.value || "—")}</td><td className="text-slate-400">{r.secret ? "Y" : "N"}</td><td className="max-w-[130px] truncate text-slate-500">{r.desc || "—"}</td><td className="px-2.5">{xlStatuses[i].ok ? <span className="text-emerald-400">등록</span> : <span className="text-amber-300">{xlStatuses[i].m}</span>}</td></tr>
+                    <tr key={i} className="border-b border-slate-200/60"><td className="px-2.5 py-1.5 font-mono text-slate-800">{r.key || "—"}</td><td className="max-w-[130px] truncate font-mono text-slate-500">{r.secret ? "••••••" : (r.value || "—")}</td><td className="text-slate-500">{r.secret ? "Y" : "N"}</td><td className="max-w-[130px] truncate text-slate-500">{r.desc || "—"}</td><td className="px-2.5">{xlStatuses[i].ok ? <span className="text-emerald-600">등록</span> : <span className="text-amber-700">{xlStatuses[i].m}</span>}</td></tr>
                   ))}</tbody>
                 </table>
               </div>
             )}
-            <div className="flex items-start gap-1.5 text-xs text-amber-300/90"><AlertTriangle size={12} className="mt-0.5 shrink-0" />시크릿 값을 스프레드시트 평문으로 올리는 것은 위험합니다 — 대량 업로드는 비-시크릿 설정값을 권장합니다.</div>
+            <div className="flex items-start gap-1.5 text-xs text-amber-700/90"><AlertTriangle size={12} className="mt-0.5 shrink-0" />시크릿 값을 스프레드시트 평문으로 올리는 것은 위험합니다 — 대량 업로드는 비-시크릿 설정값을 권장합니다.</div>
             <div className="flex items-center justify-between pt-1"><span className="text-xs text-slate-500">{xlRows.length ? validCount + "건 등록 가능 · " + (xlRows.length - validCount) + "건 제외" : ""}</span><div className="flex gap-2"><Btn onClick={() => setXlModal(false)}>취소</Btn><Btn kind="primary" icon={Plus} disabled={!validCount} onClick={importRows}>등록</Btn></div></div>
           </div>
-        </div>
+        </div></Portal>
       )}
       <Toast msg={msg} />
     </div>

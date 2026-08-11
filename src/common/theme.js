@@ -4,7 +4,9 @@
 // ============================================================
 
 // 차트·게이지 색상 팔레트
-export const C = { ok: "#34d399", err: "#f87171", warn: "#fbbf24", teal: "#2dd4bf", blue: "#60a5fa", grid: "#1e293b", axis: "#64748b" };
+export const C = { ok: "#059669", err: "#dc2626", warn: "#d97706", teal: "#0ea5e9", blue: "#2563eb", grid: "#e2e8f0", axis: "#94a3b8" };
+// CL 은 C 의 별칭 — 전면 라이트 전환 이후 둘이 같다 (기존 import 호환용)
+export const CL = C;
 
 // 판정(PASS/FAIL/WARN) → Badge kind
 export const vKind = (v) => (v === "PASS" ? "pass" : v === "FAIL" ? "fail" : "warn");

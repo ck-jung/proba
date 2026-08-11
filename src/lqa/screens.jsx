@@ -7,8 +7,8 @@ import { AlertTriangle, ChevronLeft, Bug, Calendar, Copy, CheckCircle2, ChevronR
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
-import { C, vKind, KIND } from "../common/theme.js";
-import { Badge, ScoreBar, Card, Field, Btn, Input, Select, Toggle, PageToolbar, EmptyState, SearchInput, RunTime, nowStamp } from "../common/ui.jsx";
+import { C, CL, vKind, KIND } from "../common/theme.js";
+import { Badge, ScoreBar, Card, Field, Btn, Input, Select, Toggle, PageToolbar, EmptyState, SearchInput, RunTime, nowStamp, Portal } from "../common/ui.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 // 이벤트 트리거는 정보성(읽기전용) — 감지 방식은 챗봇 연결 "모델·배포 소스"에서 정의된 값을 상속만 표시.
 const lqaEvents = (bot) => {
@@ -68,21 +68,21 @@ export function NewPlanForm({ close, data }) {
       <Field label="대상 챗봇"><Select value={bot} onChange={(e) => setBot(e.target.value)}>{[...new Set(chatbots.map((c) => c.name))].map((n) => <option key={n}>{n}</option>)}</Select></Field>
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-xs font-semibold text-slate-400">테스트케이스 선택 <span className="text-teal-400">{picked.size}/{approved.length}</span> <span className="text-slate-600">· 승인 케이스만</span></div>
-          <button onClick={toggleAll} className="text-xs text-teal-400">{allOn ? "전체 해제" : "전체 선택"}</button>
+          <div className="text-xs font-semibold text-slate-500">테스트케이스 선택 <span className="text-sky-600">{picked.size}/{approved.length}</span> <span className="text-slate-400">· 승인 케이스만</span></div>
+          <button onClick={toggleAll} className="text-xs text-sky-600">{allOn ? "전체 해제" : "전체 선택"}</button>
         </div>
-        <div className="rounded-lg border border-slate-700 bg-slate-800 overflow-y-auto" style={{ maxHeight: 176 }}>
+        <div className="rounded-lg border border-slate-300 bg-slate-100 overflow-y-auto" style={{ maxHeight: 176 }}>
           {approved.map((c) => (
-            <label key={c.id} className="flex items-center gap-2 px-3 py-2 border-b border-slate-700 cursor-pointer hover:bg-slate-700">
-              <input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-teal-500" />
-              <span className="font-mono text-xs text-teal-400 w-16 shrink-0">{c.id}</span>
-              <span className="flex-1 text-xs text-slate-300 truncate">{c.q}</span>
+            <label key={c.id} className="flex items-center gap-2 px-3 py-2 border-b border-slate-300 cursor-pointer hover:bg-slate-200">
+              <input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-sky-500" />
+              <span className="font-mono text-xs text-sky-600 w-16 shrink-0">{c.id}</span>
+              <span className="flex-1 text-xs text-slate-700 truncate">{c.q}</span>
               <Badge kind={priKind[c.pri] || "info"}>{c.pri}</Badge>
             </label>
           ))}
         </div>
       </div>
-      <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">Judge 모델·가중치·프롬프트·합격 기준·스케줄은 생성 후 <span className="text-slate-300">상세설정</span>에서 구성합니다.</div>
+      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">Judge 모델·가중치·프롬프트·합격 기준·스케줄은 생성 후 <span className="text-slate-700">상세설정</span>에서 구성합니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Plus} onClick={submit}>생성</Btn></div>
     </div>
   );
@@ -146,23 +146,23 @@ export function AiGenForm({ close }) {
     const weakN = rows.filter((r) => r.weak).length;
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm"><span className="text-slate-200 font-semibold">생성 결과 미리보기</span><span className="text-xs text-slate-400">선택 {picked.size}/{rows.length}{weakN ? " · 근거 불충분 " + weakN : ""}</span></div>
-        <div className="overflow-auto rounded-lg border border-slate-700" style={{ maxHeight: 340 }}>
+        <div className="flex items-center justify-between text-sm"><span className="text-slate-800 font-semibold">생성 결과 미리보기</span><span className="text-xs text-slate-500">선택 {picked.size}/{rows.length}{weakN ? " · 근거 불충분 " + weakN : ""}</span></div>
+        <div className="overflow-auto rounded-lg border border-slate-300" style={{ maxHeight: 340 }}>
           {rows.map((r) => (
-            <div key={r.id} className="border-b border-slate-800 p-3 text-xs">
+            <div key={r.id} className="border-b border-slate-200 p-3 text-xs">
               <div className="flex items-start gap-2">
                 <input type="checkbox" checked={picked.has(r.id)} onChange={() => toggle(r.id)} className="mt-1" />
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 mb-1"><Badge kind={r.type === "악의적 공격" ? "crit" : r.type === "오타/구어체" ? "minor" : "info"}>{r.type}</Badge><Badge kind="info">{r.cat}</Badge>{r.weak && <Badge kind="warn">근거 불충분</Badge>}</div>
-                  <div className="text-slate-100 mb-1">{r.q}</div>
-                  <div className="rounded bg-slate-800 p-2 text-slate-300">{r.golden}</div>
+                  <div className="text-slate-900 mb-1">{r.q}</div>
+                  <div className="rounded bg-slate-100 p-2 text-slate-700">{r.golden}</div>
                   <div className="mt-1 text-slate-500">출처: {r.src}</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">선택한 발화는 <span className="text-amber-300">검토중</span> 상태로 등록됩니다. 악의적 공격·근거 불충분 항목은 승인 전 검수가 필요합니다.</div>
+        <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">선택한 발화는 <span className="text-amber-700">검토중</span> 상태로 등록됩니다. 악의적 공격·근거 불충분 항목은 승인 전 검수가 필요합니다.</div>
         <div className="flex justify-between gap-2 pt-1"><Btn onClick={() => setPhase("config")}>← 설정으로</Btn><Btn kind="primary" icon={Plus} onClick={commit}>{picked.size}건 초안으로 추가</Btn></div>
       </div>
     );
@@ -171,9 +171,9 @@ export function AiGenForm({ close }) {
   return (
     <div className="space-y-4">
       <Field label="지식 소스 업로드 (필수)">
-        <input type="file" multiple accept=".pdf,.docx,.xlsx" onChange={onFile} className="block w-full text-xs text-slate-300" />
+        <input type="file" multiple accept=".pdf,.docx,.xlsx" onChange={onFile} className="block w-full text-xs text-slate-700" />
         {files.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{files.map((fn) => (
-          <span key={fn} className="flex items-center gap-1 rounded bg-slate-800 px-2 py-1 text-xs text-slate-300">{fn}<button onClick={() => setFiles(files.filter((x) => x !== fn))} className="text-slate-500 hover:text-red-400"><X size={11} /></button></span>
+          <span key={fn} className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{fn}<button onClick={() => setFiles(files.filter((x) => x !== fn))} className="text-slate-500 hover:text-red-600"><X size={11} /></button></span>
         ))}</div>}
         <div className="text-xs text-slate-500 mt-1">PDF · DOCX · XLSX (외부 전송 없음)</div>
       </Field>
@@ -185,7 +185,7 @@ export function AiGenForm({ close }) {
       <Field label="발화 유형 믹스">
         <div className="grid grid-cols-3 gap-2">
           {Object.keys(types).map((k) => (
-            <button key={k} onClick={() => { const on = !types[k]; setTypes({ ...types, [k]: on }); if (on && k === "답변 곤란") toast("답변 곤란 — 거절·폴백 정책 입력이 필요합니다", "warn"); if (on && k === "악의적 공격") toast("악의적 공격 — 공격 패턴·안전 정책 입력이 필요합니다", "warn"); }} className={"rounded-lg border px-2 py-2 text-xs " + (types[k] ? "border-teal-500 bg-teal-900 text-teal-200" : "border-slate-700 bg-slate-800 text-slate-400")}>{k}</button>
+            <button key={k} onClick={() => { const on = !types[k]; setTypes({ ...types, [k]: on }); if (on && k === "답변 곤란") toast("답변 곤란 — 거절·폴백 정책 입력이 필요합니다", "warn"); if (on && k === "악의적 공격") toast("악의적 공격 — 공격 패턴·안전 정책 입력이 필요합니다", "warn"); }} className={"rounded-lg border px-2 py-2 text-xs " + (types[k] ? "border-sky-500 bg-sky-100 text-sky-700" : "border-slate-300 bg-slate-100 text-slate-500")}>{k}</button>
           ))}
         </div>
       </Field>
@@ -194,9 +194,9 @@ export function AiGenForm({ close }) {
         <Field label="말투"><Select value={tone} onChange={(e) => setTone(e.target.value)}><option>존댓말</option><option>반말</option><option>혼합</option></Select></Field>
         <Field label="난이도"><Select value={level} onChange={(e) => setLevel(e.target.value)}><option>혼합</option><option>쉬움</option><option>어려움</option></Select></Field>
       </div>
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-3 space-y-2">
-        <div className="flex items-center justify-between text-sm text-slate-300"><span>기존 케이스와 중복 제거 (임베딩 유사도)</span><Toggle on={dedup} onClick={() => setDedup(!dedup)} /></div>
-        {dedup && <div className="flex items-center gap-2 text-xs text-slate-400">유사도 임계값<input type="range" min={70} max={98} value={thr} onChange={(e) => setThr(+e.target.value)} className="flex-1" /><span className="text-teal-400">{thr}%</span></div>}
+      <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
+        <div className="flex items-center justify-between text-sm text-slate-700"><span>기존 케이스와 중복 제거 (임베딩 유사도)</span><Toggle on={dedup} onClick={() => setDedup(!dedup)} /></div>
+        {dedup && <div className="flex items-center gap-2 text-xs text-slate-500">유사도 임계값<input type="range" min={70} max={98} value={thr} onChange={(e) => setThr(+e.target.value)} className="flex-1" /><span className="text-sky-600">{thr}%</span></div>}
       </div>
       <div className="text-xs text-slate-500">업로드한 지식 소스 문서 근거로 질문과 예상 답변을 생성합니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Sparkles} onClick={generate}>생성</Btn></div>
@@ -227,7 +227,7 @@ export function NewCaseForm({ close, data }) {
     <div className="space-y-4">
       <Field label="질문 (발화)"><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="사용자 발화를 입력" /></Field>
       <Field label="사전조건"><Input value={pre} onChange={(e) => setPre(e.target.value)} placeholder="예: 로그인 상태 · 배송 준비 전 주문 보유 (선택)" /></Field>
-      <Field label="기대 응답 (Golden)"><textarea value={g} onChange={(e) => setG(e.target.value)} rows={3} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" placeholder="정답 기준 응답" /></Field>
+      <Field label="기대 응답 (Golden)"><textarea value={g} onChange={(e) => setG(e.target.value)} rows={3} className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" placeholder="정답 기준 응답" /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="카테고리"><Select value={cat} onChange={(e) => setCat(e.target.value)}>{categories.map((c) => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="우선순위"><Select value={pri} onChange={(e) => setPri(e.target.value)}><option>높음</option><option>중간</option><option>낮음</option></Select></Field>
@@ -288,8 +288,8 @@ export function JiraForm({ close, data }) {
     <div className="space-y-3.5">
       <div className="grid grid-cols-2 gap-4 items-start">
         <div className="space-y-3.5">
-      <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 p-3">
-        <div><div className="text-sm font-semibold text-slate-200">Jira 이슈 생성</div><div className="text-xs text-slate-500">{jira ? "결함을 등록하면서 Jira 티켓도 함께 생성합니다." : (jconn ? "결함만 내부에 기록하고 Jira 티켓은 생성하지 않습니다." : "Jira 미연동 — 결함만 내부에 기록됩니다.")}</div></div>
+      <div className="flex items-center justify-between rounded-lg border border-slate-300 bg-slate-100 p-3">
+        <div><div className="text-sm font-semibold text-slate-800">Jira 이슈 생성</div><div className="text-xs text-slate-500">{jira ? "결함을 등록하면서 Jira 티켓도 함께 생성합니다." : (jconn ? "결함만 내부에 기록하고 Jira 티켓은 생성하지 않습니다." : "Jira 미연동 — 결함만 내부에 기록됩니다.")}</div></div>
         <Toggle on={jira} onClick={() => { if (!jconn) { toast("Jira 미연동 — 결함 화면의 ‘Jira 연동’에서 먼저 연결하세요", "warn"); return; } setJira(!jira); }} />
       </div>
       <div className="grid grid-cols-3 gap-3">
@@ -315,10 +315,10 @@ export function JiraForm({ close, data }) {
             {defRows.map((r) => {
               const done = regRows.includes(JSON.stringify(r.data || {}));
               return (
-                <label key={r.i} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (done ? "bg-slate-900 opacity-60" : "cursor-pointer bg-slate-800")}>
-                  <input type="checkbox" disabled={done} checked={pickRows.has(r.i)} onChange={() => togRow(r.i)} className="accent-teal-500" />
+                <label key={r.i} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (done ? "bg-white opacity-60" : "cursor-pointer bg-slate-100")}>
+                  <input type="checkbox" disabled={done} checked={pickRows.has(r.i)} onChange={() => togRow(r.i)} className="accent-sky-500" />
                   <span className="shrink-0 font-mono text-xs text-slate-500">{r.i}행</span>
-                  <span className="flex-1 truncate font-mono text-xs text-slate-300">{Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")}</span>
+                  <span className="flex-1 truncate font-mono text-xs text-slate-700">{Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")}</span>
                   {done && <Badge kind="draft">등록됨</Badge>}
                 </label>
               );
@@ -333,10 +333,10 @@ export function JiraForm({ close, data }) {
             <div className="mb-1 text-xs text-slate-500">자동 캡처 (플랫폼 생성 · 포함 선택)</div>
             <div className="space-y-1">
               {autoArtifacts.map((a) => (
-                <label key={a.k} className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm">
-                  <input type="checkbox" checked={!!attach[a.k]} onChange={() => setAttach({ ...attach, [a.k]: !attach[a.k] })} className="accent-teal-500" />
+                <label key={a.k} className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm">
+                  <input type="checkbox" checked={!!attach[a.k]} onChange={() => setAttach({ ...attach, [a.k]: !attach[a.k] })} className="accent-sky-500" />
                   <Badge kind="info">자동</Badge>
-                  <span className="flex-1 text-slate-200">{a.label}</span>
+                  <span className="flex-1 text-slate-800">{a.label}</span>
                   <span className="font-mono text-xs text-slate-500">{a.file} · {a.size}</span>
                 </label>
               ))}
@@ -344,40 +344,40 @@ export function JiraForm({ close, data }) {
           </div>
         )}
         <div className="mb-1 text-xs text-slate-500">직접 첨부</div>
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-700 bg-slate-800 px-3 py-4 text-sm text-slate-400 hover:border-slate-600">
+        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-100 px-3 py-4 text-sm text-slate-500 hover:border-slate-400">
           <Upload size={16} className="text-slate-500" />스크린샷·HAR·로그·메모 — 드래그 또는 클릭
           <input type="file" multiple className="hidden" onChange={onFile} />
         </label>
         {files.length > 0 && (
           <div className="mt-2 space-y-1">
             {files.map((fl, i) => (
-              <div key={i} className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm">
+              <div key={i} className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm">
                 <Badge kind="teal">직접</Badge>
-                <span className="flex-1 text-slate-200">{fl.name}</span>
+                <span className="flex-1 text-slate-800">{fl.name}</span>
                 <span className="text-xs text-slate-500">{fl.size}</span>
-                <button onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-400"><X size={14} /></button>
+                <button onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-600"><X size={14} /></button>
               </div>
             ))}
           </div>
         )}
         {autoArtifacts.length === 0 && files.length === 0 && (
-          <div className="mt-2 text-xs text-amber-300">연결된 케이스가 없어 자동 증적이 없습니다 — 직접 첨부를 권장합니다.</div>
+          <div className="mt-2 text-xs text-amber-700">연결된 케이스가 없어 자동 증적이 없습니다 — 직접 첨부를 권장합니다.</div>
         )}
         <div className="mt-1.5 text-xs text-slate-500">선택·업로드한 항목은 결함에 첨부되며, Jira 이슈 생성 시 함께 업로드됩니다.</div>
       </Field>
         </div>
         <div className="space-y-3.5">
       <Field label="제목 (Summary)"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" /></Field>
-      <Field label="설명 (Description)"><textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" placeholder="이슈 요약·맥락" /></Field>
-      <Field label="재현 절차 (Steps to Reproduce)"><textarea value={steps} onChange={(e) => setSteps(e.target.value)} rows={3} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" placeholder="1. ...\n2. ...\n3. ..." /></Field>
+      <Field label="설명 (Description)"><textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" placeholder="이슈 요약·맥락" /></Field>
+      <Field label="재현 절차 (Steps to Reproduce)"><textarea value={steps} onChange={(e) => setSteps(e.target.value)} rows={3} className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" placeholder="1. ...\n2. ...\n3. ..." /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="기대 결과 (Expected)"><textarea value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" /></Field>
-        <Field label="실제 결과 (Actual)"><textarea value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" /></Field>
+        <Field label="기대 결과 (Expected)"><textarea value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" /></Field>
+        <Field label="실제 결과 (Actual)"><textarea value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" /></Field>
       </div>
-      {d.env && <Field label="환경"><div className="rounded-lg bg-slate-800 p-2 text-xs text-slate-400">{d.env}{d.tc ? " · 대상 " + d.tc : ""}</div></Field>}
+      {d.env && <Field label="환경"><div className="rounded-lg bg-slate-100 p-2 text-xs text-slate-500">{d.env}{d.tc ? " · 대상 " + d.tc : ""}</div></Field>}
         </div>
       </div>
-      <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">{(d.q || d.desc || d.artifacts) ? "실패 결과 데이터가 자동으로 채워졌습니다. " : ""}시크릿은 공통 변수 화면에서 관리(마스킹)되며, 등록은 audit_log에 기록됩니다.</div>
+      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">{(d.q || d.desc || d.artifacts) ? "실패 결과 데이터가 자동으로 채워졌습니다. " : ""}시크릿은 공통 변수 화면에서 관리(마스킹)되며, 등록은 audit_log에 기록됩니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Bug} onClick={submit}>결함 등록</Btn></div>
     </div>
   );
@@ -412,18 +412,18 @@ export function AddPromptForm({ close, data }) {
     <div className="space-y-4">
       <Field label="템플릿 이름"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 보안 평가 v1" /></Field>
       <Field label="System Prompt (Judge 역할)">
-        <textarea value={system} onChange={(e) => setSystem(e.target.value)} rows={4} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" />
+        <textarea value={system} onChange={(e) => setSystem(e.target.value)} rows={4} className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" />
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-slate-500">변수 삽입:</span>
           {PROMPT_VARS.map((v) => (
-            <button key={v.k} onClick={() => insertVar(v.k)} title={v.d} className="rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 font-mono text-xs text-teal-400 hover:bg-slate-700">{"{{" + v.k + "}}"}</button>
+            <button key={v.k} onClick={() => insertVar(v.k)} title={v.d} className="rounded bg-slate-100 border border-slate-300 px-1.5 py-0.5 font-mono text-xs text-sky-600 hover:bg-slate-200">{"{{" + v.k + "}}"}</button>
           ))}
         </div>
       </Field>
       <Field label="채점 기준">
         <div className="flex flex-wrap gap-1.5">
           {allRubric.map((r) => (
-            <button key={r} onClick={() => toggleR(r)} className={"rounded-lg border px-2 py-1 text-xs " + (rubric.includes(r) ? "border-teal-500 bg-teal-900 text-teal-200" : "border-slate-700 bg-slate-800 text-slate-400")}>{r}{rubric.includes(r) && !RUBRIC_CATALOG.includes(r) ? " ×" : ""}</button>
+            <button key={r} onClick={() => toggleR(r)} className={"rounded-lg border px-2 py-1 text-xs " + (rubric.includes(r) ? "border-sky-500 bg-sky-100 text-sky-700" : "border-slate-300 bg-slate-100 text-slate-500")}>{r}{rubric.includes(r) && !RUBRIC_CATALOG.includes(r) ? " ×" : ""}</button>
           ))}
         </div>
         <div className="mt-2 flex items-center gap-1.5">
@@ -435,14 +435,14 @@ export function AddPromptForm({ close, data }) {
       <Field label="사용 변수 (본문에서 자동 감지)">
         {vars.length ? (
           <div className="flex flex-wrap gap-1.5">
-            {vars.map((k) => (<span key={k} title={(PROMPT_VARS.find((v) => v.k === k) || {}).d} className={"rounded-lg border px-2 py-1 font-mono text-xs " + (knownKeys.includes(k) ? "border-teal-500 bg-teal-900 text-teal-200" : "border-amber-500 bg-amber-900 text-amber-200")}>{k}</span>))}
+            {vars.map((k) => (<span key={k} title={(PROMPT_VARS.find((v) => v.k === k) || {}).d} className={"rounded-lg border px-2 py-1 font-mono text-xs " + (knownKeys.includes(k) ? "border-sky-500 bg-sky-100 text-sky-700" : "border-amber-400 bg-amber-100 text-amber-800")}>{k}</span>))}
           </div>
-        ) : (<div className="text-xs text-slate-500">System Prompt에 <span className="font-mono text-teal-400">{"{{변수}}"}</span>를 넣으면 여기에 자동으로 표시됩니다.</div>)}
-        {unknownVars.length > 0 && <div className="text-xs text-amber-400 mt-1">알 수 없는 변수: {unknownVars.map((v) => "{{" + v + "}}").join(", ")} — 위 ‘변수 삽입’의 알려진 변수만 사용하세요.</div>}
+        ) : (<div className="text-xs text-slate-500">System Prompt에 <span className="font-mono text-sky-600">{"{{변수}}"}</span>를 넣으면 여기에 자동으로 표시됩니다.</div>)}
+        {unknownVars.length > 0 && <div className="text-xs text-amber-600 mt-1">알 수 없는 변수: {unknownVars.map((v) => "{{" + v + "}}").join(", ")} — 위 ‘변수 삽입’의 알려진 변수만 사용하세요.</div>}
         <div className="text-xs text-slate-500 mt-1">실행 시 케이스·챗봇 응답 데이터로 자동 치환됩니다.</div>
       </Field>
       <Field label="출력 스키마 (Judge 응답 형식)">
-        <div className="rounded-lg bg-slate-800 border border-slate-700 p-2 text-xs text-slate-300" style={{ fontFamily: "monospace" }}>{schema}</div>
+        <div className="rounded-lg bg-slate-100 border border-slate-300 p-2 text-xs text-slate-700" style={{ fontFamily: "monospace" }}>{schema}</div>
       </Field>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={edit ? RefreshCw : Plus} onClick={submit}>{edit ? "저장" : "추가"}</Btn></div>
     </div>
@@ -484,7 +484,7 @@ export function JiraConfigForm({ close }) {
       <Field label="배포 유형">
         <div className="grid grid-cols-2 gap-2">
           {["Cloud", "Server/DC"].map((d) => (
-            <button key={d} onClick={() => { setDeploy(d); setTest(null); }} className={"rounded-lg border px-2 py-2 text-sm " + (deploy === d ? "border-teal-500 bg-teal-900 text-teal-200" : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700")}>{d === "Cloud" ? "Jira Cloud" : "Server / Data Center"}</button>
+            <button key={d} onClick={() => { setDeploy(d); setTest(null); }} className={"rounded-lg border px-2 py-2 text-sm " + (deploy === d ? "border-sky-500 bg-sky-100 text-sky-700" : "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200")}>{d === "Cloud" ? "Jira Cloud" : "Server / Data Center"}</button>
           ))}
         </div>
       </Field>
@@ -506,7 +506,7 @@ export function JiraConfigForm({ close }) {
         <div className="space-y-1.5">
           {["Critical", "Major", "Minor"].map((sv) => (
             <div key={sv} className="flex items-center gap-2">
-              <span className="w-20 text-xs text-slate-400">{sv}</span><span className="text-slate-600 text-xs">→</span>
+              <span className="w-20 text-xs text-slate-500">{sv}</span><span className="text-slate-400 text-xs">→</span>
               <Select value={sevMap[sv]} onChange={(e) => setSevMap({ ...sevMap, [sv]: e.target.value })}>{PRIOS.map((p) => <option key={p}>{p}</option>)}</Select>
             </div>
           ))}
@@ -517,19 +517,19 @@ export function JiraConfigForm({ close }) {
       <Field label="라벨 (쉼표 구분)"><Input value={labels} onChange={(e) => setLabels(e.target.value)} placeholder="lqa, chatbot" /></Field>
       <Field label="이슈 제목 템플릿">
         <Input value={titleTpl} onChange={(e) => setTitleTpl(e.target.value)} />
-        <div className="text-xs text-slate-500 mt-1">변수: <span className="font-mono text-teal-400">{"{{tcId}}"}</span> <span className="font-mono text-teal-400">{"{{score}}"}</span> <span className="font-mono text-teal-400">{"{{judge}}"}</span> · 본문에 챗봇 응답·실행 링크 자동 포함</div>
+        <div className="text-xs text-slate-500 mt-1">변수: <span className="font-mono text-sky-600">{"{{tcId}}"}</span> <span className="font-mono text-sky-600">{"{{score}}"}</span> <span className="font-mono text-sky-600">{"{{judge}}"}</span> · 본문에 챗봇 응답·실행 링크 자동 포함</div>
       </Field>
-      <div className="flex items-center justify-between text-sm text-slate-300"><span>중복 방지(코멘트 추가)</span><Toggle on={dedup} onClick={() => setDedup(!dedup)} /></div>
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
-        <div className="flex items-center justify-between"><span className="text-sm text-slate-200 font-semibold">연결 테스트</span><Btn icon={RefreshCw} onClick={runTest}>{test && test.s === "run" ? "테스트 중…" : "테스트"}</Btn></div>
-        {test && test.s === "err" && <div className="mt-2 flex items-center gap-2 text-xs text-red-300"><XCircle size={14} />{test.m}</div>}
-        {test && test.s === "ok" && <div className="mt-2 flex items-center gap-2 text-xs text-emerald-300"><CheckCircle2 size={14} />{test.m}</div>}
+      <div className="flex items-center justify-between text-sm text-slate-700"><span>중복 방지(코멘트 추가)</span><Toggle on={dedup} onClick={() => setDedup(!dedup)} /></div>
+      <div className="rounded-lg border border-slate-300 bg-slate-100 p-3">
+        <div className="flex items-center justify-between"><span className="text-sm text-slate-800 font-semibold">연결 테스트</span><Btn icon={RefreshCw} onClick={runTest}>{test && test.s === "run" ? "테스트 중…" : "테스트"}</Btn></div>
+        {test && test.s === "err" && <div className="mt-2 flex items-center gap-2 text-xs text-red-700"><XCircle size={14} />{test.m}</div>}
+        {test && test.s === "ok" && <div className="mt-2 flex items-center gap-2 text-xs text-emerald-700"><CheckCircle2 size={14} />{test.m}</div>}
       </div>
       </div>
       </div>
-      <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">중복 방지 ON 시 같은 TC의 Open 이슈가 있으면 새 이슈 대신 코멘트를 추가합니다. 토큰은 공통 변수 화면에서 관리(마스킹)되며, 등록 호출은 audit_log에 기록됩니다.</div>
+      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">중복 방지 ON 시 같은 TC의 Open 이슈가 있으면 새 이슈 대신 코멘트를 추가합니다. 토큰은 공통 변수 화면에서 관리(마스킹)되며, 등록 호출은 audit_log에 기록됩니다.</div>
       <div className="flex items-center justify-between pt-1">
-        <div>{(jiraConfig && jiraConfig.connected) ? <Btn kind="danger" onClick={() => { if (!window.confirm("Jira 연동을 해제할까요? 이후 결함은 내부에만 기록되고 Jira 이슈는 생성되지 않습니다.")) return; setJiraConfig({ ...jiraConfig, connected: false }); toast("Jira 연동을 해제했습니다", "warn"); close(); }}>연동 해제</Btn> : <span className="text-xs text-amber-300">현재 미연동 — 저장 시 연동됩니다</span>}</div>
+        <div>{(jiraConfig && jiraConfig.connected) ? <Btn kind="danger" onClick={() => { if (!window.confirm("Jira 연동을 해제할까요? 이후 결함은 내부에만 기록되고 Jira 이슈는 생성되지 않습니다.")) return; setJiraConfig({ ...jiraConfig, connected: false }); toast("Jira 연동을 해제했습니다", "warn"); close(); }}>연동 해제</Btn> : <span className="text-xs text-amber-700">현재 미연동 — 저장 시 연동됩니다</span>}</div>
         <div className="flex gap-2"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Plus} onClick={submit}>{(jiraConfig && jiraConfig.connected) ? "저장" : "연동"}</Btn></div>
       </div>
     </div>
@@ -561,7 +561,7 @@ export function AddChatbotForm({ close, data }) {
       <Field label="채널 유형">
         <div className="grid grid-cols-3 gap-2">
           {chTabs.map(([ch, ok]) => (
-            <button key={ch} disabled={!ok} onClick={() => ok && setChannel(ch)} className={"rounded-lg border px-2 py-2 text-sm " + (channel === ch ? "border-teal-500 bg-teal-900 text-teal-200" : ok ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-slate-800 bg-slate-900 text-slate-600 cursor-not-allowed")}>
+            <button key={ch} disabled={!ok} onClick={() => ok && setChannel(ch)} className={"rounded-lg border px-2 py-2 text-sm " + (channel === ch ? "border-sky-500 bg-sky-100 text-sky-700" : ok ? "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200" : "border-slate-200 bg-white text-slate-400 cursor-not-allowed")}>
               {ch}{!ok && <span className="block font-normal" style={{ fontSize: 9 }}>Stage 3</span>}
             </button>
           ))}
@@ -569,8 +569,8 @@ export function AddChatbotForm({ close, data }) {
       </Field>
       <Field label={channel === "REST API" ? "엔드포인트" : "대상 URL"}><Input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder={channel === "REST API" ? "https://api.onmarket.io/v2/chat" : "https://www.onmarket.io (챗 위젯 페이지)"} /></Field>
       {channel === "REST API" && <Field label="인증 방식"><Select value={authType} onChange={(e) => setAuthType(e.target.value)}><option>None</option><option>API Key</option><option>Bearer Token</option><option>OAuth 2.0</option></Select></Field>}
-      <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400">헤더·요청 본문·응답 추출·연결 테스트 등 상세 설정은 추가 후 <span className="text-slate-300">오른쪽 상세 패널</span>에서 진행합니다.</div>
-      <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800">
+      <div className="rounded-lg bg-slate-100 p-2.5 text-xs text-slate-500">헤더·요청 본문·응답 추출·연결 테스트 등 상세 설정은 추가 후 <span className="text-slate-700">오른쪽 상세 패널</span>에서 진행합니다.</div>
+      <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-200">
         <div className="text-xs text-slate-500 flex-1">인증 시크릿은 공통 변수 화면에서 관리(마스킹)됩니다.</div>
         <div className="flex gap-2 shrink-0"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={edit ? RefreshCw : Plus} onClick={submit}>{edit ? "저장" : "추가"}</Btn></div>
       </div>
@@ -640,16 +640,16 @@ function ChatbotDetail({ cb, onDirty }) {
     <div className="space-y-3">
       <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
         <div className="flex min-w-0 flex-1 items-center gap-2"><div className="w-56 shrink-0"><Input value={name} onChange={(e) => setName(e.target.value)} className="text-base font-semibold" /></div><span className="shrink-0"><Badge kind="info">{cb.env}</Badge></span><span className="shrink-0"><Badge kind={chK[cb.channel]}>{cb.channel}</Badge></span><span className="shrink-0"><Badge kind={stK[cb.status]}>{cb.status}</Badge></span></div>
-        <div className="flex shrink-0 items-center gap-2">{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn icon={Link2} onClick={runTest}>{test && test.state === "running" ? "테스트 중…" : "연결 테스트"}</Btn><Btn kind="primary" icon={RefreshCw} onClick={save} disabled={!dirty}>설정 저장</Btn><button onClick={() => { if (window.confirm(cb.name + " (" + cb.env + ") 연결을 삭제할까요?")) { removeChatbot(cb.id); toast(cb.name + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-400" title="삭제"><X size={16} /></button></div>
+        <div className="flex shrink-0 items-center gap-2">{dirty && <span className="text-xs text-amber-700">미저장 변경</span>}<Btn icon={Link2} onClick={runTest}>{test && test.state === "running" ? "테스트 중…" : "연결 테스트"}</Btn><Btn kind="primary" icon={RefreshCw} onClick={save} disabled={!dirty}>설정 저장</Btn><button onClick={() => { if (window.confirm(cb.name + " (" + cb.env + ") 연결을 삭제할까요?")) { removeChatbot(cb.id); toast(cb.name + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-600" title="삭제"><X size={16} /></button></div>
       </Card>
-      <div className="text-xs text-slate-500">생성 <span className="text-slate-400">{cb.createdBy || "—"}</span> · {cb.createdAt || "—"} · 수정 <span className="text-slate-400">{cb.updatedBy || "—"}</span> · {cb.updatedAt || "—"}</div>
+      <div className="text-xs text-slate-500">생성 <span className="text-slate-500">{cb.createdBy || "—"}</span> · {cb.createdAt || "—"} · 수정 <span className="text-slate-500">{cb.updatedBy || "—"}</span> · {cb.updatedAt || "—"}</div>
 
       <div className="grid grid-cols-2 gap-4 items-start">
         <div className="space-y-3">
           <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200">요청 · 연결</div>
+            <div className="text-sm font-semibold text-slate-800">요청 · 연결</div>
             <Field label={isRest ? "엔드포인트" : "대상 URL"}>
-              {isRest ? <div className="flex items-center gap-2"><span className="shrink-0 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2 font-mono text-xs text-slate-400" title="챗 추론은 발화를 본문에 담아 보내는 POST입니다">POST</span><Input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://api.onmarket.io/v2/chat" /></div> : <Input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://www.onmarket.io (챗 위젯 페이지)" />}
+              {isRest ? <div className="flex items-center gap-2"><span className="shrink-0 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-2 font-mono text-xs text-slate-500" title="챗 추론은 발화를 본문에 담아 보내는 POST입니다">POST</span><Input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://api.onmarket.io/v2/chat" /></div> : <Input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="https://www.onmarket.io (챗 위젯 페이지)" />}
             </Field>
             {isRest ? (
               <>
@@ -660,19 +660,19 @@ function ChatbotDetail({ cb, onDirty }) {
                   {authType === "OAuth 2.0" && <div className="mt-2 space-y-1.5"><div className="grid grid-cols-2 gap-2"><Input value={oauth.url} onChange={(e) => setOauth({ ...oauth, url: e.target.value })} placeholder="토큰 URL" /><Input value={oauth.scope} onChange={(e) => setOauth({ ...oauth, scope: e.target.value })} placeholder="scope" /><Input value={oauth.id} onChange={(e) => setOauth({ ...oauth, id: e.target.value })} placeholder="client id" /></div>{secretRef(oauth.secret, (val) => setOauth({ ...oauth, secret: val }), "${client_secret}")}</div>}
                 </Field>
                 <Field label="요청 헤더">
-                  {headers.map((h, i) => (<div key={i} className="mb-1.5 flex gap-2"><Input value={h.k} onChange={(e) => setH(i, "k", e.target.value)} placeholder="Header" /><Input value={h.v} onChange={(e) => setH(i, "v", e.target.value)} placeholder="Value" /><button onClick={() => setHeaders(headers.filter((_, j) => j !== i))} className="px-1 text-slate-500 hover:text-red-400"><X size={14} /></button></div>))}
-                  <button onClick={() => setHeaders([...headers, { k: "", v: "" }])} className="text-xs text-teal-400">+ 헤더 추가</button>
+                  {headers.map((h, i) => (<div key={i} className="mb-1.5 flex gap-2"><Input value={h.k} onChange={(e) => setH(i, "k", e.target.value)} placeholder="Header" /><Input value={h.v} onChange={(e) => setH(i, "v", e.target.value)} placeholder="Value" /><button onClick={() => setHeaders(headers.filter((_, j) => j !== i))} className="px-1 text-slate-500 hover:text-red-600"><X size={14} /></button></div>))}
+                  <button onClick={() => setHeaders([...headers, { k: "", v: "" }])} className="text-xs text-sky-600">+ 헤더 추가</button>
                 </Field>
                 <Field label="요청 본문 템플릿">
-                  <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 outline-none focus:border-teal-500" style={{ fontFamily: "monospace" }} />
-                  <div className="mt-1 text-xs text-slate-500">변수: <span className="font-mono text-teal-400">{"{{utterance}}"}</span> (발화)</div>
+                  <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-xs text-slate-800 outline-none focus:border-sky-500" style={{ fontFamily: "monospace" }} />
+                  <div className="mt-1 text-xs text-slate-500">변수: <span className="font-mono text-sky-600">{"{{utterance}}"}</span> (발화)</div>
                 </Field>
               </>
             ) : (
               <>
-                <div className="flex items-center justify-between text-sm text-slate-300"><span>로그인 필요</span><Toggle on={needLogin} onClick={() => setNeedLogin(!needLogin)} /></div>
+                <div className="flex items-center justify-between text-sm text-slate-700"><span>로그인 필요</span><Toggle on={needLogin} onClick={() => setNeedLogin(!needLogin)} /></div>
                 {needLogin && (
-                  <div className="space-y-2.5 rounded-lg border border-slate-800 p-3">
+                  <div className="space-y-2.5 rounded-lg border border-slate-200 p-3">
                     <Field label="로그인 방식"><Select value={webCfg.loginMode} onChange={(e) => setWeb({ loginMode: e.target.value })}><option>storageState 재사용</option><option>폼 로그인 절차</option></Select></Field>
                     <div className="grid grid-cols-2 gap-2">
                       <Field label="로그인 계정 ID"><Input value={webCfg.acct} onChange={(e) => setWeb({ acct: e.target.value })} placeholder="qa_user01" className="font-mono text-xs" /></Field>
@@ -686,7 +686,7 @@ function ChatbotDetail({ cb, onDirty }) {
                         <Field label="비번 셀렉터"><Input value={webCfg.pwSel} onChange={(e) => setWeb({ pwSel: e.target.value })} placeholder="#password" /></Field>
                       </div>
                     ) : (
-                      <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400">위 계정으로 1회 로그인해 <span className="font-mono text-slate-300">storageState</span>를 캡처 → 모든 테스트가 재사용(매번 로그인 생략). 만료 시 자동 갱신.</div>
+                      <div className="rounded-lg bg-slate-100 p-2.5 text-xs text-slate-500">위 계정으로 1회 로그인해 <span className="font-mono text-slate-700">storageState</span>를 캡처 → 모든 테스트가 재사용(매번 로그인 생략). 만료 시 자동 갱신.</div>
                     )}
                   </div>
                 )}
@@ -700,14 +700,14 @@ function ChatbotDetail({ cb, onDirty }) {
                   {sel2.doneMode === "타이핑 표시 사라짐" && <Field label="타이핑 인디케이터 셀렉터"><Input value={sel2.done} onChange={(e) => setSel2({ ...sel2, done: e.target.value })} placeholder=".typing-indicator" /></Field>}
                   {sel2.doneMode === "완료 표식 나타남" && <Field label="완료 표식 셀렉터"><Input value={sel2.done} onChange={(e) => setSel2({ ...sel2, done: e.target.value })} placeholder="[data-complete=true]" /></Field>}
                 </div>
-                {sel2.doneMode === "응답 텍스트 멈춤" && <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400">응답 셀렉터의 텍스트가 더 이상 바뀌지 않으면(안정화) 완료로 판정합니다 — 별도 셀렉터 불필요.</div>}
+                {sel2.doneMode === "응답 텍스트 멈춤" && <div className="rounded-lg bg-slate-100 p-2.5 text-xs text-slate-500">응답 셀렉터의 텍스트가 더 이상 바뀌지 않으면(안정화) 완료로 판정합니다 — 별도 셀렉터 불필요.</div>}
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="응답 최대 대기(초)"><Input type="number" value={webCfg.respTimeout} onChange={(e) => setWeb({ respTimeout: +e.target.value || 0 })} /></Field>
                   <Field label="대화 초기화"><Select value={webCfg.resetMode} onChange={(e) => setWeb({ resetMode: e.target.value })}><option>새 대화 버튼</option><option>페이지 새로고침</option><option>초기화 안 함(이어서)</option></Select></Field>
                 </div>
                 {webCfg.resetMode === "새 대화 버튼" && <Field label="새 대화 버튼 셀렉터"><Input value={webCfg.resetSel} onChange={(e) => setWeb({ resetSel: e.target.value })} placeholder="button.new-chat" /></Field>}
                 <Field label="iframe 셀렉터 (선택)" hint="위젯이 iframe 안에 있으면 지정 · 비우면 메인 문서에서 탐색"><Input value={iframe} onChange={(e) => setIframe(e.target.value)} placeholder="iframe#chat-widget" /></Field>
-                <div className="rounded-lg border border-amber-900 bg-amber-950 p-3 text-xs text-amber-200">Web 수집은 UI 변경에 취약합니다. 가능하면 REST API 연결을 우선하세요.</div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Web 수집은 UI 변경에 취약합니다. 가능하면 REST API 연결을 우선하세요.</div>
               </>
             )}
           </Card>
@@ -716,40 +716,40 @@ function ChatbotDetail({ cb, onDirty }) {
         <div className="space-y-3">
           {isRest && (
             <Card className="p-4 space-y-3">
-              <div className="text-sm font-semibold text-slate-200">응답 처리</div>
+              <div className="text-sm font-semibold text-slate-800">응답 처리</div>
               <Field label="응답 추출 (JSON Path)"><Input value={answerPath} onChange={(e) => setAnswerPath(e.target.value)} placeholder="$.data.answer" /></Field>
               <div className="flex items-start gap-2">
-                <div className="flex-1"><Field label="응답 방식"><Select value={respMode} onChange={(e) => setRespMode(e.target.value)}><option>동기</option><option>SSE 스트리밍</option><option>비동기 폴링</option></Select>{respMode === "비동기 폴링" && <div className="mt-2 space-y-1.5"><Input value={jobIdPath} onChange={(e) => setJobIdPath(e.target.value)} placeholder="작업 ID 추출 ($.jobId)" /><Input value={pollUrl} onChange={(e) => setPollUrl(e.target.value)} placeholder="폴링 URL · 작업ID 템플릿 (…/tasks/{{jobId}})" /><div className="grid grid-cols-2 gap-2"><Input value={doneField} onChange={(e) => setDoneField(e.target.value)} placeholder="완료 필드 ($.status)" /><Input value={doneValue} onChange={(e) => setDoneValue(e.target.value)} placeholder="완료 값 (completed)" /></div><div className="text-xs text-slate-500">최초 응답의 작업 ID를 폴링 URL <span className="font-mono text-teal-400">{"{{jobId}}"}</span>에 대입해 반복 호출 · <span className="text-slate-400">완료 필드 = 완료 값</span>이 되면 종료, 응답 추출은 폴링 결과에 적용됩니다.</div></div>}{respMode === "SSE 스트리밍" && <div className="mt-2 space-y-1.5"><div className="grid grid-cols-2 gap-2"><Input value={sseDelta} onChange={(e) => setSseDelta(e.target.value)} placeholder="청크 델타 경로 ($.choices[0].delta.content)" /><Input value={sseDone} onChange={(e) => setSseDone(e.target.value)} placeholder="종료 신호 ([DONE])" /></div><div className="text-xs text-slate-500">각 청크의 <span className="text-slate-400">델타 경로</span> 값을 순서대로 이어붙여 <span className="font-mono text-teal-400">종료 신호</span>까지 조립합니다.</div></div>}</Field></div>
+                <div className="flex-1"><Field label="응답 방식"><Select value={respMode} onChange={(e) => setRespMode(e.target.value)}><option>동기</option><option>SSE 스트리밍</option><option>비동기 폴링</option></Select>{respMode === "비동기 폴링" && <div className="mt-2 space-y-1.5"><Input value={jobIdPath} onChange={(e) => setJobIdPath(e.target.value)} placeholder="작업 ID 추출 ($.jobId)" /><Input value={pollUrl} onChange={(e) => setPollUrl(e.target.value)} placeholder="폴링 URL · 작업ID 템플릿 (…/tasks/{{jobId}})" /><div className="grid grid-cols-2 gap-2"><Input value={doneField} onChange={(e) => setDoneField(e.target.value)} placeholder="완료 필드 ($.status)" /><Input value={doneValue} onChange={(e) => setDoneValue(e.target.value)} placeholder="완료 값 (completed)" /></div><div className="text-xs text-slate-500">최초 응답의 작업 ID를 폴링 URL <span className="font-mono text-sky-600">{"{{jobId}}"}</span>에 대입해 반복 호출 · <span className="text-slate-500">완료 필드 = 완료 값</span>이 되면 종료, 응답 추출은 폴링 결과에 적용됩니다.</div></div>}{respMode === "SSE 스트리밍" && <div className="mt-2 space-y-1.5"><div className="grid grid-cols-2 gap-2"><Input value={sseDelta} onChange={(e) => setSseDelta(e.target.value)} placeholder="청크 델타 경로 ($.choices[0].delta.content)" /><Input value={sseDone} onChange={(e) => setSseDone(e.target.value)} placeholder="종료 신호 ([DONE])" /></div><div className="text-xs text-slate-500">각 청크의 <span className="text-slate-500">델타 경로</span> 값을 순서대로 이어붙여 <span className="font-mono text-sky-600">종료 신호</span>까지 조립합니다.</div></div>}</Field></div>
                 <div style={{ width: 110 }}><Field label="타임아웃(초)"><Input type="number" value={timeoutS} onChange={(e) => setTimeoutS(e.target.value)} /></Field></div>
               </div>
             </Card>
           )}
           <Card className="p-4 space-y-2.5">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200"><Wrench size={14} className="text-teal-400" />모델·배포 소스</div>
-            <div className="text-xs text-slate-500"><span className="text-slate-300">평가 계획 › 이벤트 트리거</span>의 "챗봇 모델 업데이트 시"가 여기서 정의한 소스를 상속합니다.</div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Wrench size={14} className="text-sky-600" />모델·배포 소스</div>
+            <div className="text-xs text-slate-500"><span className="text-slate-700">평가 계획 › 이벤트 트리거</span>의 "챗봇 모델 업데이트 시"가 여기서 정의한 소스를 상속합니다.</div>
             <Field label="모델 버전 감지 방식" hint={isRest ? undefined : "Web 위젯은 JSON API가 없어 버전 엔드포인트 폴링은 지원하지 않습니다"}><Select value={modelSrc} onChange={(e) => setModelSrc(e.target.value)}><option>수동</option><option>배포 웹훅 알림</option>{isRest && <option>버전 엔드포인트 폴링</option>}</Select></Field>
             {isRest && modelSrc === "버전 엔드포인트 폴링" && (
-              <div className="space-y-2.5 rounded-lg border border-slate-800 p-3">
+              <div className="space-y-2.5 rounded-lg border border-slate-200 p-3">
                 <Field label="폴링 대상 URL" hint="비우면 챗봇 엔드포인트로 질의 · 인증은 챗봇 인증 재사용"><Input value={verUrl} onChange={(e) => setVerUrl(e.target.value)} placeholder={endpoint || "https://chatbot.api/health"} className="font-mono text-xs" /></Field>
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="버전 필드 (JSON Path)"><Input value={verPath} onChange={(e) => setVerPath(e.target.value)} placeholder="$.model.version" /></Field>
                   <Field label="폴링 주기"><Select value={verInterval} onChange={(e) => setVerInterval(e.target.value)}><option>5분</option><option>15분</option><option>1시간</option><option>6시간</option><option>24시간</option></Select></Field>
                 </div>
-                <div className="text-xs text-slate-500">주기마다 위 URL을 질의해 <span className="font-mono text-slate-400">{verPath || "$.model.version"}</span> 값이 직전과 달라지면 이벤트 발동.</div>
+                <div className="text-xs text-slate-500">주기마다 위 URL을 질의해 <span className="font-mono text-slate-500">{verPath || "$.model.version"}</span> 값이 직전과 달라지면 이벤트 발동.</div>
               </div>
             )}
             {modelSrc === "배포 웹훅 알림" && (
-              <div className="space-y-2.5 rounded-lg border border-slate-800 p-3">
+              <div className="space-y-2.5 rounded-lg border border-slate-200 p-3">
                 <Field label="배포 알림 수신 웹훅 URL (플랫폼 발급)"><div className="flex items-center gap-2"><Input value={deployHook} readOnly className="font-mono text-xs" /><Btn icon={Copy} onClick={() => { try { navigator.clipboard.writeText(deployHook); } catch (e) {} toast("웹훅 URL을 복사했습니다", "ok"); }}>복사</Btn></div></Field>
-                <Field label="서명 시크릿 (HMAC 검증)" hint="URL과 함께 CD 담당 조직에 전달 · 재발급 시 기존 값은 무효화"><div className="flex items-center gap-2"><div className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 font-mono text-xs text-slate-400">whsec_••••••••••••</div><Btn icon={Copy} onClick={() => { try { navigator.clipboard.writeText(deploySecret); } catch (e) {} toast("서명 시크릿을 복사했습니다", "ok"); }}>복사</Btn><Btn onClick={() => toast("서명 시크릿이 재발급되었습니다 · CD 담당 조직에 갱신 전달 필요", "ok")}>재발급</Btn></div></Field>
+                <Field label="서명 시크릿 (HMAC 검증)" hint="URL과 함께 CD 담당 조직에 전달 · 재발급 시 기존 값은 무효화"><div className="flex items-center gap-2"><div className="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-2 font-mono text-xs text-slate-500">whsec_••••••••••••</div><Btn icon={Copy} onClick={() => { try { navigator.clipboard.writeText(deploySecret); } catch (e) {} toast("서명 시크릿을 복사했습니다", "ok"); }}>복사</Btn><Btn onClick={() => toast("서명 시크릿이 재발급되었습니다 · CD 담당 조직에 갱신 전달 필요", "ok")}>재발급</Btn></div></Field>
               </div>
             )}
           </Card>
           <Card className="p-4">
-            <div className="text-sm font-semibold text-slate-200">연결 테스트 결과</div>
-            {!test && <div className="mt-2 text-xs text-slate-500">상단 <span className="text-slate-300">‘연결 테스트’</span>를 눌러 샘플 발화로 응답을 확인하세요.</div>}
-            {test && test.state === "running" && <div className="mt-2 text-xs text-slate-400">샘플 발화 전송 중…</div>}
-            {test && test.state === "ok" && (<div className="mt-2 space-y-1"><div className="flex items-center gap-2 text-xs text-emerald-300"><CheckCircle2 size={14} />연결 성공 · 응답 {test.latency}ms</div><div className="rounded border border-slate-700 bg-slate-900 p-2 text-xs text-slate-300">응답 미리보기: {test.answer}</div></div>)}
+            <div className="text-sm font-semibold text-slate-800">연결 테스트 결과</div>
+            {!test && <div className="mt-2 text-xs text-slate-500">상단 <span className="text-slate-700">‘연결 테스트’</span>를 눌러 샘플 발화로 응답을 확인하세요.</div>}
+            {test && test.state === "running" && <div className="mt-2 text-xs text-slate-500">샘플 발화 전송 중…</div>}
+            {test && test.state === "ok" && (<div className="mt-2 space-y-1"><div className="flex items-center gap-2 text-xs text-emerald-700"><CheckCircle2 size={14} />연결 성공 · 응답 {test.latency}ms</div><div className="rounded border border-slate-300 bg-white p-2 text-xs text-slate-700">응답 미리보기: {test.answer}</div></div>)}
           </Card>
         </div>
       </div>
@@ -774,14 +774,14 @@ export function Targets() {
         <div className="col-span-3 space-y-3">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => openModal("addChatbot")}>챗봇 추가</Btn>
           {list.map((c, i) => (
-            <Card key={c.id} className={"cursor-pointer p-3 " + (cur && cur.id === c.id ? "border-teal-500" : "hover:border-slate-700")}>
+            <Card key={c.id} className={"cursor-pointer p-3 " + (cur && cur.id === c.id ? "border-sky-500" : "hover:border-slate-300")}>
               <div onClick={() => chooseCb(i)}>
-                <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-100">{c.name}</span><Badge kind={stK[c.status]}>{c.status}</Badge></div>
+                <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-900">{c.name}</span><Badge kind={stK[c.status]}>{c.status}</Badge></div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1"><Badge kind="info">{c.env}</Badge><Badge kind={chK[c.channel]}>{c.channel}</Badge></div>
               </div>
             </Card>
           ))}
-          {list.length === 0 && <div className="rounded-lg border border-slate-800 p-4 text-center text-xs text-slate-500">연결된 챗봇이 없습니다 — 챗봇 추가</div>}
+          {list.length === 0 && <div className="rounded-lg border border-slate-200 p-4 text-center text-xs text-slate-500">연결된 챗봇이 없습니다 — 챗봇 추가</div>}
         </div>
         <div className="col-span-9">
           {cur ? <ChatbotDetail cb={cur} onDirty={setCbDirty} /> : <Card className="p-10 text-center text-sm text-slate-500">왼쪽에서 챗봇을 선택하거나 추가하세요</Card>}
@@ -840,68 +840,68 @@ export function Dashboard() {
     <div className="space-y-5">
       <PageToolbar desc="AI 품질 현황 요약 · 최근 실행과 안전성 지표">
         <div style={{ width: 190 }}><Select value={planF} onChange={(e) => setPlanF(e.target.value)}><option value="전체">전체 계획</option>{planNames.map((n) => <option key={n} value={n}>{n}</option>)}</Select></div>
-        <input type="date" value={from} min={minFromOf(to)} max={to} onChange={(e) => setRange(e.target.value, to)} className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" />
+        <input type="date" value={from} min={minFromOf(to)} max={to} onChange={(e) => setRange(e.target.value, to)} className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" />
         <span className="text-slate-500">~</span>
-        <input type="date" value={to} min={from} max={today} onChange={(e) => setRange(from, e.target.value)} className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" />
+        <input type="date" value={to} min={from} max={today} onChange={(e) => setRange(from, e.target.value)} className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" />
       </PageToolbar>
-      {filtered && <div className="flex items-center gap-2 text-xs text-slate-400"><Badge kind="teal">필터</Badge><span>{planF === "전체" ? "전체 계획" : planF} · {from} ~ {to} — 실행 {fruns.length}건</span><button onClick={() => { setPlanF("전체"); setFrom(defFrom); setTo(today); }} className="text-slate-500 hover:text-teal-400">초기화</button></div>}
+      {filtered && <div className="flex items-center gap-2 text-xs text-slate-400"><Badge kind="teal">필터</Badge><span>{planF === "전체" ? "전체 계획" : planF} · {from} ~ {to} — 실행 {fruns.length}건</span><button onClick={() => { setPlanF("전체"); setFrom(defFrom); setTo(today); }} className="text-slate-500 hover:text-sky-700">초기화</button></div>}
       <div className="grid grid-cols-4 gap-4">
         {kpis.map((k) => (
           <Card key={k.label} className="p-4">
-            <div className="text-xs text-slate-400">{k.label}</div>
-            <div className="mt-1 text-3xl font-bold text-slate-50">{k.value}</div>
+            <div className="text-xs text-slate-500">{k.label}</div>
+            <div className="mt-1 text-3xl font-bold text-slate-900">{k.value}</div>
             <div className="mt-1 text-xs text-slate-500">{k.sub}</div>
           </Card>
         ))}
       </div>
       <div className="grid grid-cols-3 gap-4">
         <Card className="col-span-2 p-4">
-          <div className="mb-3 text-sm font-semibold text-slate-200">품질 추이 <span className="text-xs font-normal text-slate-500">· 완료 실행 기준</span></div>
+          <div className="mb-3 text-sm font-semibold text-slate-800">품질 추이 <span className="text-xs font-normal text-slate-500">· 완료 실행 기준</span></div>
           {chartData.length ? (
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={chartData}>
-              <CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="d" stroke={C.axis} fontSize={11} /><YAxis stroke={C.axis} fontSize={11} domain={[50, 100]} />
-              <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0" }} /><Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="score" name="종합 점수" stroke={C.teal} strokeWidth={2} dot={{ r: 2 }} />
-              <Line type="monotone" dataKey="pass" name="PASS율" stroke={C.blue} strokeWidth={2} dot={{ r: 2 }} />
+              <CartesianGrid stroke={CL.grid} vertical={false} /><XAxis dataKey="d" stroke={CL.axis} fontSize={11} /><YAxis stroke={CL.axis} fontSize={11} domain={[50, 100]} />
+              <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, color: "#475569", boxShadow: "0 4px 12px rgba(0,0,0,.08)" }} /><Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line type="monotone" dataKey="score" name="종합 점수" stroke={CL.teal} strokeWidth={2} dot={{ r: 2 }} />
+              <Line type="monotone" dataKey="pass" name="PASS율" stroke={CL.blue} strokeWidth={2} dot={{ r: 2 }} />
             </LineChart>
           </ResponsiveContainer>
           ) : <div className="flex items-center justify-center" style={{ height: 220 }}><EmptyState icon={TrendingUp} title="해당 조건의 완료 실행이 없습니다" hint="계획·기간 필터를 조정하세요" /></div>}
         </Card>
         <Card className="p-4">
-          <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-200">안전성 이슈</div><button onClick={() => goto("defects")} className="text-xs text-teal-400">결함 보기</button></div>
+          <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-800">안전성 이슈</div><button onClick={() => goto("defects")} className="text-xs font-semibold text-sky-700 hover:text-sky-700">결함 보기</button></div>
           <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-300"><Ghost size={15} className="text-amber-400" />환각 탐지</span><Badge kind={halluc ? "warn" : "pass"}>{halluc ? halluc + "건" : "정상"}</Badge></div>
-            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-300"><Lock size={15} className="text-red-400" />PII 노출</span><Badge kind={pii ? "fail" : "pass"}>{pii ? pii + "건" : "정상"}</Badge></div>
-            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-300"><ShieldCheck size={15} className="text-emerald-400" />미결 결함</span><Badge kind={openDefects ? "warn" : "pass"}>{openDefects ? openDefects + "건" : "정상"}</Badge></div>
+            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-700"><Ghost size={15} className="text-amber-600" />환각 탐지</span><Badge kind={halluc ? "warn" : "pass"}>{halluc ? halluc + "건" : "정상"}</Badge></div>
+            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-700"><Lock size={15} className="text-red-600" />PII 노출</span><Badge kind={pii ? "fail" : "pass"}>{pii ? pii + "건" : "정상"}</Badge></div>
+            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-700"><ShieldCheck size={15} className="text-emerald-600" />미결 결함</span><Badge kind={openDefects ? "warn" : "pass"}>{openDefects ? openDefects + "건" : "정상"}</Badge></div>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-400">모델 업데이트(v2.4.1) 후 PII 위반 신규 발생 — 이벤트 트리거 회귀평가 수행됨</div>
+          <div className="mt-4 pt-3 border-t border-slate-200 text-xs text-slate-500">모델 업데이트(v2.4.1) 후 PII 위반 신규 발생 — 이벤트 트리거 회귀평가 수행됨</div>
         </Card>
       </div>
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 cursor-pointer hover:border-slate-700" onClick={() => goto("cases")}>
-          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">검토 대기 케이스</span><ClipboardList size={15} className="text-slate-500" /></div>
-          <div className="mt-2 text-2xl font-bold text-amber-400">{pending}</div>
+        <Card className="p-4 cursor-pointer hover:border-sky-400" onClick={() => goto("cases")}>
+          <div className="flex items-center justify-between"><span className="text-sm text-slate-700">검토 대기 케이스</span><ClipboardList size={15} className="text-slate-500" /></div>
+          <div className="mt-2 text-2xl font-bold text-amber-700">{pending}</div>
           <div className="text-xs text-slate-500 mt-0.5">생성·업로드분 검토 필요</div>
         </Card>
-        <Card className="p-4 cursor-pointer hover:border-slate-700" onClick={() => goto("run")}>
-          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">진행 중 실행</span><Play size={15} className="text-slate-500" /></div>
-          <div className="mt-2 text-2xl font-bold text-teal-400">{running}</div>
+        <Card className="p-4 cursor-pointer hover:border-sky-400" onClick={() => goto("run")}>
+          <div className="flex items-center justify-between"><span className="text-sm text-slate-700">진행 중 실행</span><Play size={15} className="text-slate-500" /></div>
+          <div className="mt-2 text-2xl font-bold text-sky-700">{running}</div>
           <div className="text-xs text-slate-500 mt-0.5">평가 실행에서 확인</div>
         </Card>
-        <Card className="p-4 cursor-pointer hover:border-slate-700" onClick={() => goto("plans")}>
-          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">예약된 평가</span><Calendar size={15} className="text-slate-500" /></div>
-          <div className="mt-2 text-2xl font-bold text-slate-100">{scheduled.length}</div>
+        <Card className="p-4 cursor-pointer hover:border-sky-400" onClick={() => goto("plans")}>
+          <div className="flex items-center justify-between"><span className="text-sm text-slate-700">예약된 평가</span><Calendar size={15} className="text-slate-500" /></div>
+          <div className="mt-2 text-2xl font-bold text-slate-900">{scheduled.length}</div>
           <div className="text-xs text-slate-500 mt-0.5 truncate">{scheduled.length ? scheduled.map((p) => p.name + " · " + p.sched).slice(0, 2).join(" / ") : "예약 없음"}</div>
         </Card>
       </div>
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-200">최근 평가 실행</div><Btn icon={History} onClick={() => goto("history")}>실행 이력으로</Btn></div>
+        <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-800">최근 평가 실행</div><Btn icon={History} onClick={() => goto("history")}>실행 이력으로</Btn></div>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2 font-medium">평가 계획</th><th className="font-medium">트리거</th><th className="font-medium">TC</th><th className="font-medium">종합</th><th className="font-medium">상태</th><th className="font-medium">시각</th></tr></thead>
-          <tbody className="text-slate-300">
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2 font-medium">평가 계획</th><th className="font-medium">트리거</th><th className="font-medium">TC</th><th className="font-medium">종합</th><th className="font-medium">상태</th><th className="font-medium">시각</th></tr></thead>
+          <tbody className="text-slate-400">
             {fruns.slice(0, 5).map((r) => (
-              <tr key={r.id} onClick={() => { if (r.status !== "완료") { toast(r.id + " 오류로 종료 — 상세 결과 없음", "info"); return; } setRunIntent({ type: "view", runId: r.id }); goto("lqa-result"); }} className="border-b border-slate-800 hover:bg-slate-800 cursor-pointer"><td className="py-2.5 font-medium text-slate-200">{r.planName}</td><td><Badge kind={trigKind[r.trigger]}>{r.trigger}</Badge></td><td>{r.cases}</td><td className="font-semibold">{r.score != null ? r.score : "—"}</td><td><Badge kind={stKind[r.status]}>{r.status}</Badge></td><td className="text-slate-500">{r.startedAt}</td></tr>
+              <tr key={r.id} onClick={() => { if (r.status !== "완료") { toast(r.id + " 오류로 종료 — 상세 결과 없음", "info"); return; } setRunIntent({ type: "view", runId: r.id }); goto("lqa-result"); }} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"><td className="py-2.5 font-medium text-slate-800">{r.planName}</td><td><Badge kind={trigKind[r.trigger]}>{r.trigger}</Badge></td><td>{r.cases}</td><td className="font-semibold">{r.score != null ? r.score : "—"}</td><td><Badge kind={stKind[r.status]}>{r.status}</Badge></td><td className="text-slate-500">{r.startedAt}</td></tr>
             ))}
             {fruns.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-xs text-slate-500">해당 조건의 실행이 없습니다</td></tr>}
           </tbody>
@@ -1005,17 +1005,17 @@ export function Plans() {
       <div className="grid grid-cols-12 gap-4">
       <div className="col-span-3 space-y-3">
         <Btn kind="primary" icon={Plus} className="w-full" onClick={() => openModal("newPlan")} disabled={!okBot || !okCase} title={!okBot ? "평가 대상 챗봇을 먼저 등록하세요" : !okCase ? "승인된 테스트케이스가 필요합니다" : ""}>새 평가 계획</Btn>
-        {plans.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 계획이 없습니다.</div>}
+        {plans.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 계획이 없습니다.</div>}
         {plans.map((p) => (
-          <Card key={p.id} className={"p-4 cursor-pointer " + (cur.id === p.id ? "border-teal-500" : "hover:border-slate-700")}>
+          <Card key={p.id} className={"p-4 cursor-pointer " + (cur.id === p.id ? "border-sky-500" : "hover:border-slate-300")}>
             <div onClick={() => chooseSel(p)}>
-              <div className="flex items-center justify-between"><div className="font-semibold text-slate-100">{p.name}</div><div className="flex items-center gap-1.5"><Badge kind={p.status === "활성" ? "active" : "draft"}>{p.status}</Badge><button onClick={(e) => { e.stopPropagation(); if (window.confirm(p.name + " 계획을 삭제할까요?" + (plans.length <= 1 ? "\n\n마지막 계획입니다 — 삭제하면 평가를 실행할 계획이 없어집니다." : ""))) { removePlan(p.id); if ((sel || {}).id === p.id) setSel(plans.find((x) => x.id !== p.id) || null); toast(p.name + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-400" title="계획 삭제"><X size={13} /></button></div></div>
+              <div className="flex items-center justify-between"><div className="font-semibold text-slate-900">{p.name}</div><div className="flex items-center gap-1.5"><Badge kind={p.status === "활성" ? "active" : "draft"}>{p.status}</Badge><button onClick={(e) => { e.stopPropagation(); if (window.confirm(p.name + " 계획을 삭제할까요?" + (plans.length <= 1 ? "\n\n마지막 계획입니다 — 삭제하면 평가를 실행할 계획이 없어집니다." : ""))) { removePlan(p.id); if ((sel || {}).id === p.id) setSel(plans.find((x) => x.id !== p.id) || null); toast(p.name + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-600" title="계획 삭제"><X size={13} /></button></div></div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-center">
-                <div><div className="text-lg font-bold text-slate-100">{caseCount(p)}</div><div className="text-xs text-slate-500">TC</div></div>
-                <div><div className="text-lg font-bold text-slate-100">{(p.judgeList || []).length || p.judges}</div><div className="text-xs text-slate-500">Judge</div></div>
+                <div><div className="text-lg font-bold text-slate-900">{caseCount(p)}</div><div className="text-xs text-slate-500">TC</div></div>
+                <div><div className="text-lg font-bold text-slate-900">{(p.judgeList || []).length || p.judges}</div><div className="text-xs text-slate-500">Judge</div></div>
               </div>
               <div className="mt-2 text-xs text-slate-500">{p.sched}</div>
-              <div className="mt-0.5 text-xs text-slate-600">수정 {p.updatedBy || "—"} · {p.updatedAt || "—"}</div>
+              <div className="mt-0.5 text-xs text-slate-400">수정 {p.updatedBy || "—"} · {p.updatedAt || "—"}</div>
             </div>
           </Card>
         ))}
@@ -1023,36 +1023,36 @@ export function Plans() {
       <Card className="col-span-9 p-5">
         {plans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <ClipboardList size={26} className="text-slate-600" />
-            <div className="mt-3 text-sm font-medium text-slate-300">평가 계획을 만드세요</div>
+            <ClipboardList size={26} className="text-slate-400" />
+            <div className="mt-3 text-sm font-medium text-slate-700">평가 계획을 만드세요</div>
             <div className="mt-1.5 max-w-md text-xs text-slate-500">계획은 챗봇과 평가 케이스·판정 모델을 묶어 무엇을 어떤 기준으로 평가할지 정합니다.</div>
             <div className="mt-4 w-64 space-y-1.5 text-left">
               {[["평가 대상 챗봇 등록", okBot], ["승인된 테스트케이스", okCase]].map(([label, ok]) => (
                 <div key={label} className="flex items-center gap-2 text-xs">
-                  {ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertTriangle size={13} className="text-amber-400" />}
-                  <span className={ok ? "text-slate-400" : "text-amber-300"}>{label}</span>
-                  <span className="ml-auto text-slate-600">{ok ? "완료" : "필요"}</span>
+                  {ok ? <CheckCircle2 size={13} className="text-emerald-600" /> : <AlertTriangle size={13} className="text-amber-600" />}
+                  <span className={ok ? "text-slate-500" : "text-amber-700"}>{label}</span>
+                  <span className="ml-auto text-slate-400">{ok ? "완료" : "필요"}</span>
                 </div>
               ))}
             </div>
             {!okBot && <Btn className="mt-3" icon={MessageSquare} onClick={() => goTo("targets")}>챗봇 등록하러 가기</Btn>}
-            {okBot && !okCase && <><div className="mt-3 text-xs text-amber-500">승인된 케이스만 계획에 담을 수 있습니다.</div><Btn className="mt-2" icon={ClipboardList} onClick={() => goTo("cases")}>테스트케이스로 가기</Btn></>}
+            {okBot && !okCase && <><div className="mt-3 text-xs text-amber-600">승인된 케이스만 계획에 담을 수 있습니다.</div><Btn className="mt-2" icon={ClipboardList} onClick={() => goTo("cases")}>테스트케이스로 가기</Btn></>}
           </div>
         ) : (<>
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="min-w-0 max-w-sm flex-1"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="계획 이름" /></div>
-          <div className="flex shrink-0 items-center gap-3"><div className="flex items-center gap-2 text-sm text-slate-300"><span>{planStatus === "활성" ? "활성" : "초안"}</span><Toggle on={planStatus === "활성"} onClick={() => setPlanStatus(planStatus === "활성" ? "초안" : "활성")} /></div>{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn kind="primary" icon={RefreshCw} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
+          <div className="flex shrink-0 items-center gap-3"><div className="flex items-center gap-2 text-sm text-slate-700"><span>{planStatus === "활성" ? "활성" : "초안"}</span><Toggle on={planStatus === "활성"} onClick={() => setPlanStatus(planStatus === "활성" ? "초안" : "활성")} /></div>{dirty && <span className="text-xs text-amber-700">미저장 변경</span>}<Btn kind="primary" icon={RefreshCw} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
         </div>
-        <div className="mb-4 flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-400">{cur.createdBy || "—"}</span> · {cur.createdAt || "—"}</span><span className="text-slate-600">·</span><span>수정 <span className="text-slate-400">{cur.updatedBy || "—"}</span> · {cur.updatedAt || "—"}</span></div>
+        <div className="mb-4 flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-500">{cur.createdBy || "—"}</span> · {cur.createdAt || "—"}</span><span className="text-slate-400">·</span><span>수정 <span className="text-slate-500">{cur.updatedBy || "—"}</span> · {cur.updatedAt || "—"}</span></div>
         <div className="grid grid-cols-2 gap-5">
           <div className="space-y-4">
             <Field label="대상 챗봇"><Select value={bot} onChange={(e) => setBot(e.target.value)}>{[...new Set(chatbots.map((c) => c.name))].map((n) => <option key={n}>{n}</option>)}</Select></Field>
-            <Field label="테스트케이스"><div className="flex items-center gap-2"><div className="flex-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200">{caseCount(cur)}건 포함 <span className="text-xs text-slate-500">/ 전체 {cases.length}건</span></div><Btn onClick={() => openModal("planCases", { planId: cur.id })}>선택</Btn></div></Field>
+            <Field label="테스트케이스"><div className="flex items-center gap-2"><div className="flex-1 rounded-lg bg-slate-100 border border-slate-300 px-3 py-2 text-sm text-slate-800">{caseCount(cur)}건 포함 <span className="text-xs text-slate-500">/ 전체 {cases.length}건</span></div><Btn onClick={() => openModal("planCases", { planId: cur.id })}>선택</Btn></div></Field>
             <Field label="Judge 모델 (다중)">
               <div className="space-y-2">
                 {models.filter((m) => m.status === "활성").map((j) => (
-                  <label key={j.id} className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input type="checkbox" checked={!!jsel[j.name]} onChange={() => setJsel({ ...jsel, [j.name]: !jsel[j.name] })} className="accent-teal-500" />{j.name}
+                  <label key={j.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="checkbox" checked={!!jsel[j.name]} onChange={() => setJsel({ ...jsel, [j.name]: !jsel[j.name] })} className="accent-sky-500" />{j.name}
                   </label>
                 ))}
               </div>
@@ -1060,51 +1060,51 @@ export function Plans() {
             <Field label="안전 게이트">
               <div className="text-xs text-slate-500 -mt-1 mb-2">위반 시 점수와 무관하게 해당 케이스 즉시 불합격</div>
               {/* 환각 탐지는 AI 품질 평가의 본질 — 끌 수 없다 */}
-              <div className="flex items-center justify-between text-sm text-slate-300 mb-2"><span>환각(Hallucination) 탐지</span><Toggle on disabled /></div>
-              <div className="flex items-center justify-between text-sm text-slate-300 mb-2"><span>PII 노출 탐지</span><Toggle on={pii} onClick={() => setPii(!pii)} /></div>
-              <div className="flex items-center justify-between text-sm text-slate-300"><span>정책 위반 탐지</span><Toggle on={policy} onClick={() => setPolicy(!policy)} /></div>
+              <div className="flex items-center justify-between text-sm text-slate-700 mb-2"><span>환각(Hallucination) 탐지</span><Toggle on disabled /></div>
+              <div className="flex items-center justify-between text-sm text-slate-700 mb-2"><span>PII 노출 탐지</span><Toggle on={pii} onClick={() => setPii(!pii)} /></div>
+              <div className="flex items-center justify-between text-sm text-slate-700"><span>정책 위반 탐지</span><Toggle on={policy} onClick={() => setPolicy(!policy)} /></div>
               {needPolicyText && (
-                <div className="mt-2.5 rounded-lg border border-slate-700 p-3">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-400">
+                <div className="mt-2.5 rounded-lg border border-slate-300 p-3">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500">
                     안전 정책 (금지 행위)
                     {tplNeedsPolicy && <Badge kind="teal">템플릿 {"{{policy}}"}</Badge>}
                   </div>
-                  <textarea value={policyText} onChange={(e) => setPolicyText(e.target.value)} rows={5} placeholder={"- 환불·보상을 확정적으로 약속하지 않는다\n- 요금은 \"변동 가능\" 안내 없이 단정하지 않는다\n- 경쟁사를 언급하거나 비교하지 않는다\n- 법률·의료 자문을 제공하지 않는다"} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 outline-none focus:border-teal-500" />
+                  <textarea value={policyText} onChange={(e) => setPolicyText(e.target.value)} rows={5} placeholder={"- 환불·보상을 확정적으로 약속하지 않는다\n- 요금은 \"변동 가능\" 안내 없이 단정하지 않는다\n- 경쟁사를 언급하거나 비교하지 않는다\n- 법률·의료 자문을 제공하지 않는다"} className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-xs text-slate-800 outline-none focus:border-sky-500" />
                 </div>
               )}
             </Field>
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-400 mb-1">Prompt 템플릿</div>
+            <div className="text-xs font-semibold text-slate-500 mb-1">Prompt 템플릿</div>
             <Select value={tpl} onChange={(e) => setTpl(e.target.value)}>{prompts.map((p) => <option key={p.name}>{p.name}</option>)}</Select>
             <div className="mt-1 text-xs text-slate-500">변수: {(tplObj && (tplObj.vars || []).map((v) => "{{" + v + "}}").join(" ")) || "—"}</div>
-            <div className="text-sm font-semibold text-slate-200 mb-1 mt-4">채점 기준 가중치 <span className="text-xs font-normal text-slate-500">· 템플릿에서 정의</span></div>
-            <div className="text-xs mb-3" style={{ color: wsum === 100 ? "#34d399" : "#fbbf24" }}>합계 {wsum}% {wsum === 100 ? "✓" : "(100% 권장)"}</div>
+            <div className="text-sm font-semibold text-slate-800 mb-1 mt-4">채점 기준 가중치 <span className="text-xs font-normal text-slate-500">· 템플릿에서 정의</span></div>
+            <div className="text-xs mb-3" style={{ color: wsum === 100 ? "#059669" : "#d97706" }}>합계 {wsum}% {wsum === 100 ? "✓" : "(100% 권장)"}</div>
             {dims.map((d) => (
               <div key={d} className="mb-3">
-                <div className="flex justify-between text-xs mb-1"><span className="text-slate-300">{d}</span><span className="text-teal-400 font-semibold">{weights[d] || 0}%</span></div>
-                <input type="range" min="0" max="60" value={weights[d] || 0} onChange={(ev) => setWeights({ ...weights, [d]: +ev.target.value })} className="w-full accent-teal-500" />
+                <div className="flex justify-between text-xs mb-1"><span className="text-slate-700">{d}</span><span className="text-sky-600 font-semibold">{weights[d] || 0}%</span></div>
+                <input type="range" min="0" max="60" value={weights[d] || 0} onChange={(ev) => setWeights({ ...weights, [d]: +ev.target.value })} className="w-full accent-sky-500" />
               </div>
             ))}
-            <div className="text-sm font-semibold text-slate-200 mb-1 mt-4">합격 기준 점수</div>
+            <div className="text-sm font-semibold text-slate-800 mb-1 mt-4">합격 기준 점수</div>
             <Input type="number" value={pass} onChange={(e) => setPass(+e.target.value || 0)} className="w-24" />
           </div>
         </div>
-        <div className="mt-5 pt-5 border-t border-slate-800">
+        <div className="mt-5 pt-5 border-t border-slate-200">
           {planStatus === "활성" ? (
             <ScheduleConfig key={cur.id} value={sched} onChange={setSched} events={lqaEvents((chatbots || []).find((c) => c.name === cur.bot))} singleSelect manualHint="자동 실행 없음 — 평가 실행 화면에서 수동으로만 수행합니다." toast={toast} />
           ) : (
-            <div className="rounded-lg border border-amber-800 bg-amber-950 px-3 py-2.5 text-xs text-amber-300">이 계획은 <span className="font-semibold">초안</span>입니다 — 스케줄 설정과 평가 실행 모두 <span className="font-semibold">활성화</span> 후 가능합니다.</div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700">이 계획은 <span className="font-semibold">초안</span>입니다 — 스케줄 설정과 평가 실행 모두 <span className="font-semibold">활성화</span> 후 가능합니다.</div>
           )}
         </div>
         {(jgc.connected !== false) && (
-        <div className="mt-5 pt-5 border-t border-slate-800">
+        <div className="mt-5 pt-5 border-t border-slate-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={15} className="text-amber-400" />결함 트래커 (Jira)</div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">이 계획 재정의 <Toggle on={!!jira.override} onClick={() => enableJira(!jira.override)} /></div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Bug size={15} className="text-amber-600" />결함 트래커 (Jira)</div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">이 계획 재정의 <Toggle on={!!jira.override} onClick={() => enableJira(!jira.override)} /></div>
           </div>
           {!jira.override ? (
-            <div className="mt-2 rounded-lg bg-slate-800 p-3 text-xs text-slate-400">전역 Jira 설정 사용 · 프로젝트 <span className="text-slate-300">{jgc.project || "—"}</span> · 이슈유형 {jgc.issueType || "—"} · 담당자 {jgc.assignee || "—"} <span className="text-slate-600">(결함 화면의 Jira 연동에서 관리)</span></div>
+            <div className="mt-2 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">전역 Jira 설정 사용 · 프로젝트 <span className="text-slate-700">{jgc.project || "—"}</span> · 이슈유형 {jgc.issueType || "—"} · 담당자 {jgc.assignee || "—"} <span className="text-slate-400">(결함 화면의 Jira 연동에서 관리)</span></div>
           ) : (
             <div className="mt-3 space-y-3">
               <div className="text-xs text-slate-500">연결(URL·인증)은 전역을 그대로 쓰고, 이 계획의 결함 라우팅만 재정의합니다.</div>
@@ -1144,17 +1144,17 @@ export function RunHistory() {
       </div>
       <Card>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2.5 px-4 font-medium">실행ID</th><th className="font-medium">계획</th><th className="font-medium">트리거</th><th className="font-medium">시각</th><th className="font-medium">상태</th><th className="font-medium">케이스</th><th className="font-medium">종합점수</th><th className="pr-4 font-medium">PASS율</th></tr></thead>
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 px-4 font-medium">실행ID</th><th className="font-medium">계획</th><th className="font-medium">트리거</th><th className="font-medium">시각</th><th className="font-medium">상태</th><th className="font-medium">케이스</th><th className="font-medium">종합점수</th><th className="pr-4 font-medium">PASS율</th></tr></thead>
           <tbody>
             {list.map((r) => (
-              <tr key={r.id} onClick={() => { if (r.status !== "완료") { toast(r.id + " 오류로 종료 — 상세 결과 없음", "info"); return; } setRunIntent({ type: "view", runId: r.id }); goto("lqa-result"); }} className="border-b border-slate-800 hover:bg-slate-800 cursor-pointer text-slate-300">
-                <td className="py-3 px-4 font-mono text-teal-400">{r.id}</td>
-                <td className="text-slate-200">{r.planName}</td>
+              <tr key={r.id} onClick={() => { if (r.status !== "완료") { toast(r.id + " 오류로 종료 — 상세 결과 없음", "info"); return; } setRunIntent({ type: "view", runId: r.id }); goto("lqa-result"); }} className="border-b border-slate-200 hover:bg-slate-100 cursor-pointer text-slate-700">
+                <td className="py-3 px-4 font-mono text-sky-600">{r.id}</td>
+                <td className="text-slate-800">{r.planName}</td>
                 <td><Badge kind={trigKind[r.trigger]}>{r.trigger}</Badge></td>
                 <td><RunTime start={r.startedAt} end={r.finishedAt} /></td>
                 <td><Badge kind={stKind[r.status]}>{r.status}</Badge></td>
                 <td>{r.cases}</td>
-                <td className="font-semibold text-slate-100">{r.score != null ? r.score : "—"}</td>
+                <td className="font-semibold text-slate-900">{r.score != null ? r.score : "—"}</td>
                 <td className="pr-4">{r.passRate != null ? r.passRate + "%" : "—"}</td>
               </tr>
             ))}
@@ -1175,9 +1175,9 @@ export function CategoryManager({ close }) {
       <div className="flex gap-2"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="새 카테고리명" /><Btn kind="primary" icon={Plus} className="shrink-0 whitespace-nowrap" onClick={add}>추가</Btn></div>
       <div className="space-y-1.5">
         {categories.map((c) => (
-          <div key={c} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-800 px-3 py-2 text-sm">
-            <span className="text-slate-200">{c}<span className="ml-2 text-xs text-slate-500">{counts[c] || 0}건</span></span>
-            <button onClick={() => { if (counts[c]) { toast("사용 중인 카테고리는 삭제할 수 없습니다 (" + counts[c] + "건)", "warn"); return; } removeCategory(c); toast("삭제됨", "ok"); }} className="text-slate-500 hover:text-red-400"><X size={15} /></button>
+          <div key={c} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm">
+            <span className="text-slate-800">{c}<span className="ml-2 text-xs text-slate-500">{counts[c] || 0}건</span></span>
+            <button onClick={() => { if (counts[c]) { toast("사용 중인 카테고리는 삭제할 수 없습니다 (" + counts[c] + "건)", "warn"); return; } removeCategory(c); toast("삭제됨", "ok"); }} className="text-slate-500 hover:text-red-600"><X size={15} /></button>
           </div>
         ))}
       </div>
@@ -1224,28 +1224,28 @@ export function ImportCasesForm({ close }) {
   };
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-3 space-y-2">
-        <div className="flex items-center justify-between"><span className="text-sm text-slate-200 font-semibold">1. 템플릿 받기</span><Btn icon={FileDown} onClick={tmpl}>CSV 템플릿</Btn></div>
-        <div className="text-xs text-slate-400">열: 질문 · 기대응답 · 카테고리 · 우선순위 · 사전조건 (질문만 필수)</div>
+      <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
+        <div className="flex items-center justify-between"><span className="text-sm text-slate-800 font-semibold">1. 템플릿 받기</span><Btn icon={FileDown} onClick={tmpl}>CSV 템플릿</Btn></div>
+        <div className="text-xs text-slate-500">열: 질문 · 기대응답 · 카테고리 · 우선순위 · 사전조건 (질문만 필수)</div>
       </div>
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-3 space-y-2">
-        <div className="text-sm text-slate-200 font-semibold">2. 파일 선택 <span className="font-normal text-xs text-slate-500">(.xlsx · .csv)</span></div>
-        <input type="file" accept=".xlsx,.csv" onChange={onFile} className="block w-full text-xs text-slate-300" />
-        {fname && <div className="text-xs text-teal-400">{fname} · {rows.length}행 인식</div>}
+      <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
+        <div className="text-sm text-slate-800 font-semibold">2. 파일 선택 <span className="font-normal text-xs text-slate-500">(.xlsx · .csv)</span></div>
+        <input type="file" accept=".xlsx,.csv" onChange={onFile} className="block w-full text-xs text-slate-700" />
+        {fname && <div className="text-xs text-sky-600">{fname} · {rows.length}행 인식</div>}
       </div>
       {rows.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm"><span className="text-slate-200 font-semibold">3. 미리보기 / 검증</span><span className="text-xs text-slate-400">유효 {okCount}/{rows.length}{newCats.length ? " · 신규 카테고리 " + newCats.length : ""}</span></div>
-          <div className="overflow-auto rounded-lg border border-slate-700" style={{ maxHeight: 260 }}>
+          <div className="flex items-center justify-between text-sm"><span className="text-slate-800 font-semibold">3. 미리보기 / 검증</span><span className="text-xs text-slate-500">유효 {okCount}/{rows.length}{newCats.length ? " · 신규 카테고리 " + newCats.length : ""}</span></div>
+          <div className="overflow-auto rounded-lg border border-slate-300" style={{ maxHeight: 260 }}>
             <table className="w-full text-xs">
-              <thead><tr className="text-slate-500 text-left border-b border-slate-700 bg-slate-800"><th className="px-2 py-1.5 font-medium">질문*</th><th className="font-medium">카테고리</th><th className="font-medium">우선</th><th></th></tr></thead>
+              <thead><tr className="text-slate-500 text-left border-b border-slate-300 bg-slate-100"><th className="px-2 py-1.5 font-medium">질문*</th><th className="font-medium">카테고리</th><th className="font-medium">우선</th><th></th></tr></thead>
               <tbody>
                 {rows.map((r, i) => (
-                  <tr key={i} className="border-b border-slate-800">
-                    <td className="px-2 py-1"><input value={r.q} onChange={(e) => setCell(i, "q", e.target.value)} className={"w-full bg-transparent outline-none " + (r.q.trim() ? "text-slate-200" : "text-red-400")} /></td>
+                  <tr key={i} className="border-b border-slate-200">
+                    <td className="px-2 py-1"><input value={r.q} onChange={(e) => setCell(i, "q", e.target.value)} className={"w-full bg-transparent outline-none " + (r.q.trim() ? "text-slate-800" : "text-red-600")} /></td>
                     <td><span className="flex items-center gap-1">{r.cat}{r.cat && !categories.includes(r.cat) && <Badge kind="info">신규</Badge>}</span></td>
-                    <td className="text-slate-400">{r.pri}</td>
-                    <td className="pr-2 text-right"><button onClick={() => del(i)} className="text-slate-600 hover:text-red-400"><X size={13} /></button></td>
+                    <td className="text-slate-500">{r.pri}</td>
+                    <td className="pr-2 text-right"><button onClick={() => del(i)} className="text-slate-400 hover:text-red-600"><X size={13} /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -1253,7 +1253,7 @@ export function ImportCasesForm({ close }) {
           </div>
         </div>
       )}
-      <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">질문이 빈 행은 등록에서 제외됩니다. 기존에 없는 카테고리는 등록 시 자동 추가됩니다.</div>
+      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">질문이 빈 행은 등록에서 제외됩니다. 기존에 없는 카테고리는 등록 시 자동 추가됩니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Upload} onClick={submit}>{okCount > 0 ? okCount + "건 초안으로 등록" : "초안으로 등록"}</Btn></div>
     </div>
   );
@@ -1272,18 +1272,18 @@ export function PlanCasesForm({ close, data }) {
   const save = () => { updatePlan(data.planId, { caseIds: [...picked] }); toast(plan.name + " — 케이스 " + picked.size + "건 반영", "ok"); close(); };
   return (
     <div className="space-y-3">
-      <div className="text-sm text-slate-400">이 평가 계획에 포함할 테스트케이스를 선택합니다. <span className="text-slate-500">실행 시에는 이 중 <span className="text-slate-300">승인</span> 상태 케이스만 평가됩니다.</span></div>
+      <div className="text-sm text-slate-500">이 평가 계획에 포함할 테스트케이스를 선택합니다. <span className="text-slate-500">실행 시에는 이 중 <span className="text-slate-700">승인</span> 상태 케이스만 평가됩니다.</span></div>
       <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="발화·ID·카테고리 검색" />
       <Card className="overflow-hidden">
         <div className="max-h-80 overflow-y-auto">
           <table className="w-full text-sm">
-            <thead><tr className="text-slate-500 text-left border-b border-slate-800 whitespace-nowrap"><th className="py-2 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={toggleAll} className="accent-teal-500" /></th><th className="font-medium">ID</th><th className="font-medium w-full">발화</th><th className="font-medium">카테고리</th><th className="font-medium">우선</th><th className="font-medium pr-4">상태</th></tr></thead>
+            <thead><tr className="text-slate-500 text-left border-b border-slate-200 whitespace-nowrap"><th className="py-2 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={toggleAll} className="accent-sky-500" /></th><th className="font-medium">ID</th><th className="font-medium w-full">발화</th><th className="font-medium">카테고리</th><th className="font-medium">우선</th><th className="font-medium pr-4">상태</th></tr></thead>
             <tbody>
               {filtered.map((c) => (
-                <tr key={c.id} onClick={() => toggle(c.id)} className={"border-b border-slate-800 cursor-pointer hover:bg-slate-800 whitespace-nowrap " + (picked.has(c.id) ? "bg-slate-800" : "") + " text-slate-300"}>
-                  <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-teal-500" /></td>
-                  <td className="py-2.5 pr-3 font-mono text-teal-400">{c.id}</td>
-                  <td className="pr-3 text-slate-200"><div className="max-w-md truncate">{c.q}</div></td>
+                <tr key={c.id} onClick={() => toggle(c.id)} className={"border-b border-slate-200 cursor-pointer hover:bg-slate-100 whitespace-nowrap " + (picked.has(c.id) ? "bg-slate-100" : "") + " text-slate-700"}>
+                  <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-sky-500" /></td>
+                  <td className="py-2.5 pr-3 font-mono text-sky-600">{c.id}</td>
+                  <td className="pr-3 text-slate-800"><div className="max-w-md truncate">{c.q}</div></td>
                   <td className="pr-3">{c.cat}</td>
                   <td className="pr-3"><Badge kind={priKind[c.pri]}>{c.pri}</Badge></td>
                   <td className="pr-4"><Badge kind={stKind[c.status] || "active"}>{c.status || "승인"}</Badge></td>
@@ -1295,7 +1295,7 @@ export function PlanCasesForm({ close, data }) {
         </div>
       </Card>
       <div className="flex items-center justify-between pt-1">
-        <div className="text-xs text-slate-400">선택 <span className="text-slate-100 font-semibold">{picked.size}</span>건 <span className="text-slate-600">·</span> 실행 대상(승인) <span className="text-teal-400 font-semibold">{approvedPicked}</span>건</div>
+        <div className="text-xs text-slate-500">선택 <span className="text-slate-900 font-semibold">{picked.size}</span>건 <span className="text-slate-400">·</span> 실행 대상(승인) <span className="text-sky-600 font-semibold">{approvedPicked}</span>건</div>
         <div className="flex gap-2"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={CheckCircle2} onClick={save}>반영</Btn></div>
       </div>
     </div>
@@ -1334,8 +1334,8 @@ export function Cases() {
         <div style={{ width: 116 }}><Select value={stFilter} onChange={(e) => setStFilter(e.target.value)}><option>전체</option><option>승인</option><option>검토중</option><option>초안</option></Select></div>
       </div>
       {picked.size > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-teal-700 bg-teal-950 px-3 py-2 text-sm">
-          <span className="text-teal-200 flex-1">{picked.size}건 선택됨</span>
+        <div className="flex items-center gap-2 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-sm">
+          <span className="text-sky-700 flex-1">{picked.size}건 선택됨</span>
           <Btn kind="primary" icon={CheckCircle2} onClick={() => bulkSet("승인")}>선택 승인</Btn>
           <Btn onClick={() => bulkSet("검토중")}>검토중으로</Btn>
           <Btn icon={ClipboardList} onClick={() => openModal("newPlan", { preselect: [...picked] })}>평가 계획 만들기</Btn>
@@ -1345,11 +1345,11 @@ export function Cases() {
       )}
       <Card>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2.5 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={togglePickAll} className="accent-teal-500" /></th><th className="font-medium">ID</th><th className="font-medium">질문 (발화)</th><th className="font-medium">카테고리</th><th className="font-medium">우선순위</th><th className="font-medium">상태</th><th className="font-medium">수정</th><th></th></tr></thead>
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={togglePickAll} className="accent-sky-500" /></th><th className="font-medium">ID</th><th className="font-medium">질문 (발화)</th><th className="font-medium">카테고리</th><th className="font-medium">우선순위</th><th className="font-medium">상태</th><th className="font-medium">수정</th><th></th></tr></thead>
           <tbody>
             {filtered.map((c) => (
-              <tr key={c.id} onClick={() => setOpen(c)} className="border-b border-slate-800 hover:bg-slate-800 cursor-pointer text-slate-300">
-                <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} className="accent-teal-500" /></td><td className="py-3 pr-4 font-mono text-teal-400">{c.id}</td><td className="max-w-md truncate text-slate-200">{c.q}</td><td>{c.cat}</td><td><Badge kind={priKind[c.pri]}>{c.pri}</Badge></td><td><Badge kind={stKind[c.status] || "active"}>{c.status || "승인"}</Badge></td><td className="pr-3 text-xs text-slate-500">{c.updatedBy || "—"} · {c.updatedAt || "—"}</td><td className="pr-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}><button onClick={() => openModal("newCase", c)} className="mr-3 text-xs text-slate-400 hover:text-teal-400">편집</button><button onClick={() => { if (window.confirm(c.id + " 삭제할까요?")) { removeCase(c.id); toast(c.id + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-400" title="삭제"><X size={14} /></button></td>
+              <tr key={c.id} onClick={() => setOpen(c)} className="border-b border-slate-200 hover:bg-slate-100 cursor-pointer text-slate-700">
+                <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} className="accent-sky-500" /></td><td className="py-3 pr-4 font-mono text-sky-600">{c.id}</td><td className="max-w-md truncate text-slate-800">{c.q}</td><td>{c.cat}</td><td><Badge kind={priKind[c.pri]}>{c.pri}</Badge></td><td><Badge kind={stKind[c.status] || "active"}>{c.status || "승인"}</Badge></td><td className="pr-3 text-xs text-slate-500">{c.updatedBy || "—"} · {c.updatedAt || "—"}</td><td className="pr-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}><button onClick={() => openModal("newCase", c)} className="mr-3 text-xs text-slate-500 hover:text-sky-600">편집</button><button onClick={() => { if (window.confirm(c.id + " 삭제할까요?")) { removeCase(c.id); toast(c.id + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-600" title="삭제"><X size={14} /></button></td>
               </tr>
             ))}
             {filtered.length === 0 && <tr><td colSpan={8}><EmptyState icon={Search} title="검색 결과가 없습니다" hint="필터를 조정하거나 테스트케이스를 추가하세요" /></td></tr>}
@@ -1357,18 +1357,18 @@ export function Cases() {
         </table>
       </Card>
       {open && (
-        <div className="fixed inset-0 z-30 bg-black bg-opacity-50 flex justify-end" onClick={() => setOpen(null)}>
-          <div className="w-full max-w-md h-full bg-slate-900 border-l border-slate-800 p-5 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><span className="font-mono text-teal-400">{open.id}</span><button onClick={() => setOpen(null)} className="text-slate-500 hover:text-slate-300"><X size={20} /></button></div>
+        <Portal><div className="fixed inset-0 z-40 flex justify-end bg-black/50" onClick={() => setOpen(null)}>
+          <div className="h-full w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4"><span className="font-mono text-sky-600">{open.id}</span><button onClick={() => setOpen(null)} className="text-slate-500 hover:text-slate-700"><X size={20} /></button></div>
             <div className="space-y-4 text-sm">
-              <div><div className="text-xs text-slate-500 mb-1">질문 (발화)</div><div className="text-slate-100">{open.q}</div></div>
-              <div><div className="text-xs text-slate-500 mb-1">사전조건</div><div className="rounded-lg bg-slate-800 p-3 text-slate-300">{open.pre || "—"}</div></div>
-              <div><div className="text-xs text-slate-500 mb-1">기대 응답 (Golden Set)</div><div className="rounded-lg bg-slate-800 p-3 text-slate-300">{open.golden}</div></div>
+              <div><div className="text-xs text-slate-500 mb-1">질문 (발화)</div><div className="text-slate-900">{open.q}</div></div>
+              <div><div className="text-xs text-slate-500 mb-1">사전조건</div><div className="rounded-lg bg-slate-100 p-3 text-slate-700">{open.pre || "—"}</div></div>
+              <div><div className="text-xs text-slate-500 mb-1">기대 응답 (Golden Set)</div><div className="rounded-lg bg-slate-100 p-3 text-slate-700">{open.golden}</div></div>
               <div className="flex flex-wrap gap-2"><Badge kind="info">{open.cat}</Badge><Badge kind={priKind[open.pri]}>{open.pri}</Badge>{open.type && <Badge kind={open.type === "악의적 공격" ? "crit" : "info"}>유형 {open.type}</Badge>}<Badge kind={stKind[open.status] || "active"}>{open.status || "승인"}</Badge></div>
-              <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400 space-y-0.5"><div>생성 <span className="text-slate-300">{open.createdBy || "—"}</span> · {open.createdAt || "—"}</div><div>수정 <span className="text-slate-300">{open.updatedBy || "—"}</span> · {open.updatedAt || "—"}</div></div>
-              {open.source && <div><div className="text-xs text-slate-500 mb-1">생성 경로</div><div className="text-slate-400 text-xs">{open.source}</div></div>}
+              <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500 space-y-0.5"><div>생성 <span className="text-slate-700">{open.createdBy || "—"}</span> · {open.createdAt || "—"}</div><div>수정 <span className="text-slate-700">{open.updatedBy || "—"}</span> · {open.updatedAt || "—"}</div></div>
+              {open.source && <div><div className="text-xs text-slate-500 mb-1">생성 경로</div><div className="text-slate-500 text-xs">{open.source}</div></div>}
               {/* FQA 상세 패널과 동일 구조: 승인/검토중 토글 · 수정 · 삭제 ('반려' 제거 — 삭제나 검토중으로 대체) */}
-              <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-3">
+              <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
                 {(open.status || "승인") !== "승인"
                   ? <Btn kind="primary" icon={CheckCircle2} onClick={() => { setCaseStatus(open.id, "승인"); setOpen({ ...open, status: "승인" }); toast(open.id + " 승인됨", "ok"); }}>승인</Btn>
                   : <Btn icon={RefreshCw} onClick={() => { setCaseStatus(open.id, "검토중"); setOpen({ ...open, status: "검토중" }); toast(open.id + " 검토중으로", "info"); }}>검토중으로</Btn>}
@@ -1378,7 +1378,7 @@ export function Cases() {
               </div>
             </div>
           </div>
-        </div>
+        </div></Portal>
       )}
     </div>
   );
@@ -1483,7 +1483,7 @@ export function Run() {
   return (
     <div className="space-y-4">
       {fromHistory && activeRun ? (
-        <PageToolbar desc={<span><button onClick={() => goto("history")} className="text-teal-400 hover:underline">실행 이력</button> <span className="text-slate-600">›</span> <span className="text-slate-300 font-medium">{activeRun.id} 결과</span></span>}>
+        <PageToolbar desc={<span><button onClick={() => goto("history")} className="text-sky-600 hover:underline">실행 이력</button> <span className="text-slate-400">›</span> <span className="text-slate-700 font-medium">{activeRun.id} 결과</span></span>}>
           <Btn icon={FileDown} onClick={() => toast("Excel 다운로드 — 케이스별 판정·점수·근거", "ok")}>Excel</Btn>
           <Btn icon={FileDown} onClick={() => toast("PDF 리포트 다운로드", "ok")}>PDF</Btn>
           <Btn icon={ChevronLeft} onClick={() => goto("history")}>실행 이력으로</Btn>
@@ -1492,38 +1492,38 @@ export function Run() {
         <PageToolbar desc="평가 실행 및 HITL 검토 · 예외 케이스 중심" />
       )}
       {fromHistory && activeRun && (
-        <Card className="flex flex-wrap items-center gap-3 p-3 text-xs text-slate-400"><span className="font-mono text-teal-400">{activeRun.id}</span><span className="text-sm font-medium text-slate-200">{activeRun.planName}</span><Badge kind="info">{activeRun.trigger}</Badge><span>{activeRun.startedAt}</span><span className="text-slate-600">·</span><span>모델 {activeRun.snapshot.model} · 프롬프트 {activeRun.snapshot.promptVer} · 케이스 {activeRun.snapshot.caseVer}</span><span className="text-slate-600">·</span><span>점수 <span className="font-semibold text-teal-300">{activeRun.score != null ? activeRun.score : "—"}</span></span></Card>
+        <Card className="flex flex-wrap items-center gap-3 p-3 text-xs text-slate-500"><span className="font-mono text-sky-600">{activeRun.id}</span><span className="text-sm font-medium text-slate-800">{activeRun.planName}</span><Badge kind="info">{activeRun.trigger}</Badge><span>{activeRun.startedAt}</span><span className="text-slate-400">·</span><span>모델 {activeRun.snapshot.model} · 프롬프트 {activeRun.snapshot.promptVer} · 케이스 {activeRun.snapshot.caseVer}</span><span className="text-slate-400">·</span><span>점수 <span className="font-semibold text-sky-600">{activeRun.score != null ? activeRun.score : "—"}</span></span></Card>
       )}
       {!fromHistory && (<Card className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 text-sm flex-wrap">
             <div className="flex items-center gap-2"><span className="text-slate-500 text-xs">평가 계획</span>
-              <select value={planId} onChange={(e) => setPlanId(+e.target.value)} disabled={!runnablePlans.length} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-200 text-sm">{runnablePlans.length ? runnablePlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>) : <option value="">활성 계획 없음</option>}</select>
+              <select value={planId} onChange={(e) => setPlanId(+e.target.value)} disabled={!runnablePlans.length} className="bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 text-sm">{runnablePlans.length ? runnablePlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>) : <option value="">활성 계획 없음</option>}</select>
             </div>
-            {!runnablePlans.length && <span className="text-xs text-amber-400">활성 상태의 평가 계획이 없습니다 — 계획을 활성화하세요</span>}
-            <span className="text-slate-600">·</span>
-            <div><span className="text-slate-500">Judge</span> <span className="text-slate-200 font-medium">{(curPlan && curPlan.judgeList && curPlan.judgeList.join(", ")) || "—"}</span></div>
-            <span className="text-slate-600">·</span>
-            <div><span className="text-slate-500">대상</span> <span className="text-slate-200 font-medium">TC {planCases(cases, curPlan).length}건</span> <span className="text-xs text-slate-500">(계획 선택)</span></div>
+            {!runnablePlans.length && <span className="text-xs text-amber-600">활성 상태의 평가 계획이 없습니다 — 계획을 활성화하세요</span>}
+            <span className="text-slate-400">·</span>
+            <div><span className="text-slate-500">Judge</span> <span className="text-slate-800 font-medium">{(curPlan && curPlan.judgeList && curPlan.judgeList.join(", ")) || "—"}</span></div>
+            <span className="text-slate-400">·</span>
+            <div><span className="text-slate-500">대상</span> <span className="text-slate-800 font-medium">TC {planCases(cases, curPlan).length}건</span> <span className="text-xs text-slate-500">(계획 선택)</span></div>
           </div>
           <Btn kind="primary" icon={Play} disabled={!runnablePlans.length} onClick={() => enqueue(curPlan, "수동")}>평가 실행</Btn>
         </div>
-        {activeRun && <div className="mt-2 text-xs text-slate-500">실행 <span className="font-mono text-teal-400">{activeRun.id}</span> · 트리거 {activeRun.trigger} · {activeRun.startedAt} · 스냅샷 {activeRun.snapshot.model} / 프롬프트 {activeRun.snapshot.promptVer}</div>}
+        {activeRun && <div className="mt-2 text-xs text-slate-500">실행 <span className="font-mono text-sky-600">{activeRun.id}</span> · 트리거 {activeRun.trigger} · {activeRun.startedAt} · 스냅샷 {activeRun.snapshot.model} / 프롬프트 {activeRun.snapshot.promptVer}</div>}
       </Card>)}
 
       {!fromHistory && queueRuns.length > 0 && (
         <Card className="p-3">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-300"><span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />평가 큐 {queueRuns.length}건 <span className="font-normal text-slate-500">· 수동·스케줄·이벤트 통합 · 완료되면 결과가 아래에 열립니다</span></span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700"><span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />평가 큐 {queueRuns.length}건 <span className="font-normal text-slate-500">· 수동·스케줄·이벤트 통합 · 완료되면 결과가 아래에 열립니다</span></span>
           </div>
           <div className="mt-2 space-y-1.5">
             {queueRuns.map((r) => (
-              <div key={r.id} className="rounded-lg bg-slate-800 px-3 py-2 text-xs">
+              <div key={r.id} className="rounded-lg bg-slate-100 px-3 py-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <div><span className="font-mono text-teal-400">{r.id}</span> <span className="text-slate-200">{r.planName}</span></div>
-                  <div className="flex items-center gap-2 text-slate-400">{r.status === "진행중" && r.progt && <span className="text-slate-500">{r.progt} 케이스</span>}<Badge kind={r.status === "진행중" ? "warn" : "info"}>{r.status}</Badge><Badge kind="info">{r.trigger}</Badge></div>
+                  <div><span className="font-mono text-sky-600">{r.id}</span> <span className="text-slate-800">{r.planName}</span></div>
+                  <div className="flex items-center gap-2 text-slate-500">{r.status === "진행중" && r.progt && <span className="text-slate-500">{r.progt} 케이스</span>}<Badge kind={r.status === "진행중" ? "warn" : "info"}>{r.status}</Badge><Badge kind="info">{r.trigger}</Badge></div>
                 </div>
-                {r.status === "진행중" && <div className="mt-1.5 h-1.5 rounded bg-slate-700"><div className="h-1.5 rounded bg-teal-500 transition-all" style={{ width: (r.prog || 0) + "%" }} /></div>}
+                {r.status === "진행중" && <div className="mt-1.5 h-1.5 rounded bg-slate-200"><div className="h-1.5 rounded bg-sky-500 transition-all" style={{ width: (r.prog || 0) + "%" }} /></div>}
               </div>
             ))}
           </div>
@@ -1537,21 +1537,21 @@ export function Run() {
       {activeRun && (
         <>
           <div className="grid grid-cols-5 gap-3">
-            {[["총 케이스", sm.total, "text-slate-100"], ["Pass", sm.pass, "text-emerald-400"], ["Fail", sm.fail, "text-red-400"], ["경고", sm.warn, "text-amber-400"], ["종합 점수", sm.score, "text-teal-400"]].map((x) => (
+            {[["총 케이스", sm.total, "text-slate-900"], ["Pass", sm.pass, "text-emerald-600"], ["Fail", sm.fail, "text-red-600"], ["경고", sm.warn, "text-amber-600"], ["종합 점수", sm.score, "text-sky-600"]].map((x) => (
               <Card key={x[0]} className="p-3 text-center"><div className={"text-2xl font-bold " + x[2]}>{x[1]}</div><div className="text-xs text-slate-500 mt-0.5">{x[0]}</div></Card>
             ))}
           </div>
           <div className="grid grid-cols-5 gap-4">
             <Card className="col-span-2 overflow-hidden flex flex-col">
-              <div className="px-4 py-3 border-b border-slate-800">
-                <div className="flex items-center justify-between mb-2"><span className="text-sm font-semibold text-slate-200">케이스 결과</span><span className="text-xs text-slate-500">{overridden > 0 ? "정정 " + overridden + "건" : "정정 없음"}</span></div>
-                <div className="flex gap-1.5 mb-2">{["검토 필요", "통과", "전체"].map((t) => (<button key={t} onClick={() => setRevF(t)} className={"rounded-full px-2.5 py-1 text-xs " + (revF === t ? "bg-teal-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700")}>{t}{t === "검토 필요" ? " " + needTotal : ""}</button>))}</div>
+              <div className="px-4 py-3 border-b border-slate-200">
+                <div className="flex items-center justify-between mb-2"><span className="text-sm font-semibold text-slate-800">케이스 결과</span><span className="text-xs text-slate-500">{overridden > 0 ? "정정 " + overridden + "건" : "정정 없음"}</span></div>
+                <div className="flex gap-1.5 mb-2">{["검토 필요", "통과", "전체"].map((t) => (<button key={t} onClick={() => setRevF(t)} className={"rounded-full px-2.5 py-1 text-xs " + (revF === t ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{t}{t === "검토 필요" ? " " + needTotal : ""}</button>))}</div>
               </div>
               <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
                 {shown.map((c) => (
-                  <div key={c.id} onClick={() => setSel(c)} className={"px-4 py-3 border-b border-slate-800 cursor-pointer hover:bg-slate-800 " + (sel && sel.id === c.id ? "bg-slate-800" : "")}>
-                    <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 font-mono text-xs text-teal-400">{c.id}{(c.final || c.verdict) === "FAIL" && openDefectOf(c.id, runBot) && <Bug size={12} className="text-red-400" title="열린 결함 있음" />}</span><div className="flex items-center gap-2">{c.final && <CheckCircle2 size={13} className={c.final === c.verdict ? "text-emerald-400" : "text-amber-400"} />}<span className="text-sm font-semibold text-slate-200">{c.score}</span><Badge kind={vKind(c.final || c.verdict)}>{c.final || c.verdict}</Badge>{c.final && c.final !== c.verdict && <span className="rounded bg-amber-900 px-1 text-xs text-amber-300">정정</span>}</div></div>
-                    <div className="text-xs text-slate-400 mt-1 truncate">{c.q}</div>
+                  <div key={c.id} onClick={() => setSel(c)} className={"px-4 py-3 border-b border-slate-200 cursor-pointer hover:bg-slate-100 " + (sel && sel.id === c.id ? "bg-slate-100" : "")}>
+                    <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 font-mono text-xs text-sky-600">{c.id}{(c.final || c.verdict) === "FAIL" && openDefectOf(c.id, runBot) && <Bug size={12} className="text-red-600" title="열린 결함 있음" />}</span><div className="flex items-center gap-2">{c.final && <CheckCircle2 size={13} className={c.final === c.verdict ? "text-emerald-600" : "text-amber-600"} />}<span className="text-sm font-semibold text-slate-800">{c.score}</span><Badge kind={vKind(c.final || c.verdict)}>{c.final || c.verdict}</Badge>{c.final && c.final !== c.verdict && <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">정정</span>}</div></div>
+                    <div className="text-xs text-slate-500 mt-1 truncate">{c.q}</div>
                   </div>
                 ))}
                 {shown.length === 0 && <div className="px-4 py-8 text-center text-xs text-slate-500">해당 항목이 없습니다.</div>}
@@ -1560,26 +1560,26 @@ export function Run() {
             <Card className="col-span-3 p-5">
               {sel ? (
                 <>
-                  <div className="flex items-center justify-between mb-3"><span className="font-mono text-teal-400">{sel.id}</span><Badge kind={vKind(sel.verdict)}>{sel.verdict} · {sel.score}점</Badge></div>
+                  <div className="flex items-center justify-between mb-3"><span className="font-mono text-sky-600">{sel.id}</span><Badge kind={vKind(sel.verdict)}>{sel.verdict} · {sel.score}점</Badge></div>
                   <div className="space-y-3 text-sm">
                     <Block label="질문" tone="plain">{sel.q}</Block>
                     <Block label="기대 응답 (Golden)" tone="ok">{sel.golden}</Block>
                     <Block label="실제 챗봇 응답" tone={sel.verdict === "FAIL" ? "err" : "plain"}>{sel.actual}</Block>
                     {sel.scores && Object.keys(sel.scores).length > 0 && (<div><div className="text-xs text-slate-500 mb-2">LLM Judge 다차원 채점</div><div className="grid grid-cols-2 gap-x-5">{Object.entries(sel.scores).map(([k, v]) => (<ScoreBar key={k} label={k} value={v} color={v >= 80 ? C.teal : v >= 60 ? C.warn : C.err} />))}</div></div>)}
-                    <Block label="Judge 평가 근거" tone="plain"><span className="text-slate-400">{sel.judge}</span></Block>
-                    <div className="flex items-center gap-2 flex-wrap"><span className="text-xs text-slate-500">안전 게이트:</span>{[["환각", sel.safety.환각], ["PII 노출", sel.safety.PII], ["정책 위반", sel.safety.정책]].filter(([, v]) => v && v !== "미검사").map(([k, v]) => <Badge key={k} kind={vKind(v)}>{k} {v}</Badge>)}{[sel.safety.환각, sel.safety.PII, sel.safety.정책].every((v) => !v || v === "미검사") && <span className="text-xs text-slate-600">활성 게이트 없음</span>}</div>
-                    <div className="pt-2 border-t border-slate-800">
-                      <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-500">결과 판정 <span className="text-slate-600">· Judge {sel.verdict} (기본)</span>{sel.final && sel.final !== sel.verdict && <Badge kind="warn">정정됨</Badge>}</div>
+                    <Block label="Judge 평가 근거" tone="plain"><span className="text-slate-500">{sel.judge}</span></Block>
+                    <div className="flex items-center gap-2 flex-wrap"><span className="text-xs text-slate-500">안전 게이트:</span>{[["환각", sel.safety.환각], ["PII 노출", sel.safety.PII], ["정책 위반", sel.safety.정책]].filter(([, v]) => v && v !== "미검사").map(([k, v]) => <Badge key={k} kind={vKind(v)}>{k} {v}</Badge>)}{[sel.safety.환각, sel.safety.PII, sel.safety.정책].every((v) => !v || v === "미검사") && <span className="text-xs text-slate-400">활성 게이트 없음</span>}</div>
+                    <div className="pt-2 border-t border-slate-200">
+                      <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-500">결과 판정 <span className="text-slate-400">· Judge {sel.verdict} (기본)</span>{sel.final && sel.final !== sel.verdict && <Badge kind="warn">정정됨</Badge>}</div>
                       <div className="flex items-center gap-2">
                         {["PASS", "WARN", "FAIL"].map((v) => (
-                          <button key={v} onClick={() => { setFinal(sel.id, v); toast(sel.id + (v === sel.verdict ? " · Judge 판정 유지" : " → " + v + " 정정"), v === "FAIL" && v !== sel.verdict ? "warn" : "ok"); }} className={"inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm " + ((sel.final || sel.verdict) === v ? (v === "FAIL" ? "bg-red-600 text-white" : v === "WARN" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-slate-800 text-slate-300 hover:bg-slate-700")}>{v}{v === sel.verdict ? " · Judge" : ""}</button>
+                          <button key={v} onClick={() => { setFinal(sel.id, v); toast(sel.id + (v === sel.verdict ? " · Judge 판정 유지" : " → " + v + " 정정"), v === "FAIL" && v !== sel.verdict ? "warn" : "ok"); }} className={"inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm " + ((sel.final || sel.verdict) === v ? (v === "FAIL" ? "bg-red-600 text-white" : v === "WARN" ? "bg-amber-500 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{v}{v === sel.verdict ? " · Judge" : ""}</button>
                         ))}
                         <div className="flex-1" />
                         {(sel.final || sel.verdict) === "FAIL" && (openDefectOf(sel.id, runBot)
                           ? <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(sel.id, runBot).key }); goto("defects"); }}>결함 보기 · {openDefectOf(sel.id, runBot).key}</Btn>
                           : <Btn kind="danger" icon={Bug} onClick={() => openModal("jira", { tc: sel.id, target: runBot, sev: "Critical", title: (isRegression(sel.id, runBot) ? "[재발] " : "") + sel.id + " 평가 실패", q: sel.q, pre: sel.pre, golden: sel.golden, actual: sel.actual, judge: sel.judge, score: sel.score, safety: sel.safety, env: activeRun ? (activeRun.snapshot.model + " / 프롬프트 " + activeRun.snapshot.promptVer + " / 케이스 " + activeRun.snapshot.caseVer) : "" })}>{isRegression(sel.id, runBot) ? "재발 결함 등록" : "결함 등록"}</Btn>)}
                       </div>
-                      <div className="mt-1.5 text-xs text-slate-600">손대지 않으면 Judge 판정이 그대로 최종 · 이견 있는 예외만 정정하세요.</div>
+                      <div className="mt-1.5 text-xs text-slate-400">손대지 않으면 Judge 판정이 그대로 최종 · 이견 있는 예외만 정정하세요.</div>
                     </div>
                   </div>
                 </>
@@ -1593,8 +1593,8 @@ export function Run() {
 }
 
 export function Block({ label, children, tone }) {
-  const t = { ok: "bg-emerald-950 border-emerald-900", err: "bg-red-950 border-red-900", plain: "bg-slate-800 border-slate-700" };
-  return <div><div className="text-xs text-slate-500 mb-1">{label}</div><div className={"rounded-lg border p-3 text-slate-200 " + (t[tone] || t.plain)}>{children}</div></div>;
+  const t = { ok: "bg-emerald-50 border-emerald-200", err: "bg-red-50 border-red-200", plain: "bg-slate-100 border-slate-300" };
+  return <div><div className="text-xs text-slate-500 mb-1">{label}</div><div className={"rounded-lg border p-3 text-slate-800 " + (t[tone] || t.plain)}>{children}</div></div>;
 }
 
 export function Compare() {
@@ -1612,7 +1612,7 @@ export function Compare() {
   const delta = (A.score != null && B.score != null) ? +(B.score - A.score).toFixed(1) : null;
   const label = (r) => r.id + " · " + (r.startedAt || "").slice(0, 10) + " · " + (r.score != null ? r.score : "—");
   const rank = { FAIL: 0, WARN: 1, PASS: 2 };
-  const cls = (a, b) => (a === b ? { k: "유지", c: "text-slate-500" } : rank[b] > rank[a] ? { k: "개선", c: "text-emerald-400" } : { k: "퇴행", c: "text-red-400" });
+  const cls = (a, b) => (a === b ? { k: "유지", c: "text-slate-500" } : rank[b] > rank[a] ? { k: "개선", c: "text-emerald-600" } : { k: "퇴행", c: "text-red-600" });
   const reg = (A.results || []).map((ra) => { const rb = (B.results || []).find((x) => x.id === ra.id) || {}; return { id: ra.id, q: ra.q, cat: ra.cat, aV: ra.verdict, bV: rb.verdict || ra.verdict }; });
   const summ = reg.reduce((acc, r) => { const k = cls(r.aV, r.bV).k; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
   const DIMS = ["관련성", "정확성", "안전성", "일관성"];
@@ -1670,22 +1670,22 @@ export function Compare() {
       ) : (
       <>
       <div className="grid grid-cols-2 gap-4">
-        <Card className="p-4"><div className="text-xs text-slate-500 mb-1">A — 기준(baseline)</div><Select value={aId} onChange={(e) => setAId(e.target.value)}>{done.map((r) => <option key={r.id} value={r.id}>{label(r)}</option>)}</Select><div className="mt-3 text-4xl font-bold text-slate-300">{A.score != null ? A.score : "—"}</div></Card>
-        <Card className="p-4 border-teal-700"><div className="text-xs text-slate-500 mb-1">B — 비교(target)</div><Select value={bId} onChange={(e) => setBId(e.target.value)}>{done.map((r) => <option key={r.id} value={r.id}>{label(r)}</option>)}</Select><div className="mt-3 flex items-end gap-2"><span className="text-4xl font-bold text-teal-400">{B.score != null ? B.score : "—"}</span>{delta != null && <span className={"text-sm mb-1 flex items-center " + (delta >= 0 ? "text-emerald-400" : "text-red-400")}>{delta >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}{delta >= 0 ? "+" + delta : delta}</span>}</div></Card>
+        <Card className="p-4"><div className="text-xs text-slate-500 mb-1">A — 기준(baseline)</div><Select value={aId} onChange={(e) => setAId(e.target.value)}>{done.map((r) => <option key={r.id} value={r.id}>{label(r)}</option>)}</Select><div className="mt-3 text-4xl font-bold text-slate-700">{A.score != null ? A.score : "—"}</div></Card>
+        <Card className="p-4 border-sky-300"><div className="text-xs text-slate-500 mb-1">B — 비교(target)</div><Select value={bId} onChange={(e) => setBId(e.target.value)}>{done.map((r) => <option key={r.id} value={r.id}>{label(r)}</option>)}</Select><div className="mt-3 flex items-end gap-2"><span className="text-4xl font-bold text-sky-600">{B.score != null ? B.score : "—"}</span>{delta != null && <span className={"text-sm mb-1 flex items-center " + (delta >= 0 ? "text-emerald-600" : "text-red-600")}>{delta >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}{delta >= 0 ? "+" + delta : delta}</span>}</div></Card>
       </div>
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 text-center"><div className="text-2xl font-bold text-emerald-400">{summ["개선"] || 0}</div><div className="text-xs text-slate-500 mt-0.5">개선</div></Card>
-        <Card className="p-4 text-center"><div className="text-2xl font-bold text-red-400">{summ["퇴행"] || 0}</div><div className="text-xs text-slate-500 mt-0.5">퇴행 (회귀)</div></Card>
-        <Card className="p-4 text-center"><div className="text-2xl font-bold text-slate-300">{summ["유지"] || 0}</div><div className="text-xs text-slate-500 mt-0.5">유지</div></Card>
+        <Card className="p-4 text-center"><div className="text-2xl font-bold text-emerald-600">{summ["개선"] || 0}</div><div className="text-xs text-slate-500 mt-0.5">개선</div></Card>
+        <Card className="p-4 text-center"><div className="text-2xl font-bold text-red-600">{summ["퇴행"] || 0}</div><div className="text-xs text-slate-500 mt-0.5">퇴행 (회귀)</div></Card>
+        <Card className="p-4 text-center"><div className="text-2xl font-bold text-slate-700">{summ["유지"] || 0}</div><div className="text-xs text-slate-500 mt-0.5">유지</div></Card>
       </div>
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800"><span className="text-sm font-semibold text-slate-200">케이스 회귀 분석</span><div className="flex gap-2"><Btn icon={FileDown} onClick={() => toast("Excel 내보내기 완료", "ok")}>Excel</Btn><Btn kind="primary" icon={Sparkles} onClick={() => setAiOpen(true)}>AI 분석</Btn></div></div>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200"><span className="text-sm font-semibold text-slate-800">케이스 회귀 분석</span><div className="flex gap-2"><Btn icon={FileDown} onClick={() => toast("Excel 내보내기 완료", "ok")}>Excel</Btn><Btn kind="primary" icon={Sparkles} onClick={() => setAiOpen(true)}>AI 분석</Btn></div></div>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2.5 px-4 font-medium">ID</th><th className="font-medium">질문</th><th className="font-medium">A</th><th className="font-medium"></th><th className="font-medium">B</th><th className="font-medium">변화</th></tr></thead>
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 px-4 font-medium">ID</th><th className="font-medium">질문</th><th className="font-medium">A</th><th className="font-medium"></th><th className="font-medium">B</th><th className="font-medium">변화</th></tr></thead>
           <tbody>
             {reg.map((r) => { const v = cls(r.aV, r.bV); return (
-              <tr key={r.id} className={"border-b border-slate-800 text-slate-300 " + (v.k === "퇴행" ? "bg-red-950" : "")}>
-                <td className="py-2.5 px-4 font-mono text-teal-400">{r.id}</td><td className="max-w-xs truncate text-slate-300">{r.q}</td><td><Badge kind={vKind(r.aV)}>{r.aV}</Badge></td><td className="text-slate-600">→</td><td><Badge kind={vKind(r.bV)}>{r.bV}</Badge></td><td className={"font-semibold " + v.c}>{v.k}</td>
+              <tr key={r.id} className={"border-b border-slate-200 text-slate-700 " + (v.k === "퇴행" ? "bg-red-50" : "")}>
+                <td className="py-2.5 px-4 font-mono text-sky-600">{r.id}</td><td className="max-w-xs truncate text-slate-700">{r.q}</td><td><Badge kind={vKind(r.aV)}>{r.aV}</Badge></td><td className="text-slate-400">→</td><td><Badge kind={vKind(r.bV)}>{r.bV}</Badge></td><td className={"font-semibold " + v.c}>{v.k}</td>
               </tr>
             ); })}
             {reg.length === 0 && <tr><td colSpan={6}><EmptyState icon={FileText} title="선택한 실행에 케이스 결과가 없습니다" /></td></tr>}
@@ -1693,40 +1693,40 @@ export function Compare() {
         </table>
       </Card>
       {aiOpen && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-black bg-opacity-50" onClick={() => setAiOpen(false)}>
-          <div className="h-full w-full max-w-md overflow-y-auto border-l border-slate-800 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between"><span className="flex items-center gap-2 font-semibold text-slate-100"><Sparkles size={16} className="text-teal-400" />AI 회귀 분석</span><button onClick={() => setAiOpen(false)} className="text-slate-500 hover:text-slate-300"><X size={20} /></button></div>
+        <Portal><div className="fixed inset-0 z-40 flex justify-end bg-black/50" onClick={() => setAiOpen(false)}>
+          <div className="h-full w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between"><span className="flex items-center gap-2 font-semibold text-slate-900"><Sparkles size={16} className="text-sky-600" />AI 회귀 분석</span><button onClick={() => setAiOpen(false)} className="text-slate-500 hover:text-slate-700"><X size={20} /></button></div>
             <div className="space-y-4 text-sm">
-              <div className="flex items-center gap-2"><Badge kind="info">계산</Badge><span className="text-xs text-slate-400">결정적 분석 — 저장된 실행 결과 산술</span></div>
-              <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+              <div className="flex items-center gap-2"><Badge kind="info">계산</Badge><span className="text-xs text-slate-500">결정적 분석 — 저장된 실행 결과 산술</span></div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <div className="text-xs text-slate-500">판정 요약 · {aId} → {bId}</div>
-                <div className="mt-1 text-slate-200">점수 {delta != null ? (delta >= 0 ? "+" + delta : "" + delta) : "—"} · 유의미 회귀 <span className="font-semibold text-red-300">{sig["회귀"].length}</span>건 · 점수 하락 관찰 <span className="font-semibold text-amber-300">{sig["점수하락"].length}</span>건 · 개선 <span className="font-semibold text-emerald-300">{sig["개선"].length}</span>건</div>
-                <div className="mt-1 text-xs text-slate-600">±{NOISE}점 미만 변동은 평가자(LLM) 채점 노이즈로 간주해 회귀에서 제외 · 판정 임계 교차만 회귀로 집계</div>
+                <div className="mt-1 text-slate-800">점수 {delta != null ? (delta >= 0 ? "+" + delta : "" + delta) : "—"} · 유의미 회귀 <span className="font-semibold text-red-700">{sig["회귀"].length}</span>건 · 점수 하락 관찰 <span className="font-semibold text-amber-700">{sig["점수하락"].length}</span>건 · 개선 <span className="font-semibold text-emerald-700">{sig["개선"].length}</span>건</div>
+                <div className="mt-1 text-xs text-slate-400">±{NOISE}점 미만 변동은 평가자(LLM) 채점 노이즈로 간주해 회귀에서 제외 · 판정 임계 교차만 회귀로 집계</div>
               </div>
               <div>
-                <div className="mb-1.5 text-xs font-semibold text-slate-400">무엇이 바뀌었나 (스냅샷)</div>
+                <div className="mb-1.5 text-xs font-semibold text-slate-500">무엇이 바뀌었나 (스냅샷)</div>
                 {snapDiff.length === 0 ? <div className="text-xs text-slate-500">모델·프롬프트·케이스셋 변경 없음 (동일 조건 재실행)</div> : (
-                  <div className="space-y-1">{snapRows.map((r) => (<div key={r[0]} className={"flex items-center justify-between rounded px-2 py-1 text-xs " + (r[1] !== r[2] ? "bg-slate-800" : "")}><span className="text-slate-400">{r[0]}</span><span className={r[1] !== r[2] ? "text-amber-300" : "text-slate-500"}>{r[1]} → {r[2]}</span></div>))}</div>
+                  <div className="space-y-1">{snapRows.map((r) => (<div key={r[0]} className={"flex items-center justify-between rounded px-2 py-1 text-xs " + (r[1] !== r[2] ? "bg-slate-100" : "")}><span className="text-slate-500">{r[0]}</span><span className={r[1] !== r[2] ? "text-amber-700" : "text-slate-500"}>{r[1]} → {r[2]}</span></div>))}</div>
                 )}
               </div>
               <div>
-                <div className="mb-1.5 text-xs font-semibold text-slate-400">지표별 점수 변화</div>
-                <div className="space-y-1">{dimDelta.map((x) => (<div key={x.d} className="flex items-center justify-between text-xs"><span className="text-slate-400">{x.d}</span><span className="flex items-center gap-2 text-slate-300">{x.a != null ? x.a : "—"} → {x.b != null ? x.b : "—"}{x.delta != null && <span className={"flex items-center " + (x.delta >= 0 ? "text-emerald-400" : "text-red-400")}>{x.delta >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}{x.delta >= 0 ? "+" + x.delta : x.delta}</span>}</span></div>))}</div>
+                <div className="mb-1.5 text-xs font-semibold text-slate-500">지표별 점수 변화</div>
+                <div className="space-y-1">{dimDelta.map((x) => (<div key={x.d} className="flex items-center justify-between text-xs"><span className="text-slate-500">{x.d}</span><span className="flex items-center gap-2 text-slate-700">{x.a != null ? x.a : "—"} → {x.b != null ? x.b : "—"}{x.delta != null && <span className={"flex items-center " + (x.delta >= 0 ? "text-emerald-600" : "text-red-600")}>{x.delta >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}{x.delta >= 0 ? "+" + x.delta : x.delta}</span>}</span></div>))}</div>
               </div>
-              <div className="flex items-center gap-2 border-t border-slate-800 pt-3"><Badge kind="teal">AI 추정</Badge><span className="text-xs text-slate-400">온프렘 LLM(사내) 경유 · 원문 마스킹 · 검증 필요</span></div>
+              <div className="flex items-center gap-2 border-t border-slate-200 pt-3"><Badge kind="teal">AI 추정</Badge><span className="text-xs text-slate-500">온프렘 LLM(사내) 경유 · 원문 마스킹 · 검증 필요</span></div>
               <div>
-                <div className="mb-1.5 text-xs font-semibold text-slate-400">회귀 원인 후보</div>
-                <ul className="space-y-1.5">{causes.map((c, i) => (<li key={i} className="flex gap-2 text-xs text-slate-300"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400" />{c}</li>))}</ul>
+                <div className="mb-1.5 text-xs font-semibold text-slate-500">회귀 원인 후보</div>
+                <ul className="space-y-1.5">{causes.map((c, i) => (<li key={i} className="flex gap-2 text-xs text-slate-700"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-400" />{c}</li>))}</ul>
               </div>
               <div>
-                <div className="mb-1.5 text-xs font-semibold text-slate-400">권고 조치</div>
-                <ul className="space-y-1.5">{recs.map((c, i) => (<li key={i} className="flex gap-2 text-xs text-slate-300"><CheckCircle2 size={13} className="mt-0.5 shrink-0 text-emerald-400" />{c}</li>))}</ul>
+                <div className="mb-1.5 text-xs font-semibold text-slate-500">권고 조치</div>
+                <ul className="space-y-1.5">{recs.map((c, i) => (<li key={i} className="flex gap-2 text-xs text-slate-700"><CheckCircle2 size={13} className="mt-0.5 shrink-0 text-emerald-600" />{c}</li>))}</ul>
               </div>
               {regressed.length > 0 && <Btn kind="primary" icon={Bug} onClick={regAllLQA}>유의미 회귀 {regressed.length}건 결함 등록</Btn>}
-              <div className="text-xs text-slate-600">＊ 결정적 분석은 저장된 결과의 계산이며, AI 추정 항목은 참고용(원인·권고)입니다.</div>
+              <div className="text-xs text-slate-400">＊ 결정적 분석은 저장된 결과의 계산이며, AI 추정 항목은 참고용(원인·권고)입니다.</div>
             </div>
           </div>
-        </div>
+        </div></Portal>
       )}
       </>
       )}
@@ -1770,19 +1770,19 @@ export function Defects() {
         <Btn icon={SlidersHorizontal} onClick={() => openModal("jiraConfig")}>Jira 연동</Btn>
         <Btn kind="primary" icon={Bug} onClick={() => openModal("jira", { tc: "수동", sev: "Major", title: "" })}>이슈 등록</Btn>
       </PageToolbar>
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-400">{jc.connected ? <><Badge kind="active">Jira 연결됨</Badge><span className="font-mono text-slate-300">{jc.url || "—"}</span><span className="text-slate-600">·</span><span>기본 프로젝트 <span className="text-slate-300">{jc.project || "—"}</span> · 이슈유형 {jc.issueType || "—"}</span><span className="text-slate-600">·</span><span>계획별로 재정의 가능</span></> : <><Badge kind="draft">Jira 미연동</Badge><span>결함은 내부에만 기록됩니다 — <span className="text-teal-400 cursor-pointer" onClick={() => openModal("jiraConfig")}>Jira 연동 설정</span>에서 연결하세요.</span></>}</div>
-      <div className="flex items-center gap-3 text-sm text-slate-400"><span>미해결 <span className="font-semibold text-red-300">{openN}</span></span><span className="text-slate-600">·</span><span>해결 <span className="font-semibold text-emerald-300">{resN}</span></span><span className="text-slate-600">·</span><span className="text-slate-500">총 {list.length}건</span></div>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">{jc.connected ? <><Badge kind="active">Jira 연결됨</Badge><span className="font-mono text-slate-700">{jc.url || "—"}</span><span className="text-slate-400">·</span><span>기본 프로젝트 <span className="text-slate-700">{jc.project || "—"}</span> · 이슈유형 {jc.issueType || "—"}</span><span className="text-slate-400">·</span><span>계획별로 재정의 가능</span></> : <><Badge kind="draft">Jira 미연동</Badge><span>결함은 내부에만 기록됩니다 — <span className="text-sky-600 cursor-pointer" onClick={() => openModal("jiraConfig")}>Jira 연동 설정</span>에서 연결하세요.</span></>}</div>
+      <div className="flex items-center gap-3 text-sm text-slate-500"><span>미해결 <span className="font-semibold text-red-700">{openN}</span></span><span className="text-slate-400">·</span><span>해결 <span className="font-semibold text-emerald-700">{resN}</span></span><span className="text-slate-400">·</span><span className="text-slate-500">총 {list.length}건</span></div>
       <Card>
       <table className="w-full text-sm">
-        <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2.5 px-4 font-medium">이슈</th><th className="font-medium">영역</th><th className="font-medium">대상</th><th className="font-medium">TC</th><th className="font-medium">심각도</th><th className="font-medium">제목</th><th className="font-medium">상태</th><th className="font-medium">담당자</th><th className="font-medium">보고 / 수정</th><th></th></tr></thead>
-        <tbody className="text-slate-300">
+        <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 px-4 font-medium">이슈</th><th className="font-medium">영역</th><th className="font-medium">대상</th><th className="font-medium">TC</th><th className="font-medium">심각도</th><th className="font-medium">제목</th><th className="font-medium">상태</th><th className="font-medium">담당자</th><th className="font-medium">보고 / 수정</th><th></th></tr></thead>
+        <tbody className="text-slate-700">
           {list.map((d) => (
-            <tr key={d.key} onClick={() => { setEdit(false); setSel(d); }} className={"cursor-pointer border-b border-slate-800 hover:bg-slate-800 " + (d.status === "Resolved" ? "opacity-60" : "")}>
-              <td className="py-3 px-4 font-mono text-teal-400">{d.key}</td><td><Badge kind={domKind[d.domain || "LQA"] || "info"}>{domLabel[d.domain || "LQA"]}</Badge></td><td className="text-xs text-slate-400">{d.target || "—"}</td><td className="font-mono text-slate-400">{d.tc}{Array.isArray(d.rows) && d.rows.length > 0 && <span className="ml-1.5 rounded bg-slate-700 px-1.5 py-0.5 text-slate-300" style={{ fontSize: 10 }} title={d.rows.map((r) => r.i + "행 · " + Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")).join("\n")}>{d.rows.map((r) => r.i).join(",")}행</span>}</td><td><Badge kind={sev[d.sev]}>{d.sev}</Badge></td><td className="max-w-sm text-slate-200">{d.title}</td>
+            <tr key={d.key} onClick={() => { setEdit(false); setSel(d); }} className={"cursor-pointer border-b border-slate-200 hover:bg-slate-100 " + (d.status === "Resolved" ? "opacity-60" : "")}>
+              <td className="py-3 px-4 font-mono text-sky-600">{d.key}</td><td><Badge kind={domKind[d.domain || "LQA"] || "info"}>{domLabel[d.domain || "LQA"]}</Badge></td><td className="text-xs text-slate-500">{d.target || "—"}</td><td className="font-mono text-slate-500">{d.tc}{Array.isArray(d.rows) && d.rows.length > 0 && <span className="ml-1.5 rounded bg-slate-200 px-1.5 py-0.5 text-slate-700" style={{ fontSize: 10 }} title={d.rows.map((r) => r.i + "행 · " + Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")).join("\n")}>{d.rows.map((r) => r.i).join(",")}행</span>}</td><td><Badge kind={sev[d.sev]}>{d.sev}</Badge></td><td className="max-w-sm text-slate-800">{d.title}</td>
               <td><Badge kind={st[d.status] || "info"}>{d.status || "Open"}</Badge></td>
-              <td className="text-slate-400">{d.assignee || <span className="text-slate-600">미지정</span>}</td>
-              <td className="pr-2 text-xs leading-tight text-slate-500"><div>{d.createdBy || "—"} · {d.createdAt || "—"}</div>{d.updatedAt && d.updatedAt !== d.createdAt && <div className="text-slate-400">수정 {d.updatedBy} · {d.updatedAt}</div>}</td>
-              <td className="pr-4" onClick={(e) => e.stopPropagation()}><div className="flex items-center gap-2">{jc.connected && <button onClick={() => toast(d.key + " 이슈 트래커로 이동 (데모)", "info")} className="text-slate-500 hover:text-teal-400" title="이슈 트래커"><ExternalLink size={15} /></button>}</div></td>
+              <td className="text-slate-500">{d.assignee || <span className="text-slate-400">미지정</span>}</td>
+              <td className="pr-2 text-xs leading-tight text-slate-500"><div>{d.createdBy || "—"} · {d.createdAt || "—"}</div>{d.updatedAt && d.updatedAt !== d.createdAt && <div className="text-slate-500">수정 {d.updatedBy} · {d.updatedAt}</div>}</td>
+              <td className="pr-4" onClick={(e) => e.stopPropagation()}><div className="flex items-center gap-2">{jc.connected && <button onClick={() => toast(d.key + " 이슈 트래커로 이동 (데모)", "info")} className="text-slate-500 hover:text-sky-600" title="이슈 트래커"><ExternalLink size={15} /></button>}</div></td>
             </tr>
           ))}
           {list.length === 0 && <tr><td colSpan={10}><EmptyState icon={Bug} title="해당 조건의 결함이 없습니다" hint="평가/실행 실패 시 자동·수동으로 이슈를 등록하세요" /></td></tr>}
@@ -1790,50 +1790,50 @@ export function Defects() {
       </table>
       </Card>
       {sel && (
-        <div className="fixed inset-0 z-30 flex justify-end bg-black bg-opacity-50" onClick={() => { setEdit(false); setSel(null); }}>
-          <div className="h-full w-full max-w-md overflow-y-auto border-l border-slate-800 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between"><span className="font-mono text-teal-400">{sel.key}</span><div className="flex items-center gap-2">{edit ? (<><Btn kind="primary" onClick={saveEdit}>저장</Btn><Btn kind="ghost" onClick={() => setEdit(false)}>취소</Btn></>) : (<Btn icon={Wrench} kind="ghost" onClick={() => startEdit(sel)}>편집</Btn>)}<button onClick={() => { setEdit(false); setSel(null); }} className="text-slate-500 hover:text-slate-300"><X size={20} /></button></div></div>
+        <Portal><div className="fixed inset-0 z-40 flex justify-end bg-black/50" onClick={() => { setEdit(false); setSel(null); }}>
+          <div className="h-full w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between"><span className="font-mono text-sky-600">{sel.key}</span><div className="flex items-center gap-2">{edit ? (<><Btn kind="primary" onClick={saveEdit}>저장</Btn><Btn kind="ghost" onClick={() => setEdit(false)}>취소</Btn></>) : (<Btn icon={Wrench} kind="ghost" onClick={() => startEdit(sel)}>편집</Btn>)}<button onClick={() => { setEdit(false); setSel(null); }} className="text-slate-500 hover:text-slate-700"><X size={20} /></button></div></div>
             <div className="space-y-4 text-sm">
-              <div className="text-base text-slate-100">{sel.title}</div>
+              <div className="text-base text-slate-900">{sel.title}</div>
               <div className="flex flex-wrap gap-1.5"><Badge kind={domKind[sel.domain || "LQA"] || "info"}>{domLabel[sel.domain || "LQA"]}</Badge><Badge kind={sev[sel.sev]}>{sel.sev}</Badge><Badge kind={st[sel.status] || "info"}>{sel.status || "Open"}</Badge></div>
-              <div><div className="mb-1 text-xs text-slate-500">연결 TC</div><div className="font-mono text-slate-300">{sel.tc}</div></div>
-              {sel.project && <div><div className="mb-1 text-xs text-slate-500">Jira 프로젝트</div><div className="font-mono text-slate-300">{sel.project}{sel.key ? " · " + sel.key : ""}</div></div>}
+              <div><div className="mb-1 text-xs text-slate-500">연결 TC</div><div className="font-mono text-slate-700">{sel.tc}</div></div>
+              {sel.project && <div><div className="mb-1 text-xs text-slate-500">Jira 프로젝트</div><div className="font-mono text-slate-700">{sel.project}{sel.key ? " · " + sel.key : ""}</div></div>}
               {edit ? (
                 <>
-                  <div><div className="mb-1 text-xs text-slate-500">설명</div><textarea rows={3} value={ef.desc} onChange={(e) => setEf({ ...ef, desc: e.target.value })} className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-sm text-slate-200 focus:border-teal-500 focus:outline-none" placeholder="결함 설명" /></div>
-                  <div><div className="mb-1 text-xs text-slate-500">재현 절차</div><textarea rows={4} value={ef.steps} onChange={(e) => setEf({ ...ef, steps: e.target.value })} className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-sm text-slate-200 focus:border-teal-500 focus:outline-none" placeholder="1. …&#10;2. …" /></div>
-                  <div><div className="mb-1 text-xs text-slate-500">기대 결과</div><textarea rows={2} value={ef.expected} onChange={(e) => setEf({ ...ef, expected: e.target.value })} className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-sm text-slate-200 focus:border-teal-500 focus:outline-none" placeholder="기대 결과" /></div>
-                  <div><div className="mb-1 text-xs text-slate-500">실제 결과</div><textarea rows={2} value={ef.actual} onChange={(e) => setEf({ ...ef, actual: e.target.value })} className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-sm text-slate-200 focus:border-teal-500 focus:outline-none" placeholder="실제 결과" /></div>
+                  <div><div className="mb-1 text-xs text-slate-500">설명</div><textarea rows={3} value={ef.desc} onChange={(e) => setEf({ ...ef, desc: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-slate-100 p-2.5 text-sm text-slate-800 focus:border-sky-500 focus:outline-none" placeholder="결함 설명" /></div>
+                  <div><div className="mb-1 text-xs text-slate-500">재현 절차</div><textarea rows={4} value={ef.steps} onChange={(e) => setEf({ ...ef, steps: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-slate-100 p-2.5 text-sm text-slate-800 focus:border-sky-500 focus:outline-none" placeholder="1. …&#10;2. …" /></div>
+                  <div><div className="mb-1 text-xs text-slate-500">기대 결과</div><textarea rows={2} value={ef.expected} onChange={(e) => setEf({ ...ef, expected: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-slate-100 p-2.5 text-sm text-slate-800 focus:border-sky-500 focus:outline-none" placeholder="기대 결과" /></div>
+                  <div><div className="mb-1 text-xs text-slate-500">실제 결과</div><textarea rows={2} value={ef.actual} onChange={(e) => setEf({ ...ef, actual: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-slate-100 p-2.5 text-sm text-slate-800 focus:border-sky-500 focus:outline-none" placeholder="실제 결과" /></div>
                   <div>
                     <div className="mb-1 text-xs text-slate-500">증적</div>
-                    {ef.evidence && ef.evidence.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{ef.evidence.map((e, i) => <span key={i} className="inline-flex items-center gap-1 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-200">{e}<button onClick={() => setEf({ ...ef, evidence: ef.evidence.filter((_, j) => j !== i) })} className="text-slate-400 hover:text-rose-400"><X size={12} /></button></span>)}</div>}
+                    {ef.evidence && ef.evidence.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{ef.evidence.map((e, i) => <span key={i} className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-800">{e}<button onClick={() => setEf({ ...ef, evidence: ef.evidence.filter((_, j) => j !== i) })} className="text-slate-500 hover:text-rose-600"><X size={12} /></button></span>)}</div>}
                     <div className="flex gap-2">
-                      <input value={evAdd} onChange={(e) => setEvAdd(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEv(evAdd); } }} placeholder="링크·로그 등 입력 후 추가" className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-sm text-slate-200 focus:border-teal-500 focus:outline-none" />
+                      <input value={evAdd} onChange={(e) => setEvAdd(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEv(evAdd); } }} placeholder="링크·로그 등 입력 후 추가" className="flex-1 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-sm text-slate-800 focus:border-sky-500 focus:outline-none" />
                       <Btn icon={Plus} kind="ghost" onClick={() => addEv(evAdd)}>추가</Btn>
-                      <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-700 px-2.5 py-1.5 text-sm text-slate-300 hover:border-teal-500"><Upload size={14} />파일<input type="file" multiple className="hidden" onChange={onEvFile} /></label>
+                      <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 hover:border-sky-500"><Upload size={14} />파일<input type="file" multiple className="hidden" onChange={onEvFile} /></label>
                     </div>
                   </div>
                 </>
               ) : (
                 <>
-                  {sel.desc && <div><div className="mb-1 text-xs text-slate-500">설명</div><div className="whitespace-pre-wrap rounded-lg bg-slate-800 p-3 text-slate-300">{sel.desc}</div></div>}
-                  {sel.steps && <div><div className="mb-1 text-xs text-slate-500">재현 절차</div><div className="whitespace-pre-wrap rounded-lg bg-slate-800 p-3 text-slate-300">{sel.steps}</div></div>}
-                  {sel.expected && <div><div className="mb-1 text-xs text-slate-500">기대 결과</div><div className="whitespace-pre-wrap rounded-lg bg-slate-800 p-3 text-slate-300">{sel.expected}</div></div>}
-                  {sel.actual && <div><div className="mb-1 text-xs text-slate-500">실제 결과</div><div className="whitespace-pre-wrap rounded-lg bg-slate-800 p-3 text-slate-300">{sel.actual}</div></div>}
+                  {sel.desc && <div><div className="mb-1 text-xs text-slate-500">설명</div><div className="whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-slate-700">{sel.desc}</div></div>}
+                  {sel.steps && <div><div className="mb-1 text-xs text-slate-500">재현 절차</div><div className="whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-slate-700">{sel.steps}</div></div>}
+                  {sel.expected && <div><div className="mb-1 text-xs text-slate-500">기대 결과</div><div className="whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-slate-700">{sel.expected}</div></div>}
+                  {sel.actual && <div><div className="mb-1 text-xs text-slate-500">실제 결과</div><div className="whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-slate-700">{sel.actual}</div></div>}
                   {sel.evidence && sel.evidence.length > 0 && <div><div className="mb-1 text-xs text-slate-500">증적</div><div className="flex flex-wrap gap-1.5">{sel.evidence.map((e, i) => <Badge key={i} kind="info">{e}</Badge>)}</div></div>}
-                  {!sel.desc && !sel.steps && !sel.expected && !sel.actual && (!sel.evidence || !sel.evidence.length) && <div className="rounded-lg border border-slate-800 bg-slate-800 p-3 text-xs text-slate-500">상세 재현 정보가 없는 결함입니다 — 우측 상단 ‘편집’으로 내용을 보완하세요.</div>}
+                  {!sel.desc && !sel.steps && !sel.expected && !sel.actual && (!sel.evidence || !sel.evidence.length) && <div className="rounded-lg border border-slate-200 bg-slate-100 p-3 text-xs text-slate-500">상세 재현 정보가 없는 결함입니다 — 우측 상단 ‘편집’으로 내용을 보완하세요.</div>}
                 </>
               )}
               <div><div className="mb-1 text-xs text-slate-500">담당자</div><Select value={sel.assignee || ""} onChange={(e) => { setDefectAssignee(sel.key, e.target.value); setSel({ ...sel, assignee: e.target.value }); toast(sel.key + " 담당자: " + (e.target.value || "미지정"), "ok"); }}><option value="">미지정</option>{(users || []).map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}</Select></div>
-              <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400 space-y-0.5"><div>보고 <span className="text-slate-300">{sel.createdBy || "—"}</span> · {sel.createdAt || "—"}</div><div>수정 <span className="text-slate-300">{sel.updatedBy || "—"}</span> · {sel.updatedAt || "—"}</div></div>
+              <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500 space-y-0.5"><div>보고 <span className="text-slate-700">{sel.createdBy || "—"}</span> · {sel.createdAt || "—"}</div><div>수정 <span className="text-slate-700">{sel.updatedBy || "—"}</span> · {sel.updatedAt || "—"}</div></div>
               <div>
                 <div className="mb-1.5 text-xs text-slate-500">상태 변경</div>
                 <div className="flex flex-wrap gap-2">{(TRANS[sel.status || "Open"] || []).map(([label, next]) => <Btn key={label} kind={next === "Resolved" ? "primary" : "ghost"} onClick={() => { setDefectStatus(sel.key, next); setSel({ ...sel, status: next }); toast(sel.key + " → " + next, "ok"); }}>{label}</Btn>)}</div>
               </div>
-              {jc.connected && <div className="flex gap-2 border-t border-slate-800 pt-3"><Btn icon={ExternalLink} onClick={() => toast(sel.key + " 이슈 트래커로 이동 (데모)", "info")}>이슈 트래커</Btn></div>}
+              {jc.connected && <div className="flex gap-2 border-t border-slate-200 pt-3"><Btn icon={ExternalLink} onClick={() => toast(sel.key + " 이슈 트래커로 이동 (데모)", "info")}>이슈 트래커</Btn></div>}
             </div>
           </div>
-        </div>
+        </div></Portal>
       )}
     </div>
   );
@@ -1868,18 +1868,18 @@ export function Report() {
   return (
     <div className="space-y-4">
       <PageToolbar desc="평가 결과 리포트 생성 및 알림 채널 설정">
-        {dirty && <span className="text-xs text-amber-300">미저장 변경</span>}
+        {dirty && <span className="text-xs text-amber-700">미저장 변경</span>}
         <Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>변경 저장</Btn>
       </PageToolbar>
       <div>
-        <div className="text-sm font-semibold text-slate-200 mb-1">알림 채널</div>
-        <div className="text-xs text-slate-500 mb-2">Slack · Teams는 워크스페이스의 <span className="text-slate-300">지정 채널에 메시지를 게시</span>합니다(단방향 Incoming Webhook). 멘션·스레드·다중 채널 분기는 Bot 연동이 필요합니다.</div>
+        <div className="text-sm font-semibold text-slate-800 mb-1">알림 채널</div>
+        <div className="text-xs text-slate-500 mb-2">Slack · Teams는 워크스페이스의 <span className="text-slate-700">지정 채널에 메시지를 게시</span>합니다(단방향 Incoming Webhook). 멘션·스레드·다중 채널 분기는 Bot 연동이 필요합니다.</div>
         <div className="grid grid-cols-3 gap-4">
           {chCfg.map((c) => {
             const Icon = c.icon; const on = ch[c.key];
             return (
               <Card key={c.key} className="p-4">
-                <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2 text-slate-100 font-semibold"><Icon size={16} className="text-teal-400" />{c.label}</div><Toggle on={on} onClick={() => setCh({ ...ch, [c.key]: !on })} /></div>
+                <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2 text-slate-900 font-semibold"><Icon size={16} className="text-sky-600" />{c.label}</div><Toggle on={on} onClick={() => setCh({ ...ch, [c.key]: !on })} /></div>
                 <div className="text-xs text-slate-500 mb-2">{c.desc}</div>
                 <Input placeholder={c.ph} className="mb-3" />
                 <Btn icon={Send} className="w-full" onClick={() => sendTest(c.label)}>테스트 발송</Btn>
@@ -1891,50 +1891,50 @@ export function Report() {
 
       <div className="grid grid-cols-2 gap-4 items-start">
         <Card className="p-5">
-          <div className="text-sm font-semibold text-slate-200 mb-1">알림 발송 조건</div>
+          <div className="text-sm font-semibold text-slate-800 mb-1">알림 발송 조건</div>
           <div className="text-xs text-slate-500 mb-3">위 채널(Slack · Teams · Email)에 어떤 경우 알림을 보낼지 정합니다.</div>
           <div className="space-y-3">
             <Field label="알림 발송 시점">
-              <div className="space-y-2 text-sm text-slate-300">
+              <div className="space-y-2 text-sm text-slate-700">
                 {[["always", "항상 발송"], ["fail", "실패/경고가 있을 때만"], ["drop", "점수 하락(회귀) 시에만"]].map(([k, lab]) => (
-                  <label key={k} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="cond" checked={cond === k} onChange={() => setCond(k)} className="accent-teal-500" />{lab}</label>
+                  <label key={k} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="cond" checked={cond === k} onChange={() => setCond(k)} className="accent-sky-500" />{lab}</label>
                 ))}
               </div>
             </Field>
             <div>
               <div className="text-xs text-slate-500 mb-1">현재 설정</div>
-              <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">활성 채널 {Object.values(ch).filter(Boolean).length}개 · 조건 “{cond === "always" ? "항상" : cond === "fail" ? "실패 시만" : "회귀 시만"}”</div>
+              <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">활성 채널 {Object.values(ch).filter(Boolean).length}개 · 조건 “{cond === "always" ? "항상" : cond === "fail" ? "실패 시만" : "회귀 시만"}”</div>
             </div>
           </div>
         </Card>
         <Card className="p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Calendar size={16} className="text-teal-400" />정기 리포트</div>
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Calendar size={16} className="text-sky-600" />정기 리포트</div>
             <Toggle on={rsched.on} onClick={() => setRsched({ ...rsched, on: !rsched.on })} />
           </div>
-          <div className="-mt-1 text-xs text-slate-500">선택 범위 대시보드 지표를 <span className="text-slate-300">기간 스냅샷 + 직전 대비 델타 + 주요 실패·회귀·신규 결함 하이라이트</span>로 취합해 지정된 알림 채널로 발송합니다.</div>
+          <div className="-mt-1 text-xs text-slate-500">선택 범위 대시보드 지표를 <span className="text-slate-700">기간 스냅샷 + 직전 대비 델타 + 주요 실패·회귀·신규 결함 하이라이트</span>로 취합해 지정된 알림 채널로 발송합니다.</div>
           {rsched.on && (
             <div className="space-y-3">
               <Field label="범위"><Select value={scope} onChange={(e) => setScope(e.target.value)}><option>AI 품질</option><option>기능 QA</option><option>앱 성능</option><option>부하</option><option>통합 (전체 도메인)</option></Select></Field>
-              <Field label="형식"><div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">HTML <span className="text-xs text-slate-500">· PDF·Excel은 후속 지원</span></div></Field>
+              <Field label="형식"><div className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-700">HTML <span className="text-xs text-slate-500">· PDF·Excel은 후속 지원</span></div></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="주기"><Select value={rsched.freq} onChange={(e) => setRsched({ ...rsched, freq: e.target.value })}><option value="daily">매일</option><option value="weekly">매주</option><option value="monthly">매월</option></Select></Field>
                 <Field label="시각"><Input type="time" value={rsched.time} onChange={(e) => setRsched({ ...rsched, time: e.target.value })} /></Field>
               </div>
               {rsched.freq === "monthly" && <Field label="일(day)"><Input type="number" value={rsched.dom} onChange={(e) => setRsched({ ...rsched, dom: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })} /></Field>}
-              {rsched.freq === "weekly" && <div><div className="mb-1.5 text-xs font-semibold text-slate-400">요일</div><div className="flex gap-1.5">{dowK.map((d, i) => <button key={i} onClick={() => setRsched({ ...rsched, dow: i })} className={"h-8 w-8 rounded-lg text-sm " + (rsched.dow === i ? "bg-teal-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700")}>{d}</button>)}</div></div>}
-              <div className="rounded-lg bg-slate-800 p-3 text-sm"><span className="text-slate-500">다음 발송 </span><span className="font-medium text-teal-300">{nextRun()}</span> <span className="text-slate-600">· 활성 채널로 push</span></div>
+              {rsched.freq === "weekly" && <div><div className="mb-1.5 text-xs font-semibold text-slate-500">요일</div><div className="flex gap-1.5">{dowK.map((d, i) => <button key={i} onClick={() => setRsched({ ...rsched, dow: i })} className={"h-8 w-8 rounded-lg text-sm " + (rsched.dow === i ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{d}</button>)}</div></div>}
+              <div className="rounded-lg bg-slate-100 p-3 text-sm"><span className="text-slate-500">다음 발송 </span><span className="font-medium text-sky-600">{nextRun()}</span> <span className="text-slate-400">· 활성 채널로 push</span></div>
             </div>
           )}
         </Card>
       </div>
 
       <Card>
-        <div className="text-sm font-semibold text-slate-200 px-4 py-3 border-b border-slate-800">최근 발송 / 리포트 이력</div>
+        <div className="text-sm font-semibold text-slate-800 px-4 py-3 border-b border-slate-200">최근 발송 / 리포트 이력</div>
         <table className="w-full text-sm">
-          <tbody className="text-slate-300">
+          <tbody className="text-slate-700">
             {hist.map((h, i) => (
-              <tr key={i} className="border-b border-slate-800"><td className="py-2.5 px-4 text-slate-500 w-16">{h.t}</td><td className="w-28"><Badge kind="info">{h.ch}</Badge></td><td className="text-slate-200">{h.txt}</td><td className="pr-4 text-right"><CheckCircle2 size={15} className="text-emerald-400 inline" /></td></tr>
+              <tr key={i} className="border-b border-slate-200"><td className="py-2.5 px-4 text-slate-500 w-16">{h.t}</td><td className="w-28"><Badge kind="info">{h.ch}</Badge></td><td className="text-slate-800">{h.txt}</td><td className="pr-4 text-right"><CheckCircle2 size={15} className="text-emerald-600 inline" /></td></tr>
             ))}
           </tbody>
         </table>
@@ -1944,7 +1944,7 @@ export function Report() {
 }
 
 export function SegBtn({ on, onClick, children }) {
-  return <button onClick={onClick} className={"flex-1 rounded-lg border px-2 py-2 text-sm " + (on ? "border-teal-500 bg-teal-900 text-teal-200" : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700")}>{children}</button>;
+  return <button onClick={onClick} className={"flex-1 rounded-lg border px-2 py-2 text-sm " + (on ? "border-sky-500 bg-sky-100 text-sky-700" : "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200")}>{children}</button>;
 }
 
 
@@ -1958,28 +1958,28 @@ export function Settings() {
       </PageToolbar>
       <div className="grid grid-cols-2 gap-4">
       <Card className="p-5">
-        <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-200">Judge 모델</div><span className="text-xs text-slate-500">관리자 등록 모델만 사용</span></div>
+        <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-800">Judge 모델</div><span className="text-xs text-slate-500">관리자 등록 모델만 사용</span></div>
         <div className="space-y-2">
           {models.map((m) => (
-            <div key={m.id} className="flex items-center justify-between rounded-lg bg-slate-800 px-3 py-2.5">
-              <div><div className="text-sm text-slate-100">{m.name}</div><div className="text-xs text-slate-500">{m.provider} · {m.price}</div></div>
+            <div key={m.id} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2.5">
+              <div><div className="text-sm text-slate-900">{m.name}</div><div className="text-xs text-slate-500">{m.provider} · {m.price}</div></div>
               {m.status === "활성"
-                ? <div className="flex items-center gap-2 text-xs text-slate-400">사용 <Toggle on={!!use[m.id]} onClick={() => { const nv = !use[m.id]; setUse({ ...use, [m.id]: nv }); toast(m.name + (nv ? " 사용 설정" : " 사용 해제"), "info"); }} /></div>
+                ? <div className="flex items-center gap-2 text-xs text-slate-500">사용 <Toggle on={!!use[m.id]} onClick={() => { const nv = !use[m.id]; setUse({ ...use, [m.id]: nv }); toast(m.name + (nv ? " 사용 설정" : " 사용 해제"), "info"); }} /></div>
                 : <Badge kind="draft">관리자 비활성</Badge>}
             </div>
           ))}
         </div>
-        <div className="mt-3 rounded-lg bg-slate-800 p-3 text-xs text-slate-400">신규 모델 등록은 <span className="text-amber-300">서비스 관리자(관리자 콘솔 → AI 모델)</span>에서만 가능합니다. 조직은 등록된 모델 중 사용 여부만 설정합니다.</div>
+        <div className="mt-3 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">신규 모델 등록은 <span className="text-amber-700">서비스 관리자(관리자 콘솔 → AI 모델)</span>에서만 가능합니다. 조직은 등록된 모델 중 사용 여부만 설정합니다.</div>
       </Card>
       <Card className="p-5">
-        <div className="text-sm font-semibold text-slate-200 mb-3">Prompt 템플릿</div>
+        <div className="text-sm font-semibold text-slate-800 mb-3">Prompt 템플릿</div>
         <div className="space-y-2">
           {prompts.map((p) => {
             const usedBy = (plans || []).filter((pl) => pl.promptTpl === p.name);
             return (
-            <div key={p.name} className="flex items-center justify-between rounded-lg bg-slate-800 px-3 py-2.5">
-              <div><div className="text-sm text-slate-100">{p.name} <span className="text-xs text-slate-500">v{p.ver}</span></div><div className="text-xs text-slate-500">채점 기준: {(p.rubric || []).join(", ")}</div><div className="text-xs text-slate-500">변수: {(p.vars || []).map((v) => "{{" + v + "}}").join(" ")}</div><div className="text-xs mt-0.5">{usedBy.length ? <span className="text-teal-400">사용 중: {usedBy.map((pl) => pl.name).join(" · ")}</span> : <span className="text-slate-600">사용 계획 없음</span>}</div></div>
-              <div className="flex items-center gap-3"><button onClick={() => openModal("addPrompt", { name: p.name, system: p.system, rubric: p.rubric, vars: p.vars, ver: p.ver })} className="text-xs text-slate-400 hover:text-teal-400">편집</button><button onClick={() => { if (usedBy.length) { toast("사용 중인 계획이 있어 삭제할 수 없습니다 — " + usedBy.map((pl) => pl.name).join(", "), "warn"); return; } if (window.confirm(p.name + " 템플릿을 삭제할까요?")) { removePrompt(p.name); toast(p.name + " 삭제됨", "ok"); } }} className="text-xs text-slate-500 hover:text-red-400">삭제</button></div>
+            <div key={p.name} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2.5">
+              <div><div className="text-sm text-slate-900">{p.name} <span className="text-xs text-slate-500">v{p.ver}</span></div><div className="text-xs text-slate-500">채점 기준: {(p.rubric || []).join(", ")}</div><div className="text-xs text-slate-500">변수: {(p.vars || []).map((v) => "{{" + v + "}}").join(" ")}</div><div className="text-xs mt-0.5">{usedBy.length ? <span className="text-sky-600">사용 중: {usedBy.map((pl) => pl.name).join(" · ")}</span> : <span className="text-slate-400">사용 계획 없음</span>}</div></div>
+              <div className="flex items-center gap-3"><button onClick={() => openModal("addPrompt", { name: p.name, system: p.system, rubric: p.rubric, vars: p.vars, ver: p.ver })} className="text-xs text-slate-500 hover:text-sky-600">편집</button><button onClick={() => { if (usedBy.length) { toast("사용 중인 계획이 있어 삭제할 수 없습니다 — " + usedBy.map((pl) => pl.name).join(", "), "warn"); return; } if (window.confirm(p.name + " 템플릿을 삭제할까요?")) { removePrompt(p.name); toast(p.name + " 삭제됨", "ok"); } }} className="text-xs text-slate-500 hover:text-red-600">삭제</button></div>
             </div>
             );
           })}
@@ -2004,7 +2004,7 @@ export function InviteMemberForm({ close }) {
     <div className="space-y-4">
       <Field label="이메일"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" /></Field>
       <Field label="역할"><Select value={role} onChange={(e) => setRole(e.target.value)}><option>조직관리자</option><option>QA 엔지니어</option><option>Viewer</option></Select></Field>
-      <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">초대 메일이 발송되며, 수락 시 서비스 관리자 승인 후 활성화됩니다.</div>
+      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">초대 메일이 발송되며, 수락 시 서비스 관리자 승인 후 활성화됩니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Plus} onClick={submit}>초대</Btn></div>
     </div>
   );
@@ -2042,7 +2042,7 @@ export function MembersView() {
     return init;
   });
   const cycle = { "허용": "조회", "조회": "차단", "차단": "허용" };
-  const pK = { "허용": "bg-emerald-900 text-emerald-300", "조회": "bg-slate-700 text-slate-300", "차단": "bg-red-900 text-red-300" };
+  const pK = { "허용": "bg-emerald-100 text-emerald-700", "조회": "bg-slate-200 text-slate-700", "차단": "bg-red-100 text-red-700" };
   // 작업 권한 = 메뉴 접근과 별개로 '최종 상태를 바꾸는' 민감 작업. 허용 ⇄ 차단 2단계.
   const cycle2 = { "허용": "차단", "차단": "허용" };
   const ACTIONS = [
@@ -2059,22 +2059,22 @@ export function MembersView() {
         <Btn kind="primary" icon={Plus} onClick={() => openModal("inviteMember")}>멤버 초대</Btn>
       </PageToolbar>
       <Card className="p-4">
-        <div className="text-sm font-semibold text-slate-200 mb-3">멤버 — {tName}</div>
+        <div className="text-sm font-semibold text-slate-800 mb-3">멤버 — {tName}</div>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2 font-medium">사용자</th><th className="font-medium">역할</th><th className="font-medium">상태</th><th className="font-medium">최근 로그인</th><th className="font-medium">처리</th></tr></thead>
-          <tbody className="text-slate-300">
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2 font-medium">사용자</th><th className="font-medium">역할</th><th className="font-medium">상태</th><th className="font-medium">최근 로그인</th><th className="font-medium">처리</th></tr></thead>
+          <tbody className="text-slate-700">
             {members.map((u) => (
-              <tr key={u.id} className="border-b border-slate-800 hover:bg-slate-800">
-                <td className="py-2.5"><span className="text-slate-100 font-medium">{u.name}</span> <span className="text-xs text-slate-500">{u.email}</span></td>
+              <tr key={u.id} className="border-b border-slate-200 hover:bg-slate-100">
+                <td className="py-2.5"><span className="text-slate-900 font-medium">{u.name}</span> <span className="text-xs text-slate-500">{u.email}</span></td>
                 <td>{currentUser && u.name === currentUser
-                  ? <span className="text-slate-300">{u.role} <span className="text-xs text-slate-600">(본인)</span></span>
-                  : <select value={u.role} onChange={(e) => changeRole(u, e.target.value)} className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-200 outline-none focus:border-teal-500">{ROLES.map((r) => <option key={r}>{r}</option>)}</select>}</td><td><Badge kind={stK[u.status]}>{u.status}</Badge></td><td className="text-slate-500 text-xs">{u.last}</td>
-                <td>{u.role === "조직관리자" ? <span className="text-xs text-slate-600">—</span> : (
+                  ? <span className="text-slate-700">{u.role} <span className="text-xs text-slate-400">(본인)</span></span>
+                  : <select value={u.role} onChange={(e) => changeRole(u, e.target.value)} className="rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-800 outline-none focus:border-sky-500">{ROLES.map((r) => <option key={r}>{r}</option>)}</select>}</td><td><Badge kind={stK[u.status]}>{u.status}</Badge></td><td className="text-slate-500 text-xs">{u.last}</td>
+                <td>{u.role === "조직관리자" ? <span className="text-xs text-slate-400">—</span> : (
                   <div className="flex gap-1.5">
                     {u.status === "차단"
-                      ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 차단 해제", "ok"); }} className="text-xs rounded-lg px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300">해제</button>
-                      : <button onClick={() => { setUserStatus(u.id, "차단"); toast(u.name + " 차단", "warn"); }} className="text-xs rounded-lg px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300">차단</button>}
-                    <button onClick={() => delMember(u)} title="조직에서 삭제" className="text-xs rounded-lg px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-red-400">삭제</button>
+                      ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 차단 해제", "ok"); }} className="text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700">해제</button>
+                      : <button onClick={() => { setUserStatus(u.id, "차단"); toast(u.name + " 차단", "warn"); }} className="text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700">차단</button>}
+                    <button onClick={() => delMember(u)} title="조직에서 삭제" className="text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-red-600">삭제</button>
                   </div>
                 )}</td>
               </tr>
@@ -2083,16 +2083,16 @@ export function MembersView() {
         </table>
       </Card>
       <Card className="p-4">
-        <div className="text-sm font-semibold text-slate-200 mb-1">메뉴별 접근 권한</div>
+        <div className="text-sm font-semibold text-slate-800 mb-1">메뉴별 접근 권한</div>
         <div className="text-xs text-slate-500 mb-3">도메인별 메뉴 권한 · 셀 클릭 시 허용 → 조회 → 차단 순환</div>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2 font-medium">메뉴</th>{ROLES.map((r) => <th key={r} className="font-medium text-center">{r}</th>)}</tr></thead>
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2 font-medium">메뉴</th>{ROLES.map((r) => <th key={r} className="font-medium text-center">{r}</th>)}</tr></thead>
           <tbody>
             {MENU_GROUPS.flatMap((g) => [
-              <tr key={g.id + "-hdr"} className="bg-slate-800"><td colSpan={ROLES.length + 1} className="py-1.5 px-1 text-xs font-semibold text-teal-400">{g.label}</td></tr>,
+              <tr key={g.id + "-hdr"} className="bg-slate-100"><td colSpan={ROLES.length + 1} className="py-1.5 px-1 text-xs font-semibold text-sky-600">{g.label}</td></tr>,
               ...g.menus.map((m) => { const key = g.id + "/" + m; return (
-                <tr key={key} className="border-b border-slate-800">
-                  <td className="py-2 pl-3 text-slate-300">{m}</td>
+                <tr key={key} className="border-b border-slate-200">
+                  <td className="py-2 pl-3 text-slate-700">{m}</td>
                   {ROLES.map((r) => { const k = key + "|" + r; const v = perm[k]; return (
                     <td key={r} className="text-center py-2"><button onClick={() => setPerm({ ...perm, [k]: cycle[v] })} className={"px-2.5 py-1 rounded text-xs font-semibold " + pK[v]}>{v}</button></td>
                   ); })}
@@ -2103,14 +2103,14 @@ export function MembersView() {
         </table>
       </Card>
       <Card className="p-4">
-        <div className="text-sm font-semibold text-slate-200 mb-1">작업 권한 <span className="font-normal text-slate-500">· 민감 작업 (승인 · 활성화 · 종결)</span></div>
+        <div className="text-sm font-semibold text-slate-800 mb-1">작업 권한 <span className="font-normal text-slate-500">· 민감 작업 (승인 · 활성화 · 종결)</span></div>
         <div className="text-xs text-slate-500 mb-3">메뉴 접근과 별개로, 최종 상태를 바꾸는 작업의 수행 권한 · 셀 클릭 시 허용 ⇄ 차단</div>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-800"><th className="py-2 font-medium">작업</th>{ROLES.map((r) => <th key={r} className="font-medium text-center">{r}</th>)}</tr></thead>
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2 font-medium">작업</th>{ROLES.map((r) => <th key={r} className="font-medium text-center">{r}</th>)}</tr></thead>
           <tbody>
             {ACTIONS.map((a) => (
-              <tr key={a.id} className="border-b border-slate-800">
-                <td className="py-2 pl-3"><div className="text-slate-300">{a.label}</div><div className="text-xs text-slate-500">{a.desc}</div></td>
+              <tr key={a.id} className="border-b border-slate-200">
+                <td className="py-2 pl-3"><div className="text-slate-700">{a.label}</div><div className="text-xs text-slate-500">{a.desc}</div></td>
                 {ROLES.map((r) => { const k = a.id + "|" + r; const v = actPerm[k]; return (
                   <td key={r} className="text-center py-2"><button onClick={() => setActPerm({ ...actPerm, [k]: cycle2[v] })} className={"px-2.5 py-1 rounded text-xs font-semibold " + pK[v]}>{v}</button></td>
                 ); })}

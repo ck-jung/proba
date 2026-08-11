@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { DatasetPicker } from "../common/DatasetPicker.jsx";
-import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Seg, Toast, useToast, RunTime, stampPlus } from "../common/ui.jsx";
+import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Seg, Toast, useToast, RunTime, stampPlus, Portal } from "../common/ui.jsx";
 import { Gauge, Plus, X, Save, Smartphone, Cpu, Wifi, Package, Upload, Link2, CheckCircle2, Globe, Monitor, Server, Zap, Activity, AlertTriangle, TrendingUp, Bug, Pencil, ChevronLeft, FileDown, Layers, Code2, Play, ClipboardList } from "lucide-react";
 import { NQA_SUBTYPES, NQA_HTTP_METHODS, NQA_AUTH_TYPES, NQA_LOAD_UNITS, NQA_LOAD_SHAPES } from "./data.js";
 
@@ -52,11 +52,11 @@ export function NqaTargetScreen() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-3">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setNf({ name: "", baseUrl: "", protocol: "HTTP/HTTPS", env: "스테이징" }); setModal(true); }}>부하 대상 추가</Btn>
-          {systems.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 대상이 없습니다.</div>}
+          {systems.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 대상이 없습니다.</div>}
           {systems.map((sy, i) => (
-            <Card key={sy.id} className={"cursor-pointer p-3 " + (sel === i ? "border-teal-500" : "hover:border-slate-700")}>
+            <Card key={sy.id} className={"cursor-pointer p-3 " + (sel === i ? "border-sky-500" : "hover:border-slate-300")}>
               <div onClick={() => choose(i)}>
-                <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-100">{sy.name}</span><div className="flex items-center gap-1.5"><Badge kind="warn">부하</Badge><button onClick={(e) => { e.stopPropagation(); delSut(i, sy); }} className="text-slate-500 hover:text-red-400" title="대상 삭제"><X size={12} /></button></div></div>
+                <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-900">{sy.name}</span><div className="flex items-center gap-1.5"><Badge kind="warn">부하</Badge><button onClick={(e) => { e.stopPropagation(); delSut(i, sy); }} className="text-slate-500 hover:text-red-600" title="대상 삭제"><X size={12} /></button></div></div>
                 <div className="mt-1 truncate text-xs text-slate-500">{sy.baseUrl}</div>
                 <div className="mt-1 text-xs text-slate-500">{sy.protocol}</div>
               </div>
@@ -66,27 +66,27 @@ export function NqaTargetScreen() {
         <div className="col-span-9 space-y-3">
           {systems.length === 0 ? (
             <Card className="flex flex-col items-center justify-center py-16 text-center">
-              <Server size={26} className="text-slate-600" />
-              <div className="mt-3 text-sm font-medium text-slate-300">부하 대상을 먼저 등록하세요</div>
+              <Server size={26} className="text-slate-400" />
+              <div className="mt-3 text-sm font-medium text-slate-700">부하 대상을 먼저 등록하세요</div>
               <div className="mt-1.5 max-w-md text-xs text-slate-500">테스트할 서비스와 Base URL을 등록해야 부하 테스트를 만들고 측정할 수 있습니다.</div>
             </Card>
           ) : (<>
           <Card className="flex items-center justify-between gap-3 p-3">
             <div className="flex min-w-0 flex-1 items-center gap-2"><div className="w-56 shrink-0"><Input value={cfg.name || ""} onChange={(e) => setCfg({ name: e.target.value })} className="text-base font-semibold" /></div><span className="shrink-0"><Badge kind="info">{sys.protocol}</Badge></span><span className="truncate text-xs text-slate-500">{cfg.baseUrl}</span></div>
-            <div className="flex shrink-0 items-center gap-2">{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn icon={Link2} onClick={runCheck}>{chk && chk.s === "run" ? "확인 중…" : "연결 확인"}</Btn><Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
+            <div className="flex shrink-0 items-center gap-2">{dirty && <span className="text-xs text-amber-700">미저장 변경</span>}<Btn icon={Link2} onClick={runCheck}>{chk && chk.s === "run" ? "확인 중…" : "연결 확인"}</Btn><Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
           </Card>
-          <div className="text-xs text-slate-500">생성 <span className="text-slate-400">{sys.createdBy || "—"}</span> · {sys.createdAt || "—"} · 수정 <span className="text-slate-400">{sys.updatedBy || "—"}</span> · {sys.updatedAt || "—"}</div>
-          {chk && chk.s !== "run" && <div className={"flex items-center gap-2 rounded-lg border px-3 py-2 text-xs " + (chk.s === "ok" ? "border-emerald-800 bg-emerald-950 text-emerald-300" : "border-amber-800 bg-amber-950 text-amber-300")}>{chk.s === "ok" && <CheckCircle2 size={13} />}{chk.m}</div>}
+          <div className="text-xs text-slate-500">생성 <span className="text-slate-500">{sys.createdBy || "—"}</span> · {sys.createdAt || "—"} · 수정 <span className="text-slate-500">{sys.updatedBy || "—"}</span> · {sys.updatedAt || "—"}</div>
+          {chk && chk.s !== "run" && <div className={"flex items-center gap-2 rounded-lg border px-3 py-2 text-xs " + (chk.s === "ok" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700")}>{chk.s === "ok" && <CheckCircle2 size={13} />}{chk.m}</div>}
           <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Server size={15} className="text-teal-400" />대상 시스템</div>
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Server size={15} className="text-sky-600" />대상 시스템</div>
             <div className="grid grid-cols-4 gap-3 items-end">
               <div className="col-span-2"><Field label="대상 URL"><Input value={cfg.baseUrl || ""} onChange={(e) => setCfg({ baseUrl: e.target.value })} placeholder="https://api-stg.example.com" /></Field></div>
-              <Field label="프로토콜"><div className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-2 text-sm text-slate-300">{cfg.protocol || "HTTP/HTTPS"}</div></Field>
-              <div className="flex items-center gap-2 pb-2.5"><Toggle on={!!cfg.tlsSkip} onClick={() => setCfg({ tlsSkip: !cfg.tlsSkip })} /><span className={"text-xs " + (cfg.tlsSkip ? "text-amber-300" : "text-slate-400")}>TLS 검증 생략</span></div>
+              <Field label="프로토콜"><div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700">{cfg.protocol || "HTTP/HTTPS"}</div></Field>
+              <div className="flex items-center gap-2 pb-2.5"><Toggle on={!!cfg.tlsSkip} onClick={() => setCfg({ tlsSkip: !cfg.tlsSkip })} /><span className={"text-xs " + (cfg.tlsSkip ? "text-amber-700" : "text-slate-500")}>TLS 검증 생략</span></div>
             </div>
           </Card>
           <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Link2 size={15} className="text-teal-400" />인증</div>
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Link2 size={15} className="text-sky-600" />인증</div>
             <Field label="인증 방식"><div style={{ maxWidth: 260 }}><Select value={auth.type || ""} onChange={(e) => setCfg({ auth: { ...auth, type: e.target.value } })}>{NQA_AUTH_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></div></Field>
             {auth.type === "Bearer 토큰" && <Field label="토큰 (변수 참조)">{secretRef(auth.ref, (val) => setCfg({ auth: { ...auth, ref: val } }), "${stg_token}")}</Field>}
             {auth.type === "API Key" && <div className="grid grid-cols-2 gap-3"><Field label="헤더명"><Input value={auth.keyName || ""} onChange={(e) => setCfg({ auth: { ...auth, keyName: e.target.value } })} placeholder="X-API-Key" /></Field><Field label="키 값 (변수 참조)">{secretRef(auth.ref, (val) => setCfg({ auth: { ...auth, ref: val } }), "${api_key}")}</Field></div>}
@@ -96,15 +96,15 @@ export function NqaTargetScreen() {
         </div>
       </div>
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModal(false)}>
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-semibold text-slate-100">부하 대상 추가</div>
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setModal(false)}>
+          <div className="w-full max-w-md rounded-xl border border-slate-300 bg-white p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-semibold text-slate-900">부하 대상 추가</div>
             <Field label="대상 이름"><Input value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} placeholder="온마켓 API 부하" /></Field>
             <Field label="Base URL / 게이트웨이"><Input value={nf.baseUrl} onChange={(e) => setNf({ ...nf, baseUrl: e.target.value })} placeholder="https://api-stg.onmarket.io" /></Field>
-            <Field label="프로토콜"><div className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-2 text-sm text-slate-300">HTTP/HTTPS</div></Field>
+            <Field label="프로토콜"><div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700">HTTP/HTTPS</div></Field>
             <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setModal(false)}>취소</Btn><Btn kind="primary" icon={Plus} onClick={addSut}>추가</Btn></div>
           </div>
-        </div>
+        </div></Portal>
       )}
       <Toast msg={msg} />
     </div>
@@ -140,9 +140,9 @@ function ShapeChart({ cfg }) {
   }
   const line = pts.map((p) => (+p[0]).toFixed(1) + "," + (38 - p[1] / 100 * 34).toFixed(1)).join(" ");
   return (
-    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-16 w-full rounded-lg bg-slate-950">
-      <polygon points={"0,38 " + line + " 100,38"} fill="#134e4a" opacity="0.45" />
-      <polyline points={line} fill="none" stroke="#2dd4bf" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-16 w-full rounded-lg bg-slate-50">
+      <polygon points={"0,38 " + line + " 100,38"} fill="#e0f2fe" opacity="0.45" />
+      <polyline points={line} fill="none" stroke="#0ea5e9" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -244,17 +244,17 @@ export function NqaScenarioScreen() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-3">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={openModal} disabled={systems.length === 0} title={systems.length === 0 ? "부하 대상을 먼저 등록하세요" : ""}>새 부하 테스트</Btn>
-          {list.length === 0 && <div className="rounded-lg border border-dashed border-slate-800 py-8 text-center text-xs text-slate-600">등록된 부하 테스트가 없습니다.</div>}
+          {list.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 부하 테스트가 없습니다.</div>}
           {list.map((s, i) => {
             const su = systems.find((x) => x.id === s.sutId) || {};
             const j = epCorrelated(s.endpoints) || s.forceOrder;
             return (
-              <Card key={s.id} className={"cursor-pointer p-3 " + (sel === i ? "border-teal-500" : "hover:border-slate-700")}>
+              <Card key={s.id} className={"cursor-pointer p-3 " + (sel === i ? "border-sky-500" : "hover:border-slate-300")}>
                 <div onClick={() => choose(i)}>
-                  <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-100">{s.name}</span><button onClick={(e) => { e.stopPropagation(); delScn(i, s); }} className="text-slate-500 hover:text-red-400" title="삭제"><X size={12} /></button></div>
+                  <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-900">{s.name}</span><button onClick={(e) => { e.stopPropagation(); delScn(i, s); }} className="text-slate-500 hover:text-red-600" title="삭제"><X size={12} /></button></div>
                   <div className="mt-1 flex flex-wrap items-center gap-1"><Badge kind="info">{su.name || "대상 미지정"}</Badge><Badge kind={j ? "active" : "info"}>{j ? "순차 진행" : "비율 혼합"}</Badge></div>
                   <div className="mt-1 text-xs text-slate-500">{s.shape} · 피크 {s.peak} {(s.unit || "").indexOf("VU") >= 0 ? "VU" : "RPS"}</div>
-                  <div className="mt-0.5 text-xs text-slate-600">수정 {s.updatedBy || "—"} · {s.updatedAt || "—"}</div>
+                  <div className="mt-0.5 text-xs text-slate-400">수정 {s.updatedBy || "—"} · {s.updatedAt || "—"}</div>
                 </div>
               </Card>
             );
@@ -263,67 +263,67 @@ export function NqaScenarioScreen() {
         <div className="col-span-9 space-y-3">
           {list.length === 0 ? (
             <Card className="flex flex-col items-center justify-center py-16 text-center">
-              <Activity size={26} className="text-slate-600" />
-              <div className="mt-3 text-sm font-medium text-slate-300">부하 테스트를 먼저 만드세요</div>
+              <Activity size={26} className="text-slate-400" />
+              <div className="mt-3 text-sm font-medium text-slate-700">부하 테스트를 먼저 만드세요</div>
               <div className="mt-1.5 max-w-md text-xs text-slate-500">부하 형상(스테디·램프)과 엔드포인트를 정의합니다. 측정 계획이 이것을 골라 실행합니다.</div>
               {systems.length === 0 && <Btn className="mt-3" icon={Server} onClick={() => goTo("nqa-targets")}>부하 대상 등록하러 가기</Btn>}
             </Card>
           ) : (<>
           <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5"><div className="w-64 shrink-0"><Input value={cfg.name || ""} onChange={(e) => setScn({ name: e.target.value })} /></div><span className="shrink-0"><Badge kind="info">{sut.name || "대상 미지정"}</Badge></span><span className="shrink-0"><Badge kind={isJourney ? "active" : "info"}>{isJourney ? "순차 진행" : "비율 혼합"}</Badge></span></div>
-            <div className="flex items-center gap-3">{dirty && <span className="text-xs text-amber-300">미저장 변경</span>}<Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>부하 테스트 저장</Btn></div>
+            <div className="flex items-center gap-3">{dirty && <span className="text-xs text-amber-700">미저장 변경</span>}<Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>부하 테스트 저장</Btn></div>
           </Card>
 
-          <div className="flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-400">{cfg.createdBy || "—"}</span> · {cfg.createdAt || "—"}</span><span className="text-slate-600">·</span><span>수정 <span className="text-slate-400">{cfg.updatedBy || "—"}</span> · {cfg.updatedAt || "—"}</span></div>
+          <div className="flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-500">{cfg.createdBy || "—"}</span> · {cfg.createdAt || "—"}</span><span className="text-slate-400">·</span><span>수정 <span className="text-slate-500">{cfg.updatedBy || "—"}</span> · {cfg.updatedAt || "—"}</span></div>
           <div className="grid grid-cols-2 gap-3 items-start">
           <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Link2 size={15} className="text-teal-400" />환경 <span className="text-xs font-normal text-slate-500">· 교체 가능</span></div>
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Link2 size={15} className="text-sky-600" />환경 <span className="text-xs font-normal text-slate-500">· 교체 가능</span></div>
             <Select value={cfg.sutId || ""} onChange={(e) => setScn({ sutId: Number(e.target.value) })}><option value="">선택하세요</option>{systems.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select>
             {sut.baseUrl && <div className="truncate font-mono text-xs text-slate-500">{sut.baseUrl} · {sut.protocol || "-"} · 인증 {(sut.auth || {}).type || "-"}</div>}
           </Card>
           <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Link2 size={15} className="text-teal-400" />테스트 데이터</div>
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Link2 size={15} className="text-sky-600" />테스트 데이터</div>
             <Field label="데이터셋" hint="컬럼을 ${row.X}로 참조 · 반복마다 행을 순환"><DatasetPicker value={cfg.dataset || ""} onChange={(v) => setScn({ dataset: v })} noneLabel="선택 안 함" /></Field>
-            {selDataset && <div className="text-xs text-slate-500">컬럼: <span className="text-slate-300">{selDataset.columns.join(", ")}</span> · {(selDataset.rowCount != null ? selDataset.rowCount : selDataset.rows.length).toLocaleString()}행{selDataset.desc ? " · " + selDataset.desc : ""}</div>}
-            {usedRowVars.length > 0 && <div className="text-xs text-slate-500">본문/헤더 참조: <span className="text-slate-300">{usedRowVars.join(", ")}</span>{!cfg.dataset ? <span className="text-amber-300"> · ⚠ 데이터셋 미선택</span> : missingCols.length > 0 && <span className="text-amber-300"> · ⚠ 데이터셋에 없는 컬럼: {missingCols.join(", ")}</span>}</div>}
+            {selDataset && <div className="text-xs text-slate-500">컬럼: <span className="text-slate-700">{selDataset.columns.join(", ")}</span> · {(selDataset.rowCount != null ? selDataset.rowCount : selDataset.rows.length).toLocaleString()}행{selDataset.desc ? " · " + selDataset.desc : ""}</div>}
+            {usedRowVars.length > 0 && <div className="text-xs text-slate-500">본문/헤더 참조: <span className="text-slate-700">{usedRowVars.join(", ")}</span>{!cfg.dataset ? <span className="text-amber-700"> · ⚠ 데이터셋 미선택</span> : missingCols.length > 0 && <span className="text-amber-700"> · ⚠ 데이터셋에 없는 컬럼: {missingCols.join(", ")}</span>}</div>}
           </Card>
           </div>
 
           <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Package size={15} className="text-teal-400" />워크로드 <span className="text-xs font-normal text-slate-500">· {isJourney ? "순차 진행 (정해진 순서)" : "비율 혼합 (무순서·비율)"}</span>{!isJourney && <span className="text-xs" style={{ color: wsum === 100 ? "#34d399" : "#fbbf24" }}>비율 {wsum}%{wsum !== 100 ? " ⚠" : ""}</span>}{!isJourney && endpoints.length > 0 && wsum !== 100 && wsum > 0 && <button onClick={normalize} className="text-xs text-teal-400 hover:underline">100%로 정규화</button>}</div>
-              <div className="flex items-center gap-3">{hasCorrelation ? <span className="text-xs text-teal-400">상관 감지 → 순차 진행 자동</span> : <div className="flex items-center gap-2 text-xs text-slate-400"><span>순서 강제</span><Toggle on={!!cfg.forceOrder} onClick={() => setScn({ forceOrder: !cfg.forceOrder })} /></div>}<Btn icon={Plus} onClick={openEpAdd}>요청 추가</Btn></div>
+              <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Package size={15} className="text-sky-600" />워크로드 <span className="text-xs font-normal text-slate-500">· {isJourney ? "순차 진행 (정해진 순서)" : "비율 혼합 (무순서·비율)"}</span>{!isJourney && <span className="text-xs" style={{ color: wsum === 100 ? "#059669" : "#d97706" }}>비율 {wsum}%{wsum !== 100 ? " ⚠" : ""}</span>}{!isJourney && endpoints.length > 0 && wsum !== 100 && wsum > 0 && <button onClick={normalize} className="text-xs text-sky-600 hover:underline">100%로 정규화</button>}</div>
+              <div className="flex items-center gap-3">{hasCorrelation ? <span className="text-xs text-sky-600">상관 감지 → 순차 진행 자동</span> : <div className="flex items-center gap-2 text-xs text-slate-500"><span>순서 강제</span><Toggle on={!!cfg.forceOrder} onClick={() => setScn({ forceOrder: !cfg.forceOrder })} /></div>}<Btn icon={Plus} onClick={openEpAdd}>요청 추가</Btn></div>
             </div>
-            {isJourney && missingVars.length > 0 && <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-1.5 text-xs text-amber-300">⚠ 미정의 상관 변수: {missingVars.map((v) => "${" + v + "}").join(", ")} — 요청 추출(extract)로 생산되지 않았습니다.</div>}
-            {endpoints.length === 0 ? <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-500">요청이 없습니다 — 부하를 걸 요청을 추가하세요.</div> : (
+            {isJourney && missingVars.length > 0 && <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700">⚠ 미정의 상관 변수: {missingVars.map((v) => "${" + v + "}").join(", ")} — 요청 추출(extract)로 생산되지 않았습니다.</div>}
+            {endpoints.length === 0 ? <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">요청이 없습니다 — 부하를 걸 요청을 추가하세요.</div> : (
               <div className="space-y-1.5">
                 {endpoints.map((ep, idx) => (
-                  <div key={idx} className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm">
+                  <div key={idx} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
                     <Badge kind={M_LK[ep.method] || "info"}>{ep.method}</Badge>
-                    <span className="font-mono text-xs text-slate-300">{ep.path}</span>
-                    {ep.body && <span className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-400">본문</span>}
-                    {(ep.extracts && ep.extracts.length > 0) && <span className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-teal-300">추출 {ep.extracts.length}</span>}
+                    <span className="font-mono text-xs text-slate-700">{ep.path}</span>
+                    {ep.body && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">본문</span>}
+                    {(ep.extracts && ep.extracts.length > 0) && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-sky-600">추출 {ep.extracts.length}</span>}
                     <div className="flex-1" />
                     <span className="text-xs text-slate-500">→ {ep.expect || 200}</span>
-                    {!isJourney && <div className="flex items-center gap-1"><input type="number" value={ep.weight || 0} onChange={(e) => updEp(idx, { weight: Number(e.target.value) })} className="w-14 rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-right text-xs text-slate-200 outline-none focus:border-teal-500" /><span className="text-xs text-slate-500">%</span></div>}
-                    <button onClick={() => openEpEdit(idx)} className="text-slate-500 hover:text-teal-400" title="수정"><Pencil size={13} /></button>
-                    <button onClick={() => delEp(idx)} className="text-slate-500 hover:text-red-400" title="삭제"><X size={13} /></button>
+                    {!isJourney && <div className="flex items-center gap-1"><input type="number" value={ep.weight || 0} onChange={(e) => updEp(idx, { weight: Number(e.target.value) })} className="w-14 rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-right text-xs text-slate-800 outline-none focus:border-sky-500" /><span className="text-xs text-slate-500">%</span></div>}
+                    <button onClick={() => openEpEdit(idx)} className="text-slate-500 hover:text-sky-600" title="수정"><Pencil size={13} /></button>
+                    <button onClick={() => delEp(idx)} className="text-slate-500 hover:text-red-600" title="삭제"><X size={13} /></button>
                   </div>
                 ))}
               </div>
             )}
             {isJourney && (
-              <div className="space-y-1.5 border-t border-slate-800 pt-3">
+              <div className="space-y-1.5 border-t border-slate-200 pt-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-semibold text-slate-300">진행 순서</div>
+                  <div className="text-xs font-semibold text-slate-700">진행 순서</div>
                   <Btn icon={Plus} onClick={addJourneyStep}>스텝 추가</Btn>
                 </div>
-                {journey.length === 0 ? <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-500">스텝이 없습니다 — 위 요청을 순서대로 배치하세요.</div> : journey.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm">
-                    <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-800 text-xs text-slate-400">{i + 1}</span>
+                {journey.length === 0 ? <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">스텝이 없습니다 — 위 요청을 순서대로 배치하세요.</div> : journey.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+                    <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-xs text-slate-500">{i + 1}</span>
                     <div className="flex-1"><Select value={s.method + " " + s.path} onChange={(e) => { const ep = endpoints.find((x) => x.method + " " + x.path === e.target.value); if (ep) updJourney(i, { method: ep.method, path: ep.path }); }}>{endpoints.map((ep, j) => <option key={j} value={ep.method + " " + ep.path}>{ep.method} {ep.path}</option>)}</Select></div>
-                    <button onClick={() => mvJourney(i, -1)} className="text-xs text-slate-500 hover:text-slate-300">▲</button><button onClick={() => mvJourney(i, 1)} className="text-xs text-slate-500 hover:text-slate-300">▼</button>
-                    <button onClick={() => delJourney(i)} className="text-slate-500 hover:text-red-400"><X size={13} /></button>
+                    <button onClick={() => mvJourney(i, -1)} className="text-xs text-slate-500 hover:text-slate-700">▲</button><button onClick={() => mvJourney(i, 1)} className="text-xs text-slate-500 hover:text-slate-700">▼</button>
+                    <button onClick={() => delJourney(i)} className="text-slate-500 hover:text-red-600"><X size={13} /></button>
                   </div>
                 ))}
               </div>
@@ -332,7 +332,7 @@ export function NqaScenarioScreen() {
 
           <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><TrendingUp size={15} className="text-teal-400" />부하 형상</div>
+              <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><TrendingUp size={15} className="text-sky-600" />부하 형상</div>
               <Seg options={NQA_LOAD_UNITS} value={unit} onChange={(v) => setScn({ unit: v })} />
             </div>
             <div className="grid grid-cols-3 gap-3 items-start">
@@ -340,7 +340,7 @@ export function NqaScenarioScreen() {
               {isVu
                 ? <Field label="생각시간(초)"><Input type="number" value={cfg.thinkTime || 0} onChange={(e) => setScn({ thinkTime: Number(e.target.value) })} /></Field>
                 : <Field label="최대 VU" hint="도착률 유지에 필요한 VU 상한 · 부족하면 목표 도착률 미달"><Input type="number" value={cfg.maxVU || 0} onChange={(e) => setScn({ maxVU: Number(e.target.value) })} /></Field>}
-              <div className="text-right"><div className="text-xs font-semibold text-slate-400 mb-1.5">부하 생성기</div><div className="text-sm text-slate-200">전용 VM 1대</div><div className="text-xs text-slate-500">k6는 단일 프로세스로 전 코어를 씁니다</div></div>
+              <div className="text-right"><div className="text-xs font-semibold text-slate-500 mb-1.5">부하 생성기</div><div className="text-sm text-slate-800">전용 VM 1대</div><div className="text-xs text-slate-500">k6는 단일 프로세스로 전 코어를 씁니다</div></div>
             </div>
             {shapeHint && <div className="text-xs text-slate-500">{shapeHint}</div>}
             <ShapeChart cfg={cfg} />
@@ -349,60 +349,60 @@ export function NqaScenarioScreen() {
             {cfg.shape === "스파이크" && <div className="grid grid-cols-3 gap-2"><Field label={"기저 " + mag}><Input type="number" value={cfg.baseline || 0} onChange={(e) => setScn({ baseline: Number(e.target.value) })} /></Field><Field label={"피크 " + mag}><Input type="number" value={cfg.peak || 0} onChange={(e) => setScn({ peak: Number(e.target.value) })} /></Field><Field label="피크 유지(초)"><Input type="number" value={cfg.spikeHold || 0} onChange={(e) => setScn({ spikeHold: Number(e.target.value) })} /></Field></div>}
             {cfg.shape === "스트레스" && <div className="grid grid-cols-4 gap-2"><Field label={"시작 " + mag}><Input type="number" value={cfg.start || 0} onChange={(e) => setScn({ start: Number(e.target.value) })} /></Field><Field label={"단계 증가 " + mag}><Input type="number" value={cfg.step || 0} onChange={(e) => setScn({ step: Number(e.target.value) })} /></Field><Field label="단계 유지(분)"><Input type="number" value={cfg.stepHold || 0} onChange={(e) => setScn({ stepHold: Number(e.target.value) })} /></Field><Field label="단계 수"><Input type="number" value={cfg.steps || 0} onChange={(e) => setScn({ steps: Number(e.target.value) })} /></Field></div>}
             {cfg.shape === "소크" && <div className="grid grid-cols-2 gap-2"><Field label={"목표 " + mag}><Input type="number" value={cfg.peak || 0} onChange={(e) => setScn({ peak: Number(e.target.value) })} /></Field><Field label="지속(시간)"><Input type="number" value={cfg.soakH || 0} onChange={(e) => setScn({ soakH: Number(e.target.value) })} /></Field></div>}
-            <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400"><span className="text-slate-300">→ k6:</span> {k6Summary} · {isVu ? "닫힌 모델" : "열린 모델"}<span className="text-slate-500"> · 전용 VM 1대</span></div>
+            <div className="rounded-lg bg-slate-100 p-2.5 text-xs text-slate-500"><span className="text-slate-700">→ k6:</span> {k6Summary} · {isVu ? "닫힌 모델" : "열린 모델"}<span className="text-slate-500"> · 전용 VM 1대</span></div>
           </Card>
 
           <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Activity size={15} className="text-teal-400" />SLA 판정 임계</div>
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Activity size={15} className="text-sky-600" />SLA 판정 임계</div>
             <div className="grid grid-cols-4 gap-3">
               <Field label="p95 응답 ≤ (ms)"><Input type="number" value={sla.p95 ?? ""} onChange={(e) => setSla({ p95: numv(e.target.value) })} /></Field>
               <Field label="p99 응답 ≤ (ms)" hint="비우면 미적용"><Input type="number" value={sla.p99 ?? ""} onChange={(e) => setSla({ p99: numv(e.target.value) })} /></Field>
               <Field label="에러율 ≤ (%)"><Input type="number" value={sla.errRate ?? ""} onChange={(e) => setSla({ errRate: numv(e.target.value) })} /></Field>
               <Field label="최소 처리량 ≥ (RPS)" hint="비우면 미적용"><Input type="number" value={sla.minRps ?? ""} onChange={(e) => setSla({ minRps: numv(e.target.value) })} /></Field>
             </div>
-            {(isStress || isSoak || isSpike) && <div className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-400">
+            {(isStress || isSoak || isSpike) && <div className="rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-xs text-slate-500">
               {isStress ? "용량(포화점)" : isSoak ? "성능 드리프트" : "복구 시간"}은 k6 요약에 없는 <strong>시계열 파생값</strong>이라 자동 판정하지 않습니다 — 결과에서 사람이 읽습니다.
             </div>}
-            <div className="rounded-lg border border-emerald-900 bg-emerald-950 px-2.5 py-1.5 text-xs text-emerald-300">합격 조건: <span className="text-emerald-100">{slaText}</span> 를 모두 만족</div>
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700">합격 조건: <span className="text-emerald-800">{slaText}</span> 를 모두 만족</div>
           </Card>
           </>)}
         </div>
       </div>
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModal(false)}>
-          <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-semibold text-slate-100">새 부하 테스트</div>
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setModal(false)}>
+          <div className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-semibold text-slate-900">새 부하 테스트</div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="이름 (비우면 자동)"><Input value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} placeholder="테스트 이름" /></Field>
               <Field label="부하 대상"><Select value={nf.sutId || ""} onChange={(e) => setNf({ ...nf, sutId: Number(e.target.value) })}><option value="">선택하세요</option>{systems.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
             </div>
-            <div className="rounded-lg bg-slate-800 p-2.5 text-xs text-slate-400">생성 후 &quot;워크로드&quot;에서 요청·순서·비율을, &quot;부하 형상&quot;에서 부하량을 설정합니다.</div>
+            <div className="rounded-lg bg-slate-100 p-2.5 text-xs text-slate-500">생성 후 &quot;워크로드&quot;에서 요청·순서·비율을, &quot;부하 형상&quot;에서 부하량을 설정합니다.</div>
             <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setModal(false)}>취소</Btn><Btn kind="primary" icon={Plus} onClick={create}>생성</Btn></div>
           </div>
-        </div>
+        </div></Portal>
       )}
       {epModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setEpModal(false)}>
-          <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3" style={{ maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-semibold text-slate-100">{epEdit != null ? "요청 수정" : "요청 추가"}</div>
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEpModal(false)}>
+          <div className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 space-y-3" style={{ maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-semibold text-slate-900">{epEdit != null ? "요청 수정" : "요청 추가"}</div>
             <div className="grid grid-cols-4 gap-3">
               <Field label="메서드"><Select value={ef.method} onChange={(e) => setEf({ ...ef, method: e.target.value })}>{NQA_HTTP_METHODS.map((m) => <option key={m}>{m}</option>)}</Select></Field>
               <div className={isJourney ? "col-span-3" : "col-span-2"}><Field label="경로"><Input value={ef.path} onChange={(e) => setEf({ ...ef, path: e.target.value })} placeholder="/v1/plans" /></Field></div>
               {!isJourney && <Field label="비율(%)"><Input type="number" value={ef.weight} onChange={(e) => setEf({ ...ef, weight: e.target.value })} /></Field>}
             </div>
             <Field label="요청 헤더">
-              {(ef.headers || []).map((h, i) => (<div key={i} className="mb-1.5 flex gap-2"><Input value={h.k} onChange={(e) => setEf({ ...ef, headers: ef.headers.map((x, j) => (j === i ? { ...x, k: e.target.value } : x)) })} placeholder="Header" /><Input value={h.v} onChange={(e) => setEf({ ...ef, headers: ef.headers.map((x, j) => (j === i ? { ...x, v: e.target.value } : x)) })} placeholder="Value (예: Bearer ${token})" /><button onClick={() => setEf({ ...ef, headers: ef.headers.filter((_, j) => j !== i) })} className="px-1 text-slate-500 hover:text-red-400"><X size={14} /></button></div>))}
-              <button onClick={() => setEf({ ...ef, headers: [...(ef.headers || []), { k: "", v: "" }] })} className="text-xs text-teal-400">+ 헤더 추가</button>
+              {(ef.headers || []).map((h, i) => (<div key={i} className="mb-1.5 flex gap-2"><Input value={h.k} onChange={(e) => setEf({ ...ef, headers: ef.headers.map((x, j) => (j === i ? { ...x, k: e.target.value } : x)) })} placeholder="Header" /><Input value={h.v} onChange={(e) => setEf({ ...ef, headers: ef.headers.map((x, j) => (j === i ? { ...x, v: e.target.value } : x)) })} placeholder="Value (예: Bearer ${token})" /><button onClick={() => setEf({ ...ef, headers: ef.headers.filter((_, j) => j !== i) })} className="px-1 text-slate-500 hover:text-red-600"><X size={14} /></button></div>))}
+              <button onClick={() => setEf({ ...ef, headers: [...(ef.headers || []), { k: "", v: "" }] })} className="text-xs text-sky-600">+ 헤더 추가</button>
             </Field>
-            {["POST", "PUT", "PATCH"].includes(ef.method) && <Field label="요청 본문 (Body) · 파라미터화 지원"><textarea value={ef.body} onChange={(e) => setEf({ ...ef, body: e.target.value })} rows={3} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-mono text-slate-200 outline-none focus:border-teal-500" placeholder={'{ "phone": "${row.phone}" }'} /></Field>}
+            {["POST", "PUT", "PATCH"].includes(ef.method) && <Field label="요청 본문 (Body) · 파라미터화 지원"><textarea value={ef.body} onChange={(e) => setEf({ ...ef, body: e.target.value })} rows={3} className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-mono text-slate-800 outline-none focus:border-sky-500" placeholder={'{ "phone": "${row.phone}" }'} /></Field>}
             <Field label="응답 추출 (상관)" hint="JSONPath로 값 추출 → 다음 요청에 재사용">
-              {(ef.extracts || []).map((x, i) => (<div key={i} className="mb-1.5 flex gap-2"><Input value={x.var} onChange={(e) => setEf({ ...ef, extracts: ef.extracts.map((y, j) => (j === i ? { ...y, var: e.target.value } : y)) })} placeholder="변수명 (token)" /><Input value={x.path} onChange={(e) => setEf({ ...ef, extracts: ef.extracts.map((y, j) => (j === i ? { ...y, path: e.target.value } : y)) })} placeholder="$.data.token" /><button onClick={() => setEf({ ...ef, extracts: ef.extracts.filter((_, j) => j !== i) })} className="px-1 text-slate-500 hover:text-red-400"><X size={14} /></button></div>))}
-              <button onClick={() => setEf({ ...ef, extracts: [...(ef.extracts || []), { var: "", path: "" }] })} className="text-xs text-teal-400">+ 추출 추가</button>
+              {(ef.extracts || []).map((x, i) => (<div key={i} className="mb-1.5 flex gap-2"><Input value={x.var} onChange={(e) => setEf({ ...ef, extracts: ef.extracts.map((y, j) => (j === i ? { ...y, var: e.target.value } : y)) })} placeholder="변수명 (token)" /><Input value={x.path} onChange={(e) => setEf({ ...ef, extracts: ef.extracts.map((y, j) => (j === i ? { ...y, path: e.target.value } : y)) })} placeholder="$.data.token" /><button onClick={() => setEf({ ...ef, extracts: ef.extracts.filter((_, j) => j !== i) })} className="px-1 text-slate-500 hover:text-red-600"><X size={14} /></button></div>))}
+              <button onClick={() => setEf({ ...ef, extracts: [...(ef.extracts || []), { var: "", path: "" }] })} className="text-xs text-sky-600">+ 추출 추가</button>
             </Field>
             <Field label="기대 상태코드"><Input value={ef.expect} onChange={(e) => setEf({ ...ef, expect: e.target.value })} placeholder="200 또는 200,201" className="w-40" /></Field>
             <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => { setEpModal(false); setEpEdit(null); }}>취소</Btn><Btn kind="primary" icon={epEdit != null ? Save : Plus} onClick={saveEp}>{epEdit != null ? "저장" : "추가"}</Btn></div>
           </div>
-        </div>
+        </div></Portal>
       )}
       <Toast msg={msg} />
     </div>
@@ -476,8 +476,8 @@ function TSPanel({ title, points, pick, color, unit }) {
   const area = "M0 " + H + " " + vals.map((v, i) => "L" + px(i).toFixed(1) + " " + py(v).toFixed(1)).join(" ") + " L" + W + " " + H + " Z";
   const last = vals[vals.length - 1] || 0;
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
-      <div className="flex items-center justify-between"><div className="text-xs font-semibold text-slate-300">{title}</div><div className="text-sm font-semibold" style={{ color }}>{last.toLocaleString()}<span className="text-xs text-slate-500"> {unit}</span></div></div>
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+      <div className="flex items-center justify-between"><div className="text-xs font-semibold text-slate-700">{title}</div><div className="text-sm font-semibold" style={{ color }}>{last.toLocaleString()}<span className="text-xs text-slate-500"> {unit}</span></div></div>
       <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" className="mt-2 h-20 w-full">
         <path d={area} fill={color} opacity="0.15" />
         <path d={line} fill="none" stroke={color} strokeWidth="1.5" />
@@ -492,9 +492,9 @@ function TSMulti({ title, points, series, unit }) {
   const lineOf = (pick) => points.map((d, i) => (i === 0 ? "M" : "L") + px(i).toFixed(1) + " " + py(pick(d)).toFixed(1)).join(" ");
   const lastP = points[points.length - 1] || {};
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
       <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold text-slate-300">{title} <span className="font-normal text-slate-500">({unit})</span></div>
+        <div className="text-xs font-semibold text-slate-700">{title} <span className="font-normal text-slate-500">({unit})</span></div>
         <div className="flex items-center gap-2 text-xs">{series.map((sr, k) => <span key={k} className="flex items-center gap-1" style={{ color: sr.color }}><span className="inline-block h-1.5 w-2 rounded-sm" style={{ background: sr.color }} />{sr.label} {Math.round(sr.pick(lastP) || 0).toLocaleString()}</span>)}</div>
       </div>
       <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" className="mt-2 h-20 w-full">
@@ -620,8 +620,8 @@ export function NqaRunScreen({ nav }) {
     <div className="space-y-4">
       <PageToolbar desc="부하 주입 · 백그라운드 실행" />
       <Card className="flex flex-col items-center justify-center py-16 text-center">
-        <Play size={26} className="text-slate-600" />
-        <div className="mt-3 text-sm font-medium text-slate-300">실행할 부하 테스트가 없습니다</div>
+        <Play size={26} className="text-slate-400" />
+        <div className="mt-3 text-sm font-medium text-slate-700">실행할 부하 테스트가 없습니다</div>
         <div className="mt-1.5 max-w-md text-xs text-slate-500">부하 테스트를 만들고 활성화해야 부하를 주입할 수 있습니다.</div>
         <Btn className="mt-3" icon={Code2} onClick={() => goTo("nqa-scenarios")}>부하 테스트 만들러 가기</Btn>
       </Card>
@@ -633,25 +633,25 @@ export function NqaRunScreen({ nav }) {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-3">
           <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Gauge size={15} className="text-teal-400" />실행할 부하 테스트</div>
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Gauge size={15} className="text-sky-600" />실행할 부하 테스트</div>
             <Field label="부하 테스트"><Select value={scnId} onChange={(e) => setScnId(Number(e.target.value))}>{scns.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
-            <div className="rounded-lg bg-slate-800 p-3 text-xs space-y-2">
-              <div><div className="text-slate-500">대상</div><div className="text-slate-200">{sut.name || "-"}{sut.baseUrl && <span className="font-mono text-slate-500"> · {sut.baseUrl}</span>}</div></div>
-              <div><div className="text-slate-500">워크로드</div><div className="text-slate-300">{modeR} · 요청 {(scn.endpoints || []).length}개{scn.dataset ? " · 데이터셋 " + scn.dataset : ""}</div></div>
-              <div><div className="text-slate-500">부하 형상</div><div className="text-slate-300">{scn.shape || "-"} · 목표 {peakR.toLocaleString()} {magR} · 예상 소요 {fmtDur(durMinOf(scn))}</div></div>
-              <div><div className="text-slate-500">합격 기준</div><div className="text-emerald-300">{slaBits.join(" · ") || "미설정"}</div></div>
+            <div className="rounded-lg bg-slate-100 p-3 text-xs space-y-2">
+              <div><div className="text-slate-500">대상</div><div className="text-slate-800">{sut.name || "-"}{sut.baseUrl && <span className="font-mono text-slate-500"> · {sut.baseUrl}</span>}</div></div>
+              <div><div className="text-slate-500">워크로드</div><div className="text-slate-700">{modeR} · 요청 {(scn.endpoints || []).length}개{scn.dataset ? " · 데이터셋 " + scn.dataset : ""}</div></div>
+              <div><div className="text-slate-500">부하 형상</div><div className="text-slate-700">{scn.shape || "-"} · 목표 {peakR.toLocaleString()} {magR} · 예상 소요 {fmtDur(durMinOf(scn))}</div></div>
+              <div><div className="text-slate-500">합격 기준</div><div className="text-emerald-700">{slaBits.join(" · ") || "미설정"}</div></div>
             </div>
             <div className="flex gap-2"><Btn kind="primary" icon={Gauge} onClick={runNow} disabled={thisRunning}>{thisRunning ? sameSutOther ? "대상 사용 중" : "실행 중…" : "즉시 실행"}</Btn><Btn icon={Zap} onClick={openResv}>예약 실행</Btn></div>
           </Card>
           {scheduled.length > 0 && (
             <Card className="p-4 space-y-2">
-              <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Zap size={15} className="text-teal-400" />예약된 실행 <span className="text-xs font-normal text-slate-500">· {scheduled.length}건</span></div>
+              <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Zap size={15} className="text-sky-600" />예약된 실행 <span className="text-xs font-normal text-slate-500">· {scheduled.length}건</span></div>
               {scheduled.map((r) => { const p = scns.find((x) => x.id === r.scnId) || {}; return (
-                <div key={r.id} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm">
+                <div key={r.id} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
                   <Badge kind="warn">예약</Badge>
-                  <div className="min-w-0 flex-1"><div className="truncate text-slate-300">{p.name || "-"}</div><div className="text-xs text-slate-500">{r.scheduledAt}</div></div>
-                  <button onClick={() => promote(r)} className="text-xs text-teal-400 hover:underline">지금 실행</button>
-                  <button onClick={() => cancelResv(r)} className="text-slate-500 hover:text-red-400" title="예약 취소"><X size={13} /></button>
+                  <div className="min-w-0 flex-1"><div className="truncate text-slate-700">{p.name || "-"}</div><div className="text-xs text-slate-500">{r.scheduledAt}</div></div>
+                  <button onClick={() => promote(r)} className="text-xs text-sky-600 hover:underline">지금 실행</button>
+                  <button onClick={() => cancelResv(r)} className="text-slate-500 hover:text-red-600" title="예약 취소"><X size={13} /></button>
                 </div>
               ); })}
             </Card>
@@ -659,11 +659,11 @@ export function NqaRunScreen({ nav }) {
         </div>
         <div className="col-span-9 space-y-3">
           <Card className="p-3">
-            <div className="flex items-center justify-between text-xs"><span className="text-slate-400">부하 생성기</span><span className={anyRunning ? "text-amber-300" : "text-slate-300"}>{anyRunning ? "사용 중 — 한 번에 하나만 실행합니다" : "대기 중"}</span></div>
-            {queued.length > 0 && <div className="mt-1.5 text-xs text-amber-300">대기 {queued.length}건 — 러너 여유가 생기면 자동 시작됩니다.</div>}
+            <div className="flex items-center justify-between text-xs"><span className="text-slate-500">부하 생성기</span><span className={anyRunning ? "text-amber-700" : "text-slate-700"}>{anyRunning ? "사용 중 — 한 번에 하나만 실행합니다" : "대기 중"}</span></div>
+            {queued.length > 0 && <div className="mt-1.5 text-xs text-amber-700">대기 {queued.length}건 — 러너 여유가 생기면 자동 시작됩니다.</div>}
           </Card>
           {runningRuns.length === 0 && queued.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center gap-2 p-10 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800"><Activity size={22} className="text-teal-400" /></div><div className="text-sm text-slate-400">부하 테스트를 선택하고 &quot;즉시 실행&quot;을 누르면 백그라운드로 실행됩니다.</div></Card>
+            <Card className="flex flex-col items-center justify-center gap-2 p-10 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100"><Activity size={22} className="text-sky-600" /></div><div className="text-sm text-slate-500">부하 테스트를 선택하고 &quot;즉시 실행&quot;을 누르면 백그라운드로 실행됩니다.</div></Card>
           ) : (<>
             {runningRuns.map((r) => {
               const p = scns.find((x) => x.id === r.scnId) || {};
@@ -685,34 +685,34 @@ export function NqaRunScreen({ nav }) {
               const rpsNow = vuLimited ? Math.round(maxAlloc / avgLat) : Math.round((t.rps || 0) * reach);
               return (
                 <Card key={r.id} className="p-4 space-y-3">
-                  <div className="flex items-center justify-between"><div className="text-sm font-semibold text-slate-200">{p.name || "부하"} · <span className="text-teal-300">실행 중</span></div><div className="flex items-center gap-2"><Badge kind="info">{phase}</Badge><Badge kind="warn">실행중</Badge></div></div>
+                  <div className="flex items-center justify-between"><div className="text-sm font-semibold text-slate-800">{p.name || "부하"} · <span className="text-sky-600">실행 중</span></div><div className="flex items-center gap-2"><Badge kind="info">{phase}</Badge><Badge kind="warn">실행중</Badge></div></div>
                   <div className="text-xs text-slate-500">대상 {su.name || "-"} · 경과 {fmtDur(el)} / {fmtDur(dm)} · 남음 {fmtDur(Math.max(0, dm - el))}</div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-teal-500" style={{ width: Math.round(pr * 100) + "%" }} /></div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-sky-500" style={{ width: Math.round(pr * 100) + "%" }} /></div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-lg bg-slate-800 p-2.5"><div className="text-xs text-slate-500">활성 VU</div><div className={"text-lg font-semibold " + (vuLimited ? "text-amber-300" : "text-slate-100")}>{activeVU.toLocaleString()}<span className="text-xs text-slate-500"> / {vuCap.toLocaleString()}</span></div></div>
-                    <div className="rounded-lg bg-slate-800 p-2.5"><div className="text-xs text-slate-500">처리량</div><div className="text-lg font-semibold text-slate-100">{rpsNow.toLocaleString()} <span className="text-xs text-slate-500">req/s</span></div></div>
-                    <div className="rounded-lg bg-slate-800 p-2.5"><div className="text-xs text-slate-500">에러율</div><div className={"text-lg font-semibold " + (rsla.errRate != null && rsla.errRate !== "" && errNow > rsla.errRate ? "text-red-400" : "text-slate-100")}>{errNow}<span className="text-xs text-slate-500">%</span></div></div>
+                    <div className="rounded-lg bg-slate-100 p-2.5"><div className="text-xs text-slate-500">활성 VU</div><div className={"text-lg font-semibold " + (vuLimited ? "text-amber-700" : "text-slate-900")}>{activeVU.toLocaleString()}<span className="text-xs text-slate-500"> / {vuCap.toLocaleString()}</span></div></div>
+                    <div className="rounded-lg bg-slate-100 p-2.5"><div className="text-xs text-slate-500">처리량</div><div className="text-lg font-semibold text-slate-900">{rpsNow.toLocaleString()} <span className="text-xs text-slate-500">req/s</span></div></div>
+                    <div className="rounded-lg bg-slate-100 p-2.5"><div className="text-xs text-slate-500">에러율</div><div className={"text-lg font-semibold " + (rsla.errRate != null && rsla.errRate !== "" && errNow > rsla.errRate ? "text-red-600" : "text-slate-900")}>{errNow}<span className="text-xs text-slate-500">%</span></div></div>
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-xs">
-                    <div className="rounded bg-slate-800 px-2 py-1.5"><span className="text-slate-500">p50 </span><span className="text-slate-200">{p50Now}ms</span></div>
-                    <div className="rounded bg-slate-800 px-2 py-1.5"><span className="text-slate-500">p95 </span><span className={rsla.p95 && p95Now > rsla.p95 ? "text-red-300" : "text-slate-200"}>{p95Now}ms</span></div>
-                    <div className="rounded bg-slate-800 px-2 py-1.5"><span className="text-slate-500">p99 </span><span className="text-slate-200">{p99Now}ms</span></div>
-                    <div className="rounded bg-slate-800 px-2 py-1.5"><span className="text-slate-500">checks </span><span className="text-slate-200">{checkPass}%</span></div>
+                    <div className="rounded bg-slate-100 px-2 py-1.5"><span className="text-slate-500">p50 </span><span className="text-slate-800">{p50Now}ms</span></div>
+                    <div className="rounded bg-slate-100 px-2 py-1.5"><span className="text-slate-500">p95 </span><span className={rsla.p95 && p95Now > rsla.p95 ? "text-red-700" : "text-slate-800"}>{p95Now}ms</span></div>
+                    <div className="rounded bg-slate-100 px-2 py-1.5"><span className="text-slate-500">p99 </span><span className="text-slate-800">{p99Now}ms</span></div>
+                    <div className="rounded bg-slate-100 px-2 py-1.5"><span className="text-slate-500">checks </span><span className="text-slate-800">{checkPass}%</span></div>
                   </div>
-                  <div className="text-xs text-slate-500">누적 요청 <span className="text-slate-300">{iters.toLocaleString()}</span></div>
-                  {vuLimited && <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-1.5 text-xs text-amber-300">⚠ 활성 VU가 최대 {maxAlloc.toLocaleString()}에 도달 — 목표 도착률을 못 채워 iteration drop 발생</div>}
+                  <div className="text-xs text-slate-500">누적 요청 <span className="text-slate-700">{iters.toLocaleString()}</span></div>
+                  {vuLimited && <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700">⚠ 활성 VU가 최대 {maxAlloc.toLocaleString()}에 도달 — 목표 도착률을 못 채워 iteration drop 발생</div>}
                   <div className="flex justify-end gap-2"><Btn icon={Activity} onClick={() => { setObsId(r.id); setErrRow(null); }}>실시간 관측</Btn><Btn kind="danger" icon={X} onClick={() => abort(r)}>중단</Btn></div>
                 </Card>
               );
             })}
             {queued.length > 0 && (
               <Card className="p-4 space-y-2">
-                <div className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Activity size={15} className="text-amber-400" />대기 중 <span className="text-xs font-normal text-slate-500">· {queued.length}건</span></div>
+                <div className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Activity size={15} className="text-amber-600" />대기 중 <span className="text-xs font-normal text-slate-500">· {queued.length}건</span></div>
                 {queued.map((r, i) => { const p = scns.find((x) => x.id === r.scnId) || {}; return (
-                  <div key={r.id} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm">
-                    <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-800 text-xs text-slate-400">{i + 1}</span>
-                    <div className="min-w-0 flex-1 truncate text-slate-300">{p.name || "-"}</div>
-                    <button onClick={() => { removeNqaRun(r.id); flash("대기 취소됨"); }} className="text-slate-500 hover:text-red-400" title="대기 취소"><X size={13} /></button>
+                  <div key={r.id} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+                    <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-xs text-slate-500">{i + 1}</span>
+                    <div className="min-w-0 flex-1 truncate text-slate-700">{p.name || "-"}</div>
+                    <button onClick={() => { removeNqaRun(r.id); flash("대기 취소됨"); }} className="text-slate-500 hover:text-red-600" title="대기 취소"><X size={13} /></button>
                   </div>
                 ); })}
               </Card>
@@ -721,20 +721,20 @@ export function NqaRunScreen({ nav }) {
         </div>
       </div>
       {resv && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setResv(false)}>
-          <div className="w-full max-w-sm space-y-3 rounded-xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-semibold text-slate-100">예약 실행</div>
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setResv(false)}>
+          <div className="w-full max-w-sm space-y-3 rounded-xl border border-slate-300 bg-white p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-semibold text-slate-900">예약 실행</div>
             <div className="text-xs text-slate-500">{scn.name || "-"} 을(를) 지정 시각에 1회 실행합니다.</div>
             <div className="flex flex-wrap gap-1.5">
-              <button onClick={() => setWhen(presetTonight())} className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700">오늘 22:00</button>
-              <button onClick={() => setWhen(presetTomorrow())} className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700">내일 02:00</button>
-              <button onClick={() => setWhen(presetPlus1())} className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700">1시간 후</button>
+              <button onClick={() => setWhen(presetTonight())} className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200">오늘 22:00</button>
+              <button onClick={() => setWhen(presetTomorrow())} className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200">내일 02:00</button>
+              <button onClick={() => setWhen(presetPlus1())} className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200">1시간 후</button>
             </div>
-            <Field label="실행 시각"><input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-teal-500" /></Field>
+            <Field label="실행 시각"><input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" /></Field>
             <div className="text-xs text-slate-500">부하는 보통 야간·오프피크에 예약합니다.</div>
             <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setResv(false)}>취소</Btn><Btn kind="primary" icon={Zap} onClick={reserve}>예약</Btn></div>
           </div>
-        </div>
+        </div></Portal>
       )}
       {obsId && (() => {
         const r = (nqaRuns || []).find((x) => x.id === obsId);
@@ -747,37 +747,37 @@ export function NqaRunScreen({ nav }) {
         const t = r.target || {}; const pr = prog(r);
         const failN = (t.totalReq != null && t.errRate != null) ? Math.round(t.totalReq * t.errRate / 100 * pr) : null;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={() => { setObsId(null); setErrRow(null); }}>
-            <div className="flex w-full max-w-4xl flex-col gap-4 rounded-xl border border-slate-700 bg-slate-900 p-5" style={{ height: "82vh" }} onClick={(e) => e.stopPropagation()}>
+          <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { setObsId(null); setErrRow(null); }}>
+            <div className="flex w-full max-w-4xl flex-col gap-4 rounded-xl border border-slate-300 bg-white p-5" style={{ height: "82vh" }} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <div><div className="text-base font-semibold text-slate-100">실시간 관측 · {p.name || "부하"}</div><div className="text-xs text-slate-500">실시간 집계(5s) · 자동 새로고침</div></div>
-                <div className="flex items-center gap-3"><span className="flex items-center gap-1 text-xs text-teal-400"><span className="h-1.5 w-1.5 rounded-full bg-teal-400" />LIVE</span><button onClick={() => { setObsId(null); setErrRow(null); }} className="text-slate-500 hover:text-red-400"><X size={16} /></button></div>
+                <div><div className="text-base font-semibold text-slate-900">실시간 관측 · {p.name || "부하"}</div><div className="text-xs text-slate-500">실시간 집계(5s) · 자동 새로고침</div></div>
+                <div className="flex items-center gap-3"><span className="flex items-center gap-1 text-xs text-sky-600"><span className="h-1.5 w-1.5 rounded-full bg-sky-400" />LIVE</span><button onClick={() => { setObsId(null); setErrRow(null); }} className="text-slate-500 hover:text-red-600"><X size={16} /></button></div>
               </div>
               <div className="grid shrink-0 grid-cols-2 gap-3">
-                <TSPanel title="트래픽 (req/s)" points={series} pick={(d) => d.rps} color="#2dd4bf" unit="req/s" />
-                <TSPanel title="오류율" points={series} pick={(d) => d.errPct} color="#f87171" unit="%" />
-                <TSMulti title="응답시간" points={series} unit="ms" series={[{ pick: (d) => d.p50, color: "#94a3b8", label: "p50" }, { pick: (d) => d.p95, color: "#fbbf24", label: "p95" }, { pick: (d) => d.p99, color: "#f87171", label: "p99" }]} />
-                <TSPanel title="활성 VU" points={series} pick={(d) => d.vu} color="#38bdf8" unit="VU" />
+                <TSPanel title="트래픽 (req/s)" points={series} pick={(d) => d.rps} color="#0ea5e9" unit="req/s" />
+                <TSPanel title="오류율" points={series} pick={(d) => d.errPct} color="#dc2626" unit="%" />
+                <TSMulti title="응답시간" points={series} unit="ms" series={[{ pick: (d) => d.p50, color: "#94a3b8", label: "p50" }, { pick: (d) => d.p95, color: "#d97706", label: "p95" }, { pick: (d) => d.p99, color: "#dc2626", label: "p99" }]} />
+                <TSPanel title="활성 VU" points={series} pick={(d) => d.vu} color="#0284c7" unit="VU" />
               </div>
-              <div className="shrink-0 rounded-lg bg-slate-800/60 px-2.5 py-1.5 text-xs text-slate-500">실시간 값은 <span className="text-slate-300">전체 구간</span>입니다 — 판정은 워밍업을 뺀 <span className="text-slate-300">목표 부하 구간</span>에서 하므로 결과와 다를 수 있습니다.</div>
+              <div className="shrink-0 rounded-lg bg-slate-100/60 px-2.5 py-1.5 text-xs text-slate-500">실시간 값은 <span className="text-slate-700">전체 구간</span>입니다 — 판정은 워밍업을 뺀 <span className="text-slate-700">목표 부하 구간</span>에서 하므로 결과와 다를 수 있습니다.</div>
               <div className="flex min-h-0 flex-1 flex-col">
-                <div className="mb-2 flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={14} className="text-red-400" />오류 <span className="text-xs font-normal text-slate-500">· 샘플 {errs.length}건{failN != null ? " / 실패 " + failN.toLocaleString() + "건" : ""} · 최근순 <span className="text-slate-600">(전량이 아니라 상한까지만 보관합니다)</span></span></div>
-                {errs.length === 0 ? <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-500">아직 집계된 오류가 없습니다.</div> : (
-                  <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-slate-800">
+                <div className="mb-2 flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-800"><Bug size={14} className="text-red-600" />오류 <span className="text-xs font-normal text-slate-500">· 샘플 {errs.length}건{failN != null ? " / 실패 " + failN.toLocaleString() + "건" : ""} · 최근순 <span className="text-slate-400">(전량이 아니라 상한까지만 보관합니다)</span></span></div>
+                {errs.length === 0 ? <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">아직 집계된 오류가 없습니다.</div> : (
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-slate-200">
                     {errs.map((e) => (
-                      <div key={e.i} className="border-b border-slate-800 last:border-0">
+                      <div key={e.i} className="border-b border-slate-200 last:border-0">
                         <div className="flex items-center gap-2 px-3 py-1.5 text-xs">
-                          <span className="w-16 shrink-0 font-mono text-slate-400">{e.at}</span>
+                          <span className="w-16 shrink-0 font-mono text-slate-500">{e.at}</span>
                           <Badge kind={M_LK[e.method] || "info"}>{e.method}</Badge>
-                          <span className="min-w-0 flex-1 truncate font-mono text-slate-300">{e.path}</span>
-                          <span className="shrink-0 text-red-300">{e.type}</span>
-                          <span className="w-10 shrink-0 text-right text-slate-400">{e.status}</span>
-                          <button onClick={() => setErrRow(errRow === e.i ? null : e.i)} className="w-16 shrink-0 text-right text-teal-400 hover:underline">{errRow === e.i ? "닫기" : "응답 보기"}</button>
+                          <span className="min-w-0 flex-1 truncate font-mono text-slate-700">{e.path}</span>
+                          <span className="shrink-0 text-red-700">{e.type}</span>
+                          <span className="w-10 shrink-0 text-right text-slate-500">{e.status}</span>
+                          <button onClick={() => setErrRow(errRow === e.i ? null : e.i)} className="w-16 shrink-0 text-right text-sky-600 hover:underline">{errRow === e.i ? "닫기" : "응답 보기"}</button>
                         </div>
                         {errRow === e.i && (
-                          <div className="space-y-2 bg-slate-950 px-3 py-2 text-xs">
-                            <div><div className="mb-0.5 text-slate-500">요청</div><div className="font-mono text-slate-300">{e.method} {su.baseUrl}{e.path}</div>{e.reqBody && <pre className="mt-1 overflow-x-auto rounded bg-slate-900 p-2 text-slate-400">{e.reqBody}</pre>}</div>
-                            <div><div className="mb-0.5 text-slate-500">응답</div><div className="text-slate-300">{e.respStatus} · {e.msg}</div>{e.respBody && <pre className="mt-1 overflow-x-auto rounded bg-slate-900 p-2 text-slate-400">{e.respBody}</pre>}</div>
+                          <div className="space-y-2 bg-slate-50 px-3 py-2 text-xs">
+                            <div><div className="mb-0.5 text-slate-500">요청</div><div className="font-mono text-slate-700">{e.method} {su.baseUrl}{e.path}</div>{e.reqBody && <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-slate-500">{e.reqBody}</pre>}</div>
+                            <div><div className="mb-0.5 text-slate-500">응답</div><div className="text-slate-700">{e.respStatus} · {e.msg}</div>{e.respBody && <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-slate-500">{e.respBody}</pre>}</div>
                           </div>
                         )}
                       </div>
@@ -786,7 +786,7 @@ export function NqaRunScreen({ nav }) {
                 )}
               </div>
             </div>
-          </div>
+          </div></Portal>
         );
       })()}
       <Toast msg={msg} />
@@ -831,7 +831,7 @@ function NqaResultView({ run, back }) {
   };
   return (
     <div className="space-y-4">
-      <PageToolbar desc={<span><button onClick={back} className="text-teal-400 hover:underline">실행 이력</button> <span className="text-slate-600">›</span> <span className="text-slate-300 font-medium">{r.id} 결과</span></span>}>
+      <PageToolbar desc={<span><button onClick={back} className="text-sky-600 hover:underline">실행 이력</button> <span className="text-slate-400">›</span> <span className="text-slate-700 font-medium">{r.id} 결과</span></span>}>
         <Btn icon={FileDown} onClick={() => flash("Excel 다운로드 — 요약·시계열·오류(증적) 포함")}>Excel</Btn>
         <Btn icon={FileDown} onClick={() => flash("PDF 리포트 다운로드")}>PDF</Btn>
         <Btn icon={ChevronLeft} onClick={back}>실행 이력으로</Btn>
@@ -839,65 +839,65 @@ function NqaResultView({ run, back }) {
       <Card className="p-4 space-y-3">
         <div className="flex items-start justify-between">
           <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-100">{p.name || "부하 테스트"} <span className="text-xs font-normal text-slate-500">· {r.id} · #{r.no}</span></div>
+            <div className="text-base font-semibold text-slate-900">{p.name || "부하 테스트"} <span className="text-xs font-normal text-slate-500">· {r.id} · #{r.no}</span></div>
             <div className="mt-0.5 text-xs text-slate-500">대상 {su.name || "-"} · {r.startedAt} ~ {(r.endedAt || "").slice(11) || "-"} · 실행자 {r.by || "-"}</div>
           </div>
           <Badge kind={VK(res.verdict)}>{res.verdict}</Badge>
         </div>
         <div className="grid grid-cols-4 gap-2 text-xs">
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">처리량 </span><span className="text-slate-200">{res.rps} RPS</span></div>
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">에러율 </span><span className="text-slate-200">{res.errRate}%</span></div>
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">p50 </span><span className="text-slate-200">{res.p50}ms</span></div>
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">p95 </span><span className="text-slate-200">{res.p95}ms</span></div>
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">p99 </span><span className="text-slate-200">{res.p99}ms</span></div>
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">총 요청 </span><span className="text-slate-200">{(res.totalReq || 0).toLocaleString()}</span></div>
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">소요 </span><span className="text-slate-200">{fmtD((r.durationSec || 0) / 60)}</span></div>
-          <div className="rounded bg-slate-800 px-2.5 py-1.5"><span className="text-slate-500">p95 마지막 합격 대비 </span>{deltaPct == null ? <span className="text-slate-400">기준</span> : deltaPct > 10 ? <span className="font-semibold text-amber-300">▲{deltaPct}%</span> : <span className="text-slate-300">{deltaPct >= 0 ? "+" : ""}{deltaPct}%</span>}</div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">처리량 </span><span className="text-slate-800">{res.rps} RPS</span></div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">에러율 </span><span className="text-slate-800">{res.errRate}%</span></div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">p50 </span><span className="text-slate-800">{res.p50}ms</span></div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">p95 </span><span className="text-slate-800">{res.p95}ms</span></div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">p99 </span><span className="text-slate-800">{res.p99}ms</span></div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">총 요청 </span><span className="text-slate-800">{(res.totalReq || 0).toLocaleString()}</span></div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">소요 </span><span className="text-slate-800">{fmtD((r.durationSec || 0) / 60)}</span></div>
+          <div className="rounded bg-slate-100 px-2.5 py-1.5"><span className="text-slate-500">p95 마지막 합격 대비 </span>{deltaPct == null ? <span className="text-slate-500">기준</span> : deltaPct > 10 ? <span className="font-semibold text-amber-700">▲{deltaPct}%</span> : <span className="text-slate-700">{deltaPct >= 0 ? "+" : ""}{deltaPct}%</span>}</div>
         </div>
-        {res.shortfall > 0 && <div className="rounded-lg border border-amber-800 bg-amber-950 px-2.5 py-2 text-xs text-amber-300">
+        {res.shortfall > 0 && <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-700">
           목표 {res.target} RPS · 실제 {res.rps} — <strong>미달 {res.shortfall}%</strong>{res.verdict === "판정 없음"
             ? " · 목표 부하에 도달하지 못해 판정하지 않았습니다 (낮은 부하에서 좋았을 뿐입니다)"
             : " · 더 적은 부하에서도 SLA를 넘었으므로 불합격은 유효합니다"}
         </div>}
-        {res.cond && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-800/60 px-2.5 py-2 text-xs text-slate-400">
-          <span className="font-semibold text-slate-300">부하 조건</span>
+        {res.cond && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-100/60 px-2.5 py-2 text-xs text-slate-500">
+          <span className="font-semibold text-slate-700">부하 조건</span>
           <span>{res.cond.shape}</span><span>{res.cond.unit} {res.cond.peak}</span>
           {res.cond.maxVU ? <span>maxVU {res.cond.maxVU}</span> : null}
-          {res.cond.gen ? <span>생성기 <span className="font-mono text-slate-300">{res.cond.gen}</span></span> : null}
-          <span>집계 <span className="text-slate-300">목표 부하 구간</span>(워밍업 제외)</span>
-          {res.cond.sig ? <span>스크립트 <button onClick={() => flash("k6_script.js 내려받음 · 지문 " + res.cond.sig)} className="font-mono text-teal-300 hover:text-teal-200">{res.cond.sig}</button></span> : null}
+          {res.cond.gen ? <span>생성기 <span className="font-mono text-slate-700">{res.cond.gen}</span></span> : null}
+          <span>집계 <span className="text-slate-700">목표 부하 구간</span>(워밍업 제외)</span>
+          {res.cond.sig ? <span>스크립트 <button onClick={() => flash("k6_script.js 내려받음 · 지문 " + res.cond.sig)} className="font-mono text-sky-600 hover:text-sky-700">{res.cond.sig}</button></span> : null}
           <span className="text-slate-500">조건이 다르면 회차 간 비교가 성립하지 않습니다</span>
         </div>}
-        {(res.breaches || []).length > 0 ? <div className="rounded-lg border border-red-900 bg-red-950 px-2.5 py-2 text-xs text-red-300">SLA 위반: {res.breaches.join(" · ")}</div> : <div className="rounded-lg border border-emerald-900 bg-emerald-950 px-2.5 py-2 text-xs text-emerald-300">모든 SLA 임계 충족</div>}
+        {(res.breaches || []).length > 0 ? <div className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-700">SLA 위반: {res.breaches.join(" · ")}</div> : <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-700">모든 SLA 임계 충족</div>}
         {res.verdict === "불합격" && <div className="flex items-center justify-end">{dExists ? <span className="text-xs text-slate-500">결함 등록됨</span> : <Btn icon={Bug} onClick={regDefect}>결함 등록</Btn>}</div>}
       </Card>
       <Card className="p-4 space-y-3">
-        <div className="text-sm font-semibold text-slate-200">시계열 관측 <span className="text-xs font-normal text-slate-500">· 실행 전 구간</span></div>
+        <div className="text-sm font-semibold text-slate-800">시계열 관측 <span className="text-xs font-normal text-slate-500">· 실행 전 구간</span></div>
         <div className="grid grid-cols-2 gap-3">
-          <TSPanel title="트래픽 (req/s)" points={series} pick={(d) => d.rps} color="#2dd4bf" unit="req/s" />
-          <TSPanel title="오류율" points={series} pick={(d) => d.errPct} color="#f87171" unit="%" />
-          <TSMulti title="응답시간" points={series} unit="ms" series={[{ pick: (d) => d.p50, color: "#94a3b8", label: "p50" }, { pick: (d) => d.p95, color: "#fbbf24", label: "p95" }, { pick: (d) => d.p99, color: "#f87171", label: "p99" }]} />
-          <TSPanel title="활성 VU" points={series} pick={(d) => d.vu} color="#38bdf8" unit="VU" />
+          <TSPanel title="트래픽 (req/s)" points={series} pick={(d) => d.rps} color="#0ea5e9" unit="req/s" />
+          <TSPanel title="오류율" points={series} pick={(d) => d.errPct} color="#dc2626" unit="%" />
+          <TSMulti title="응답시간" points={series} unit="ms" series={[{ pick: (d) => d.p50, color: "#94a3b8", label: "p50" }, { pick: (d) => d.p95, color: "#d97706", label: "p95" }, { pick: (d) => d.p99, color: "#dc2626", label: "p99" }]} />
+          <TSPanel title="활성 VU" points={series} pick={(d) => d.vu} color="#0284c7" unit="VU" />
         </div>
       </Card>
       <Card className="p-4 space-y-2">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-200"><Bug size={14} className="text-red-400" />오류 <span className="text-xs font-normal text-slate-500">· 샘플 {errs.length}건{failN != null ? " / 실패 " + failN.toLocaleString() + "건" : ""} · 최근순 <span className="text-slate-600">(전량이 아니라 상한까지만 보관합니다)</span></span></div>
-        {errs.length === 0 ? <div className="rounded-lg bg-slate-800 p-3 text-xs text-slate-500">집계된 오류가 없습니다.</div> : (
-          <div className="overflow-hidden rounded-lg border border-slate-800">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Bug size={14} className="text-red-600" />오류 <span className="text-xs font-normal text-slate-500">· 샘플 {errs.length}건{failN != null ? " / 실패 " + failN.toLocaleString() + "건" : ""} · 최근순 <span className="text-slate-400">(전량이 아니라 상한까지만 보관합니다)</span></span></div>
+        {errs.length === 0 ? <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">집계된 오류가 없습니다.</div> : (
+          <div className="overflow-hidden rounded-lg border border-slate-200">
             {errs.map((e) => (
-              <div key={e.i} className="border-b border-slate-800 last:border-0">
+              <div key={e.i} className="border-b border-slate-200 last:border-0">
                 <div className="flex items-center gap-2 px-3 py-1.5 text-xs">
-                  <span className="w-16 shrink-0 font-mono text-slate-400">{e.at}</span>
+                  <span className="w-16 shrink-0 font-mono text-slate-500">{e.at}</span>
                   <Badge kind={M_LK[e.method] || "info"}>{e.method}</Badge>
-                  <span className="min-w-0 flex-1 truncate font-mono text-slate-300">{e.path}</span>
-                  <span className="shrink-0 text-red-300">{e.type}</span>
-                  <span className="w-10 shrink-0 text-right text-slate-400">{e.status}</span>
-                  <button onClick={() => setErrRow(errRow === e.i ? null : e.i)} className="w-16 shrink-0 text-right text-teal-400 hover:underline">{errRow === e.i ? "닫기" : "응답 보기"}</button>
+                  <span className="min-w-0 flex-1 truncate font-mono text-slate-700">{e.path}</span>
+                  <span className="shrink-0 text-red-700">{e.type}</span>
+                  <span className="w-10 shrink-0 text-right text-slate-500">{e.status}</span>
+                  <button onClick={() => setErrRow(errRow === e.i ? null : e.i)} className="w-16 shrink-0 text-right text-sky-600 hover:underline">{errRow === e.i ? "닫기" : "응답 보기"}</button>
                 </div>
                 {errRow === e.i && (
-                  <div className="space-y-2 bg-slate-950 px-3 py-2 text-xs">
-                    <div><div className="mb-0.5 text-slate-500">요청</div><div className="font-mono text-slate-300">{e.method} {su.baseUrl}{e.path}</div>{e.reqBody && <pre className="mt-1 overflow-x-auto rounded bg-slate-900 p-2 text-slate-400">{e.reqBody}</pre>}</div>
-                    <div><div className="mb-0.5 text-slate-500">응답</div><div className="text-slate-300">{e.respStatus} · {e.msg}</div>{e.respBody && <pre className="mt-1 overflow-x-auto rounded bg-slate-900 p-2 text-slate-400">{e.respBody}</pre>}</div>
+                  <div className="space-y-2 bg-slate-50 px-3 py-2 text-xs">
+                    <div><div className="mb-0.5 text-slate-500">요청</div><div className="font-mono text-slate-700">{e.method} {su.baseUrl}{e.path}</div>{e.reqBody && <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-slate-500">{e.reqBody}</pre>}</div>
+                    <div><div className="mb-0.5 text-slate-500">응답</div><div className="text-slate-700">{e.respStatus} · {e.msg}</div>{e.respBody && <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-slate-500">{e.respBody}</pre>}</div>
                   </div>
                 )}
               </div>
@@ -940,17 +940,17 @@ export function NqaHistoryScreen() {
       </div>
       <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-slate-800 text-xs text-slate-500"><th className="px-3 py-2 text-left">실행 ID</th><th className="px-3 py-2 text-left">부하 테스트</th><th className="px-3 py-2 text-left">시각</th><th className="px-3 py-2 text-right">처리량</th><th className="px-3 py-2 text-right">p95</th><th className="px-3 py-2 text-right">에러율</th><th className="px-3 py-2 text-center">p95 마지막 합격 대비</th><th className="px-3 py-2 text-center">판정</th></tr></thead>
+          <thead><tr className="border-b border-slate-200 text-xs text-slate-500"><th className="px-3 py-2 text-left">실행 ID</th><th className="px-3 py-2 text-left">부하 테스트</th><th className="px-3 py-2 text-left">시각</th><th className="px-3 py-2 text-right">처리량</th><th className="px-3 py-2 text-right">p95</th><th className="px-3 py-2 text-right">에러율</th><th className="px-3 py-2 text-center">p95 마지막 합격 대비</th><th className="px-3 py-2 text-center">판정</th></tr></thead>
           <tbody>
-            {shown.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-600">{runs.length === 0 ? "실행 이력이 없습니다." : "조건에 맞는 실행이 없습니다."}</td></tr> : shown.map((r) => (
-              <tr key={r.id} className="cursor-pointer border-b border-slate-800 last:border-0 hover:bg-slate-800/50" onClick={() => setDetail(r)}>
-                <td className="px-3 py-2 font-mono text-xs text-slate-300">{r.id}</td>
-                <td className="px-3 py-2 text-slate-300">{scnName(r.scnId)} <span className="text-xs text-slate-500">#{r.no}</span></td>
+            {shown.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-400">{runs.length === 0 ? "실행 이력이 없습니다." : "조건에 맞는 실행이 없습니다."}</td></tr> : shown.map((r) => (
+              <tr key={r.id} className="cursor-pointer border-b border-slate-200 last:border-0 hover:bg-slate-100/50" onClick={() => setDetail(r)}>
+                <td className="px-3 py-2 font-mono text-xs text-slate-700">{r.id}</td>
+                <td className="px-3 py-2 text-slate-700">{scnName(r.scnId)} <span className="text-xs text-slate-500">#{r.no}</span></td>
                 <td className="px-3 py-2 text-xs"><RunTime start={r.startedAt} end={r.endedAt} /></td>
-                <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).rps} RPS</td>
-                <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).p95}ms</td>
-                <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).errRate}%</td>
-                <td className="px-3 py-2 text-center">{(() => { const rg = regMap[r.id] || {}; return rg.deltaPct == null ? <span className="text-slate-600">기준</span> : rg.regression ? <span className="font-semibold text-amber-400">▲{rg.deltaPct}%</span> : <span className="text-slate-500">{rg.deltaPct >= 0 ? "+" : ""}{rg.deltaPct}%</span>; })()}</td>
+                <td className="px-3 py-2 text-right text-slate-700">{(r.result || {}).rps} RPS</td>
+                <td className="px-3 py-2 text-right text-slate-700">{(r.result || {}).p95}ms</td>
+                <td className="px-3 py-2 text-right text-slate-700">{(r.result || {}).errRate}%</td>
+                <td className="px-3 py-2 text-center">{(() => { const rg = regMap[r.id] || {}; return rg.deltaPct == null ? <span className="text-slate-400">기준</span> : rg.regression ? <span className="font-semibold text-amber-600">▲{rg.deltaPct}%</span> : <span className="text-slate-500">{rg.deltaPct >= 0 ? "+" : ""}{rg.deltaPct}%</span>; })()}</td>
                 <td className="px-3 py-2 text-center"><Badge kind={VK((r.result || {}).verdict)}>{(r.result || {}).verdict}</Badge></td>
               </tr>
             ))}
@@ -1006,38 +1006,38 @@ export function NqaDashboardScreen({ nav }) {
         <div className="w-56 shrink-0"><Select value={fPlan} onChange={(e) => setFPlan(e.target.value)}><option value="all">전체 부하 테스트</option>{scns.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}</Select></div>
       </div>
       <div className="grid grid-cols-4 gap-3">
-        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-teal-400" />SLA 합격률</div><div className="mt-1 text-2xl font-semibold text-slate-100">{rate == null ? "—" : rate}{rate != null && <span className="text-sm text-slate-500">%</span>}</div>{noJudgeN > 0 && <div className="text-xs text-amber-400">판정 없음 {noJudgeN}건 제외</div>}<div className="text-xs text-slate-500">최근 {recent.length}회 중 {passN} 합격</div></Card>
-        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Bug size={14} className="text-red-400" />미해결 성능 결함</div><div className={"mt-1 text-2xl font-semibold " + (openDef > 0 ? "text-red-300" : "text-slate-100")}>{openDef}</div><div className="text-xs text-slate-500">SLA 불합격 결함 (Open)</div></Card>
-        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><TrendingUp size={14} className="text-amber-400" />성능 회귀</div><div className={"mt-1 text-2xl font-semibold " + (regCount > 0 ? "text-amber-300" : "text-slate-100")}>{regCount}</div><div className="text-xs text-slate-500">마지막 합격 대비 p95 +10% 초과</div></Card>
-        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Activity size={14} className="text-teal-400" />진행 중 실행</div><div className={"mt-1 text-2xl font-semibold " + (running.length > 0 ? "text-teal-300" : "text-slate-100")}>{running.length}</div><div className="text-xs text-slate-500">대기 {queuedN} · 한 번에 하나</div></Card>
+        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-sky-600" />SLA 합격률</div><div className="mt-1 text-2xl font-semibold text-slate-900">{rate == null ? "—" : rate}{rate != null && <span className="text-sm text-slate-500">%</span>}</div>{noJudgeN > 0 && <div className="text-xs text-amber-600">판정 없음 {noJudgeN}건 제외</div>}<div className="text-xs text-slate-500">최근 {recent.length}회 중 {passN} 합격</div></Card>
+        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Bug size={14} className="text-red-600" />미해결 성능 결함</div><div className={"mt-1 text-2xl font-semibold " + (openDef > 0 ? "text-red-700" : "text-slate-900")}>{openDef}</div><div className="text-xs text-slate-500">SLA 불합격 결함 (Open)</div></Card>
+        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><TrendingUp size={14} className="text-amber-600" />성능 회귀</div><div className={"mt-1 text-2xl font-semibold " + (regCount > 0 ? "text-amber-700" : "text-slate-900")}>{regCount}</div><div className="text-xs text-slate-500">마지막 합격 대비 p95 +10% 초과</div></Card>
+        <Card className="p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Activity size={14} className="text-sky-600" />진행 중 실행</div><div className={"mt-1 text-2xl font-semibold " + (running.length > 0 ? "text-sky-600" : "text-slate-900")}>{running.length}</div><div className="text-xs text-slate-500">대기 {queuedN} · 한 번에 하나</div></Card>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4 space-y-2">
-          <div className="text-sm font-semibold text-slate-200">SLA 판정 추이 <span className="text-xs font-normal text-slate-500">· 최근 {asc.length}회</span></div>
-          {asc.length === 0 ? <div className="rounded-lg bg-slate-800 p-4 text-center text-xs text-slate-500">실행 이력이 없습니다.</div> : (
-            <div className="flex flex-wrap gap-1.5">{asc.map((r) => { const vd = (r.result || {}).verdict; const pass = vd === "합격"; const nj = vd !== "합격" && vd !== "불합격"; return <div key={r.id} className={"flex w-16 flex-col items-center justify-center rounded py-1 text-xs " + (nj ? "border-amber-700 bg-amber-950 text-amber-300" : pass ? "bg-emerald-950 text-emerald-300" : "bg-red-950 text-red-300")} title={scnName(r.scnId) + " · " + r.startedAt}>{pass ? "합격" : "불합격"}<span className="text-slate-500">{(r.startedAt || "").slice(5, 10)}</span></div>; })}</div>
+          <div className="text-sm font-semibold text-slate-800">SLA 판정 추이 <span className="text-xs font-normal text-slate-500">· 최근 {asc.length}회</span></div>
+          {asc.length === 0 ? <div className="rounded-lg bg-slate-100 p-4 text-center text-xs text-slate-500">실행 이력이 없습니다.</div> : (
+            <div className="flex flex-wrap gap-1.5">{asc.map((r) => { const vd = (r.result || {}).verdict; const pass = vd === "합격"; const nj = vd !== "합격" && vd !== "불합격"; return <div key={r.id} className={"flex w-16 flex-col items-center justify-center rounded py-1 text-xs " + (nj ? "border-amber-300 bg-amber-50 text-amber-700" : pass ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700")} title={scnName(r.scnId) + " · " + r.startedAt}>{pass ? "합격" : "불합격"}<span className="text-slate-500">{(r.startedAt || "").slice(5, 10)}</span></div>; })}</div>
           )}
         </Card>
         <Card className="p-4 space-y-2">
-          <div className="text-sm font-semibold text-slate-200">p95 추이 <span className="text-xs font-normal text-slate-500">· 최근 {asc.length}회</span></div>
-          {asc.length === 0 ? <div className="rounded-lg bg-slate-800 p-4 text-center text-xs text-slate-500">실행 이력이 없습니다.</div> : (
-            <div className="flex items-end gap-2" style={{ height: 96 }}>{asc.map((r) => { const p = (r.result || {}).p95 || 0; const h = Math.round((p / maxP95) * 76); const pass = (r.result || {}).verdict === "합격"; const reg = (regMap[r.id] || {}).regression; return <div key={r.id} className="flex flex-1 flex-col items-center justify-end"><div className={"w-full rounded-t " + (!pass ? "bg-red-600" : reg ? "bg-amber-500" : "bg-teal-600")} style={{ height: h }} title={(r.result || {}).p95 + "ms"} /></div>; })}</div>
+          <div className="text-sm font-semibold text-slate-800">p95 추이 <span className="text-xs font-normal text-slate-500">· 최근 {asc.length}회</span></div>
+          {asc.length === 0 ? <div className="rounded-lg bg-slate-100 p-4 text-center text-xs text-slate-500">실행 이력이 없습니다.</div> : (
+            <div className="flex items-end gap-2" style={{ height: 96 }}>{asc.map((r) => { const p = (r.result || {}).p95 || 0; const h = Math.round((p / maxP95) * 76); const pass = (r.result || {}).verdict === "합격"; const reg = (regMap[r.id] || {}).regression; return <div key={r.id} className="flex flex-1 flex-col items-center justify-end"><div className={"w-full rounded-t " + (!pass ? "bg-red-600" : reg ? "bg-amber-500" : "bg-sky-600")} style={{ height: h }} title={(r.result || {}).p95 + "ms"} /></div>; })}</div>
           )}
         </Card>
       </div>
       <Card className="p-4 space-y-2">
-        <div className="text-sm font-semibold text-slate-200">최근 실행 판정 <span className="text-xs font-normal text-slate-500">· 최근 {Math.min(8, desc.length)}건</span></div>
-        <div className="overflow-hidden rounded-lg border border-slate-800">
-          <table className="w-full text-sm"><thead><tr className="border-b border-slate-800 text-xs text-slate-500"><th className="px-3 py-2 text-left">부하 테스트</th><th className="px-3 py-2 text-left">유형</th><th className="px-3 py-2 text-left">대상 환경</th><th className="px-3 py-2 text-left">실행 시각</th><th className="px-3 py-2 text-right">p95</th><th className="px-3 py-2 text-right">에러율</th><th className="px-3 py-2 text-center">회귀</th><th className="px-3 py-2 text-center">판정</th></tr></thead>
-          <tbody>{desc.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-600">실행 이력이 없습니다.</td></tr> : desc.slice(0, 8).map((r) => { const p = scns.find((x) => x.id === r.scnId) || {}; const su = sutOfScn(r.scnId); const psc = p; const reg = regMap[r.id] || {}; return (
-            <tr key={r.id} className="border-b border-slate-800 last:border-0">
-              <td className="px-3 py-2 text-slate-300">{p.name || "-"}</td>
-              <td className="px-3 py-2 text-xs text-slate-400">{psc.shape || "-"}</td>
+        <div className="text-sm font-semibold text-slate-800">최근 실행 판정 <span className="text-xs font-normal text-slate-500">· 최근 {Math.min(8, desc.length)}건</span></div>
+        <div className="overflow-hidden rounded-lg border border-slate-200">
+          <table className="w-full text-sm"><thead><tr className="border-b border-slate-200 text-xs text-slate-500"><th className="px-3 py-2 text-left">부하 테스트</th><th className="px-3 py-2 text-left">유형</th><th className="px-3 py-2 text-left">대상 환경</th><th className="px-3 py-2 text-left">실행 시각</th><th className="px-3 py-2 text-right">p95</th><th className="px-3 py-2 text-right">에러율</th><th className="px-3 py-2 text-center">회귀</th><th className="px-3 py-2 text-center">판정</th></tr></thead>
+          <tbody>{desc.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-400">실행 이력이 없습니다.</td></tr> : desc.slice(0, 8).map((r) => { const p = scns.find((x) => x.id === r.scnId) || {}; const su = sutOfScn(r.scnId); const psc = p; const reg = regMap[r.id] || {}; return (
+            <tr key={r.id} className="border-b border-slate-200 last:border-0">
+              <td className="px-3 py-2 text-slate-700">{p.name || "-"}</td>
+              <td className="px-3 py-2 text-xs text-slate-500">{psc.shape || "-"}</td>
               <td className="px-3 py-2 text-xs text-slate-500">{su.name || "-"}</td>
               <td className="px-3 py-2 text-xs text-slate-500">{r.startedAt}</td>
-              <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).p95}ms</td>
-              <td className="px-3 py-2 text-right text-slate-300">{(r.result || {}).errRate}%</td>
-              <td className="px-3 py-2 text-center">{reg.regression ? <span className="font-semibold text-amber-400">▲{reg.deltaPct}%</span> : reg.deltaPct != null ? <span className="text-slate-500">{reg.deltaPct >= 0 ? "+" : ""}{reg.deltaPct}%</span> : <span className="text-slate-600">기준</span>}</td>
+              <td className="px-3 py-2 text-right text-slate-700">{(r.result || {}).p95}ms</td>
+              <td className="px-3 py-2 text-right text-slate-700">{(r.result || {}).errRate}%</td>
+              <td className="px-3 py-2 text-center">{reg.regression ? <span className="font-semibold text-amber-600">▲{reg.deltaPct}%</span> : reg.deltaPct != null ? <span className="text-slate-500">{reg.deltaPct >= 0 ? "+" : ""}{reg.deltaPct}%</span> : <span className="text-slate-400">기준</span>}</td>
               <td className="px-3 py-2 text-center"><Badge kind={VK((r.result || {}).verdict)}>{(r.result || {}).verdict}</Badge></td>
             </tr>
           ); })}</tbody></table>

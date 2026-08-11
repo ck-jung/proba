@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApp } from "./context.js";
-import { Card, PageToolbar, Badge, Btn, Field, Input, Toast, useToast } from "./ui.jsx";
+import { Card, PageToolbar, Badge, Btn, Field, Input, Toast, useToast, Portal } from "./ui.jsx";
 import { Plus, X, Save, Pencil, Search, Upload, Database } from "lucide-react";
 
 const nowStr = () => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); };
@@ -59,61 +59,61 @@ export function DatasetsScreen() {
     <div className="space-y-4">
       <PageToolbar desc="테스트 데이터셋 (표 데이터) — 대상·시나리오에서 이름으로 참조. 컬럼은 ${row.X} 매핑 기준." />
       <div className="flex items-center justify-between gap-3">
-        <div className="relative w-72"><Search size={13} className="absolute left-2.5 top-2.5 text-slate-500" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="이름·설명 검색" className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-8 pr-3 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-teal-500" /></div>
+        <div className="relative w-72"><Search size={13} className="absolute left-2.5 top-2.5 text-slate-500" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="이름·설명 검색" className="w-full rounded-lg border border-slate-300 bg-slate-100 py-2 pl-8 pr-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-sky-500" /></div>
         <Btn kind="primary" icon={Plus} onClick={openAdd}>데이터셋 추가</Btn>
       </div>
       <Card className="p-4 space-y-1.5">
-        <div className="grid grid-cols-12 gap-2 border-b border-slate-800 pb-2 text-xs font-semibold text-slate-500">
+        <div className="grid grid-cols-12 gap-2 border-b border-slate-200 pb-2 text-xs font-semibold text-slate-500">
           <div className="col-span-3">이름</div><div className="col-span-4">컬럼</div><div className="col-span-1 text-center">행</div><div className="col-span-1 text-center">참조</div><div className="col-span-2">생성 / 변경</div><div className="col-span-1 text-right">관리</div>
         </div>
         {shown.length === 0 ? <div className="p-4 text-center text-xs text-slate-500">{list.length === 0 ? "데이터셋이 없습니다 — 추가하세요." : "검색 결과가 없습니다."}</div> : shown.map((d) => {
           const n = refCount(d.name);
           return (
-          <div key={d.id} className="grid grid-cols-12 items-center gap-2 border-b border-slate-800/60 py-1.5 text-sm">
-            <div className="col-span-3 min-w-0"><div className="flex items-center gap-1.5 min-w-0"><Database size={12} className="shrink-0 text-teal-400" /><span className="truncate font-mono text-slate-200">{d.name}</span></div>{d.desc && <div className="truncate pl-5 text-xs text-slate-500">{d.desc}</div>}</div>
-            <div className="col-span-4 flex flex-wrap gap-1">{(d.columns || []).map((c) => <span key={c} className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-xs text-slate-400">{c}</span>)}</div>
-            <div className="col-span-1 text-center text-xs text-slate-400">{rowN(d).toLocaleString()}</div>
+          <div key={d.id} className="grid grid-cols-12 items-center gap-2 border-b border-slate-200/60 py-1.5 text-sm">
+            <div className="col-span-3 min-w-0"><div className="flex items-center gap-1.5 min-w-0"><Database size={12} className="shrink-0 text-sky-600" /><span className="truncate font-mono text-slate-800">{d.name}</span></div>{d.desc && <div className="truncate pl-5 text-xs text-slate-500">{d.desc}</div>}</div>
+            <div className="col-span-4 flex flex-wrap gap-1">{(d.columns || []).map((c) => <span key={c} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-500">{c}</span>)}</div>
+            <div className="col-span-1 text-center text-xs text-slate-500">{rowN(d).toLocaleString()}</div>
             <div className="col-span-1 text-center">{n > 0 ? <button onClick={() => setRefModal({ name: d.name, refs: refsOf(d.name) })} title="참조 목록 보기"><Badge kind="teal">{n}</Badge></button> : <Badge kind="draft">0</Badge>}</div>
-            <div className="col-span-2 text-xs leading-tight text-slate-500"><div>{d.createdAt || "—"}</div><div className="text-slate-400">변경 {d.updatedAt || "—"}</div></div>
-            <div className="col-span-1 flex items-center justify-end gap-2"><button onClick={() => openEdit(d)} className="text-slate-500 hover:text-slate-200" title="편집"><Pencil size={13} /></button><button onClick={() => del(d)} className="text-slate-500 hover:text-red-400" title="삭제"><X size={14} /></button></div>
+            <div className="col-span-2 text-xs leading-tight text-slate-500"><div>{d.createdAt || "—"}</div><div className="text-slate-500">변경 {d.updatedAt || "—"}</div></div>
+            <div className="col-span-1 flex items-center justify-end gap-2"><button onClick={() => openEdit(d)} className="text-slate-500 hover:text-slate-800" title="편집"><Pencil size={13} /></button><button onClick={() => del(d)} className="text-slate-500 hover:text-red-600" title="삭제"><X size={14} /></button></div>
           </div>
           );
         })}
       </Card>
-      <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-xs text-slate-400">부하 대상의 <span className="text-slate-300">테스트 데이터</span>, 기능 케이스의 데이터 드리븐에서 이 데이터셋을 이름으로 선택합니다. 데이터셋의 컬럼이 본문의 <span className="font-mono text-slate-300">{"${row.컬럼}"}</span> 매핑·검증 기준이 됩니다.</div>
+      <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">부하 대상의 <span className="text-slate-700">테스트 데이터</span>, 기능 케이스의 데이터 드리븐에서 이 데이터셋을 이름으로 선택합니다. 데이터셋의 컬럼이 본문의 <span className="font-mono text-slate-700">{"${row.컬럼}"}</span> 매핑·검증 기준이 됩니다.</div>
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModal(false)}>
-          <div className="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="text-base font-semibold text-slate-100">{editId ? "데이터셋 편집" : "새 데이터셋"}</div>
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setModal(false)}>
+          <div className="w-full max-w-2xl rounded-xl border border-slate-300 bg-white p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="text-base font-semibold text-slate-900">{editId ? "데이터셋 편집" : "새 데이터셋"}</div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="이름" hint="참조 이름 (파일명 대신)"><Input value={df.name} onChange={(e) => setDf({ ...df, name: e.target.value })} placeholder="accounts_10k" /></Field>
               <Field label="설명 (선택)"><Input value={df.desc} onChange={(e) => setDf({ ...df, desc: e.target.value })} placeholder="용도 메모" /></Field>
             </div>
-            <div className="flex items-center justify-between"><span className="text-xs font-semibold text-slate-400">데이터 (CSV · 첫 줄=컬럼)</span><label className="flex cursor-pointer items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300 hover:border-teal-500"><Upload size={12} />CSV 업로드<input type="file" accept=".csv,.tsv,.txt" className="hidden" onChange={onFile} /></label></div>
-            <textarea value={df.text} onChange={(e) => setDf({ ...df, text: e.target.value, uploaded: false })} rows={8} placeholder={"phone,pw\n01012340001,P@ss0001\n01012340002,P@ss0002"} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-200 outline-none focus:border-teal-500" />
-            <div className="text-xs text-slate-500">컬럼: <span className="text-slate-300">{parsed.columns.join(", ") || "—"}</span> · 행 {parsed.rows.length}개 {df.uploaded && <span className="text-teal-400">· 업로드됨</span>}</div>
+            <div className="flex items-center justify-between"><span className="text-xs font-semibold text-slate-500">데이터 (CSV · 첫 줄=컬럼)</span><label className="flex cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:border-sky-500"><Upload size={12} />CSV 업로드<input type="file" accept=".csv,.tsv,.txt" className="hidden" onChange={onFile} /></label></div>
+            <textarea value={df.text} onChange={(e) => setDf({ ...df, text: e.target.value, uploaded: false })} rows={8} placeholder={"phone,pw\n01012340001,P@ss0001\n01012340002,P@ss0002"} className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-sky-500" />
+            <div className="text-xs text-slate-500">컬럼: <span className="text-slate-700">{parsed.columns.join(", ") || "—"}</span> · 행 {parsed.rows.length}개 {df.uploaded && <span className="text-sky-600">· 업로드됨</span>}</div>
             <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setModal(false)}>취소</Btn><Btn kind="primary" icon={Save} onClick={save}>{editId ? "저장" : "추가"}</Btn></div>
           </div>
-        </div>
+        </div></Portal>
       )}
       {refModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setRefModal(null)}>
-          <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between"><div className="text-base font-semibold text-slate-100"><span className="font-mono text-teal-400">{refModal.name}</span> 참조처 <span className="text-sm font-normal text-slate-500">· {refModal.refs.length}건</span></div><button onClick={() => setRefModal(null)} className="text-slate-500 hover:text-slate-300"><X size={18} /></button></div>
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setRefModal(null)}>
+          <div className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between"><div className="text-base font-semibold text-slate-900"><span className="font-mono text-sky-600">{refModal.name}</span> 참조처 <span className="text-sm font-normal text-slate-500">· {refModal.refs.length}건</span></div><button onClick={() => setRefModal(null)} className="text-slate-500 hover:text-slate-700"><X size={18} /></button></div>
             <div className="space-y-1.5">
               {refModal.refs.length === 0 ? <div className="p-4 text-center text-xs text-slate-500">참조하는 항목이 없습니다.</div> : refModal.refs.map((r, i) => (
-                <button key={i} onClick={() => { goRef(r); setRefModal(null); }} className="flex w-full items-center gap-2 rounded-lg border border-slate-800 bg-slate-800/50 px-3 py-2 text-left hover:border-teal-500" title="해당 항목으로 이동">
+                <button key={i} onClick={() => { goRef(r); setRefModal(null); }} className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-100/50 px-3 py-2 text-left hover:border-sky-500" title="해당 항목으로 이동">
                   <Badge kind={r.domain === "NQA" ? "info" : "active"}>{r.domLabel}</Badge>
-                  <span className="shrink-0 font-mono text-xs text-teal-400">{r.code}</span>
-                  <span className="truncate text-sm text-slate-200">{r.title}</span>
+                  <span className="shrink-0 font-mono text-xs text-sky-600">{r.code}</span>
+                  <span className="truncate text-sm text-slate-800">{r.title}</span>
                   <span className="ml-auto shrink-0 text-xs text-slate-500">이동 →</span>
                 </button>
               ))}
             </div>
             <div className="text-xs text-slate-500">항목을 클릭하면 해당 도메인의 테스트케이스·시나리오로 이동합니다.</div>
           </div>
-        </div>
+        </div></Portal>
       )}
       <Toast msg={msg} />
     </div>
