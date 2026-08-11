@@ -36,7 +36,7 @@ export function Badge({ kind = "info", children }) {
   const light = {
     pass: "bg-emerald-100 text-emerald-700", fail: "bg-red-100 text-red-700",
     warn: "bg-amber-100 text-amber-700", info: "bg-slate-200 text-slate-700",
-    active: "bg-sky-100 text-sky-700", draft: "bg-slate-200 text-slate-500",
+    active: "bg-sky-100 text-sky-700", draft: "bg-slate-200 text-slate-600",
     crit: "bg-red-100 text-red-700", major: "bg-amber-100 text-amber-700", minor: "bg-slate-200 text-slate-700",
     teal: "bg-sky-100 text-sky-700", live: "bg-red-100 text-red-700",
   };
@@ -74,7 +74,7 @@ export function Btn({ kind = "ghost", icon: Icon, children, onClick, disabled, t
     soft: "bg-slate-800 hover:bg-slate-700 text-slate-300",
   };
   const light = {
-    primary: "bg-sky-600 hover:bg-sky-700 text-white",
+    primary: "bg-sky-700 hover:bg-sky-800 text-white",
     ghost: "bg-white hover:bg-slate-50 text-slate-700 border border-slate-300",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     soft: "bg-slate-100 hover:bg-slate-200 text-slate-700",
@@ -106,7 +106,7 @@ export function Select({ children, ...p }) {
 export function Toggle({ on, onClick, disabled }) {
   const t = useTheme();
   return (
-    <button onClick={disabled ? undefined : onClick} disabled={disabled} className={"w-9 h-5 rounded-full p-0.5 " + (on ? "bg-sky-500" : (L(t) ? "bg-slate-300" : "bg-slate-700")) + (disabled ? " opacity-50 cursor-not-allowed" : "")}>
+    <button onClick={disabled ? undefined : onClick} disabled={disabled} className={"w-9 h-5 rounded-full p-0.5 " + (on ? "bg-sky-600" : (L(t) ? "bg-slate-300" : "bg-slate-700")) + (disabled ? " opacity-50 cursor-not-allowed" : "")}>
       <span className="block w-4 h-4 rounded-full bg-white" style={{ transform: on ? "translateX(16px)" : "translateX(0px)", transition: "transform .15s" }} />
     </button>
   );

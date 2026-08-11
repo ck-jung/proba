@@ -859,7 +859,7 @@ export function FqaApiImportScreen({ onDone }) {
                 <div className="overflow-y-auto" style={{ maxHeight: 360 }}>
                   {rows.map((r) => { const k = r._k; return (
                     <div key={k} onClick={() => toggle(k)} className="flex cursor-pointer items-center gap-3 border-b border-slate-200 px-4 py-2.5 hover:bg-slate-100">
-                      <input type="checkbox" checked={picked.has(k)} onChange={() => toggle(k)} className="accent-sky-500" />
+                      <input type="checkbox" checked={picked.has(k)} onChange={() => toggle(k)} className="accent-sky-600" />
                       <Badge kind={M_K[r.m] || "info"}>{r.m}</Badge>
                       <span className="min-w-0 flex-1 truncate font-mono text-xs text-slate-700">{r.path}</span>
                       {/* OpenAPI는 summary가 유용, cURL/HAR은 이름이 'M path'라 중복 → 생략 */}
@@ -2439,7 +2439,7 @@ export function FqaCasesScreen() {
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
           {/* 케이스의 속성만 — 실행 결과·결함은 실행의 속성이므로 결과·결함 화면이 본진이다 */}
-          <thead><tr className="border-b border-slate-200 text-left text-slate-500"><th className="w-8 py-2.5 pl-4"><input type="checkbox" checked={allPicked} onChange={toggleAll} className="accent-sky-500" title="전체 선택" /></th><th className="py-2.5 pr-4 font-medium">ID</th><th className="font-medium">이름</th><th className="font-medium">스위트</th><th className="font-medium">태그</th><th className="font-medium">구성</th><th className="font-medium">관리</th><th className="font-medium">상태</th><th className="font-medium">수정</th><th></th></tr></thead>
+          <thead><tr className="border-b border-slate-200 text-left text-slate-500"><th className="w-8 py-2.5 pl-4"><input type="checkbox" checked={allPicked} onChange={toggleAll} className="accent-sky-600" title="전체 선택" /></th><th className="py-2.5 pr-4 font-medium">ID</th><th className="font-medium">이름</th><th className="font-medium">스위트</th><th className="font-medium">태그</th><th className="font-medium">구성</th><th className="font-medium">관리</th><th className="font-medium">상태</th><th className="font-medium">수정</th><th></th></tr></thead>
           <tbody>
             {/* 아무것도 없는 것과 필터에 걸린 것은 다른 상황이다 — 같은 빈 표를 보여주면 사용자가 원인을 모른다 */}
             {list.length === 0 && (
@@ -2463,7 +2463,7 @@ export function FqaCasesScreen() {
             )}
             {list.map((c) => (
               <tr key={c.id} onClick={() => setOpen(c)} className={"cursor-pointer border-b border-slate-200 text-slate-700 hover:bg-slate-100 " + (picked.has(c.id) ? "bg-slate-100/60" : "")}>
-                <td className="pl-4" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} className="accent-sky-500" /></td>
+                <td className="pl-4" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} className="accent-sky-600" /></td>
                 <td className="py-3 pr-4 font-mono text-sky-600">{c.id}</td>
                 <td className="text-slate-800">{c.name}</td>
                 <td className="text-slate-500">{c.suite}</td>

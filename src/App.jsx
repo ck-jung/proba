@@ -213,7 +213,7 @@ export default function App() {
       <div className="flex flex-col flex-1 min-w-0">
         {/* ── 상단 앱바 (로고 · 검증 영역 · 전역 컨트롤) ── */}
         <div className="flex items-center justify-between gap-4 px-5 h-14 shrink-0 border-b border-zinc-400/40 bg-zinc-300">
-          <div className="flex items-center gap-2 shrink-0"><div className="w-7 h-7 rounded-lg bg-sky-400 flex items-center justify-center text-white font-bold text-sm">Q</div><span className="font-bold text-slate-800">eX.Q</span><span className="text-slate-500" style={{ fontSize: 10 }}>eXecute QA</span></div>
+          <div className="flex items-center gap-2 shrink-0"><div className="w-7 h-7 rounded-lg bg-sky-700 flex items-center justify-center text-white font-bold text-sm">Q</div><span className="font-bold text-slate-800">eX.Q</span><span className="text-slate-500" style={{ fontSize: 10 }}>eXecute QA</span></div>
           <div className="flex items-center gap-3 text-sm shrink-0">
               <div className="flex items-center gap-1 border-r border-zinc-400/40 pr-3">
                 {DOMAINS.map((d) => d.id === "NQA" ? (
@@ -261,7 +261,7 @@ export default function App() {
             <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
               {[...(domain === "FQA" ? FQA_SECTIONS : domain === "NQA" ? (nqaWs === "load" ? NQA_SECTIONS : PQA_SECTIONS) : SECTIONS), ...COMMON_SECTIONS].map((sec) => (
                 <div key={sec.group}>
-                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">{sec.group}</div>
+                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-600">{sec.group}</div>
                   <div className="space-y-1">
                     {sec.items.map((n) => { const Icon = n.icon; const on = view === n.id; return (
                       <button key={n.id} onClick={() => goTo(n.id)} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (on ? "bg-white text-sky-700 font-semibold shadow-sm" : "text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900")}><Icon size={16} />{n.label}</button>
@@ -271,7 +271,7 @@ export default function App() {
               ))}
               {role === "tadmin" && (
                 <div>
-                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">관리</div>
+                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-600">관리</div>
                   <div className="space-y-1">
                     <button onClick={() => setView("members")} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (view === "members" ? "bg-white text-sky-700 font-semibold shadow-sm" : "text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900")}><UserCog size={16} />조직 관리</button>
                   </div>
@@ -279,7 +279,7 @@ export default function App() {
               )}
             </nav>
             {role === "admin" && (
-              <div className="px-3 pb-2"><button onClick={() => setSpace("console")} className="w-full flex items-center gap-2 rounded-lg border border-zinc-400 bg-white px-3 py-2.5 text-sm text-amber-600 hover:bg-amber-50"><Shield size={16} />관리자 콘솔</button></div>
+              <div className="px-3 pb-2"><button onClick={() => setSpace("console")} className="w-full flex items-center gap-2 rounded-lg border border-zinc-400 bg-white px-3 py-2.5 text-sm text-amber-700 hover:bg-amber-50"><Shield size={16} />관리자 콘솔</button></div>
             )}
             <div className="p-3 border-t border-zinc-400/40 text-xs text-zinc-600 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500" />엔진 연결됨 · {tenantName}</div>
           </aside>

@@ -74,7 +74,7 @@ export function NewPlanForm({ close, data }) {
         <div className="rounded-lg border border-slate-300 bg-slate-100 overflow-y-auto" style={{ maxHeight: 176 }}>
           {approved.map((c) => (
             <label key={c.id} className="flex items-center gap-2 px-3 py-2 border-b border-slate-300 cursor-pointer hover:bg-slate-200">
-              <input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-sky-500" />
+              <input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-sky-600" />
               <span className="font-mono text-xs text-sky-600 w-16 shrink-0">{c.id}</span>
               <span className="flex-1 text-xs text-slate-700 truncate">{c.q}</span>
               <Badge kind={priKind[c.pri] || "info"}>{c.pri}</Badge>
@@ -196,7 +196,7 @@ export function AiGenForm({ close }) {
       </div>
       <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
         <div className="flex items-center justify-between text-sm text-slate-700"><span>기존 케이스와 중복 제거 (임베딩 유사도)</span><Toggle on={dedup} onClick={() => setDedup(!dedup)} /></div>
-        {dedup && <div className="flex items-center gap-2 text-xs text-slate-500">유사도 임계값<input type="range" min={70} max={98} value={thr} onChange={(e) => setThr(+e.target.value)} className="flex-1" /><span className="text-sky-600">{thr}%</span></div>}
+        {dedup && <div className="flex items-center gap-2 text-xs text-slate-500">유사도 임계값<input type="range" min={70} max={98} value={thr} onChange={(e) => setThr(+e.target.value)} className="flex-1" style={{ "--fill": ((thr - 70) / 28) * 100 + "%" }} /><span className="text-sky-600">{thr}%</span></div>}
       </div>
       <div className="text-xs text-slate-500">업로드한 지식 소스 문서 근거로 질문과 예상 답변을 생성합니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Sparkles} onClick={generate}>생성</Btn></div>
@@ -316,7 +316,7 @@ export function JiraForm({ close, data }) {
               const done = regRows.includes(JSON.stringify(r.data || {}));
               return (
                 <label key={r.i} className={"flex items-center gap-2 rounded-lg px-3 py-2 text-sm " + (done ? "bg-white opacity-60" : "cursor-pointer bg-slate-100")}>
-                  <input type="checkbox" disabled={done} checked={pickRows.has(r.i)} onChange={() => togRow(r.i)} className="accent-sky-500" />
+                  <input type="checkbox" disabled={done} checked={pickRows.has(r.i)} onChange={() => togRow(r.i)} className="accent-sky-600" />
                   <span className="shrink-0 font-mono text-xs text-slate-500">{r.i}행</span>
                   <span className="flex-1 truncate font-mono text-xs text-slate-700">{Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")}</span>
                   {done && <Badge kind="draft">등록됨</Badge>}
@@ -334,7 +334,7 @@ export function JiraForm({ close, data }) {
             <div className="space-y-1">
               {autoArtifacts.map((a) => (
                 <label key={a.k} className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm">
-                  <input type="checkbox" checked={!!attach[a.k]} onChange={() => setAttach({ ...attach, [a.k]: !attach[a.k] })} className="accent-sky-500" />
+                  <input type="checkbox" checked={!!attach[a.k]} onChange={() => setAttach({ ...attach, [a.k]: !attach[a.k] })} className="accent-sky-600" />
                   <Badge kind="info">자동</Badge>
                   <span className="flex-1 text-slate-800">{a.label}</span>
                   <span className="font-mono text-xs text-slate-500">{a.file} · {a.size}</span>
@@ -1052,7 +1052,7 @@ export function Plans() {
               <div className="space-y-2">
                 {models.filter((m) => m.status === "활성").map((j) => (
                   <label key={j.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                    <input type="checkbox" checked={!!jsel[j.name]} onChange={() => setJsel({ ...jsel, [j.name]: !jsel[j.name] })} className="accent-sky-500" />{j.name}
+                    <input type="checkbox" checked={!!jsel[j.name]} onChange={() => setJsel({ ...jsel, [j.name]: !jsel[j.name] })} className="accent-sky-600" />{j.name}
                   </label>
                 ))}
               </div>
@@ -1083,7 +1083,7 @@ export function Plans() {
             {dims.map((d) => (
               <div key={d} className="mb-3">
                 <div className="flex justify-between text-xs mb-1"><span className="text-slate-700">{d}</span><span className="text-sky-600 font-semibold">{weights[d] || 0}%</span></div>
-                <input type="range" min="0" max="60" value={weights[d] || 0} onChange={(ev) => setWeights({ ...weights, [d]: +ev.target.value })} className="w-full accent-sky-500" />
+                <input type="range" min="0" max="60" value={weights[d] || 0} onChange={(ev) => setWeights({ ...weights, [d]: +ev.target.value })} className="w-full" style={{ "--fill": ((weights[d] || 0) / 60) * 100 + "%" }} />
               </div>
             ))}
             <div className="text-sm font-semibold text-slate-800 mb-1 mt-4">합격 기준 점수</div>
@@ -1277,11 +1277,11 @@ export function PlanCasesForm({ close, data }) {
       <Card className="overflow-hidden">
         <div className="max-h-80 overflow-y-auto">
           <table className="w-full text-sm">
-            <thead><tr className="text-slate-500 text-left border-b border-slate-200 whitespace-nowrap"><th className="py-2 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={toggleAll} className="accent-sky-500" /></th><th className="font-medium">ID</th><th className="font-medium w-full">발화</th><th className="font-medium">카테고리</th><th className="font-medium">우선</th><th className="font-medium pr-4">상태</th></tr></thead>
+            <thead><tr className="text-slate-500 text-left border-b border-slate-200 whitespace-nowrap"><th className="py-2 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={toggleAll} className="accent-sky-600" /></th><th className="font-medium">ID</th><th className="font-medium w-full">발화</th><th className="font-medium">카테고리</th><th className="font-medium">우선</th><th className="font-medium pr-4">상태</th></tr></thead>
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id} onClick={() => toggle(c.id)} className={"border-b border-slate-200 cursor-pointer hover:bg-slate-100 whitespace-nowrap " + (picked.has(c.id) ? "bg-slate-100" : "") + " text-slate-700"}>
-                  <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-sky-500" /></td>
+                  <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} className="accent-sky-600" /></td>
                   <td className="py-2.5 pr-3 font-mono text-sky-600">{c.id}</td>
                   <td className="pr-3 text-slate-800"><div className="max-w-md truncate">{c.q}</div></td>
                   <td className="pr-3">{c.cat}</td>
@@ -1345,11 +1345,11 @@ export function Cases() {
       )}
       <Card>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={togglePickAll} className="accent-sky-500" /></th><th className="font-medium">ID</th><th className="font-medium">질문 (발화)</th><th className="font-medium">카테고리</th><th className="font-medium">우선순위</th><th className="font-medium">상태</th><th className="font-medium">수정</th><th></th></tr></thead>
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 pl-4 pr-2 font-medium"><input type="checkbox" checked={allPicked} onChange={togglePickAll} className="accent-sky-600" /></th><th className="font-medium">ID</th><th className="font-medium">질문 (발화)</th><th className="font-medium">카테고리</th><th className="font-medium">우선순위</th><th className="font-medium">상태</th><th className="font-medium">수정</th><th></th></tr></thead>
           <tbody>
             {filtered.map((c) => (
               <tr key={c.id} onClick={() => setOpen(c)} className="border-b border-slate-200 hover:bg-slate-100 cursor-pointer text-slate-700">
-                <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} className="accent-sky-500" /></td><td className="py-3 pr-4 font-mono text-sky-600">{c.id}</td><td className="max-w-md truncate text-slate-800">{c.q}</td><td>{c.cat}</td><td><Badge kind={priKind[c.pri]}>{c.pri}</Badge></td><td><Badge kind={stKind[c.status] || "active"}>{c.status || "승인"}</Badge></td><td className="pr-3 text-xs text-slate-500">{c.updatedBy || "—"} · {c.updatedAt || "—"}</td><td className="pr-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}><button onClick={() => openModal("newCase", c)} className="mr-3 text-xs text-slate-500 hover:text-sky-600">편집</button><button onClick={() => { if (window.confirm(c.id + " 삭제할까요?")) { removeCase(c.id); toast(c.id + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-600" title="삭제"><X size={14} /></button></td>
+                <td className="pl-4 pr-2" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} className="accent-sky-600" /></td><td className="py-3 pr-4 font-mono text-sky-600">{c.id}</td><td className="max-w-md truncate text-slate-800">{c.q}</td><td>{c.cat}</td><td><Badge kind={priKind[c.pri]}>{c.pri}</Badge></td><td><Badge kind={stKind[c.status] || "active"}>{c.status || "승인"}</Badge></td><td className="pr-3 text-xs text-slate-500">{c.updatedBy || "—"} · {c.updatedAt || "—"}</td><td className="pr-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}><button onClick={() => openModal("newCase", c)} className="mr-3 text-xs text-slate-500 hover:text-sky-600">편집</button><button onClick={() => { if (window.confirm(c.id + " 삭제할까요?")) { removeCase(c.id); toast(c.id + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-600" title="삭제"><X size={14} /></button></td>
               </tr>
             ))}
             {filtered.length === 0 && <tr><td colSpan={8}><EmptyState icon={Search} title="검색 결과가 없습니다" hint="필터를 조정하거나 테스트케이스를 추가하세요" /></td></tr>}
@@ -1572,7 +1572,7 @@ export function Run() {
                       <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-500">결과 판정 <span className="text-slate-400">· Judge {sel.verdict} (기본)</span>{sel.final && sel.final !== sel.verdict && <Badge kind="warn">정정됨</Badge>}</div>
                       <div className="flex items-center gap-2">
                         {["PASS", "WARN", "FAIL"].map((v) => (
-                          <button key={v} onClick={() => { setFinal(sel.id, v); toast(sel.id + (v === sel.verdict ? " · Judge 판정 유지" : " → " + v + " 정정"), v === "FAIL" && v !== sel.verdict ? "warn" : "ok"); }} className={"inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm " + ((sel.final || sel.verdict) === v ? (v === "FAIL" ? "bg-red-600 text-white" : v === "WARN" ? "bg-amber-500 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{v}{v === sel.verdict ? " · Judge" : ""}</button>
+                          <button key={v} onClick={() => { setFinal(sel.id, v); toast(sel.id + (v === sel.verdict ? " · Judge 판정 유지" : " → " + v + " 정정"), v === "FAIL" && v !== sel.verdict ? "warn" : "ok"); }} className={"inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm " + ((sel.final || sel.verdict) === v ? (v === "FAIL" ? "bg-red-600 text-white" : v === "WARN" ? "bg-amber-600 text-white" : "bg-emerald-700 text-white") : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{v}{v === sel.verdict ? " · Judge" : ""}</button>
                         ))}
                         <div className="flex-1" />
                         {(sel.final || sel.verdict) === "FAIL" && (openDefectOf(sel.id, runBot)
@@ -1897,7 +1897,7 @@ export function Report() {
             <Field label="알림 발송 시점">
               <div className="space-y-2 text-sm text-slate-700">
                 {[["always", "항상 발송"], ["fail", "실패/경고가 있을 때만"], ["drop", "점수 하락(회귀) 시에만"]].map(([k, lab]) => (
-                  <label key={k} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="cond" checked={cond === k} onChange={() => setCond(k)} className="accent-sky-500" />{lab}</label>
+                  <label key={k} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="cond" checked={cond === k} onChange={() => setCond(k)} className="accent-sky-600" />{lab}</label>
                 ))}
               </div>
             </Field>

@@ -61,7 +61,7 @@ function UsersConsole() {
   const ql = q.trim().toLowerCase();
   const rows = users.filter((u) => inScope(u) && (!ql || (u.name + " " + u.email + " " + scopeName(u) + " " + u.role).toLowerCase().includes(ql)));
   const scopeOpts = [["all", "전체"], ["platform", "플랫폼(본사)"], ...tenants.map((t) => [t.id, t.name])];
-  const btnA = "text-xs rounded-lg px-2 py-1 bg-emerald-600 hover:bg-emerald-600 text-white";
+  const btnA = "text-xs rounded-lg px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white";
   const btnN = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700";
   const btnD = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-red-600";
   const stopOp = (u) => { if (isMe(u)) { toast("본인 계정은 정지할 수 없습니다", "warn"); return; } if (lastAdmin(u)) { toast("마지막 서비스 관리자는 정지할 수 없습니다", "warn"); return; } setUserStatus(u.id, "차단"); toast(u.name + " 정지", "warn"); };
@@ -384,7 +384,7 @@ export function ConsoleShell() {
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {CONSOLE_NAV.map((n) => { const Icon = n.icon; const on = cv === n.id; return (
-            <button key={n.id} onClick={() => setCv(n.id)} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm " + (on ? "bg-amber-500 text-white font-semibold" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800")}><Icon size={17} />{n.label}</button>
+            <button key={n.id} onClick={() => setCv(n.id)} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm " + (on ? "bg-amber-100 text-amber-800 font-semibold" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800")}><Icon size={17} />{n.label}</button>
           ); })}
         </nav>
         <div className="p-3 border-t border-slate-200">

@@ -103,7 +103,7 @@ export function ScheduleConfig({ title = "실행 스케줄", subtitle = "백그�
           {events.map((e) => (
             <div key={e.key} className="rounded-lg bg-slate-100 p-3">
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type={singleSelect ? "radio" : "checkbox"} name={singleSelect ? "sched-event" : undefined} checked={!!ev[e.key]} onChange={() => setEv(singleSelect ? Object.fromEntries(events.map((x) => [x.key, x.key === e.key])) : { ...ev, [e.key]: !ev[e.key] })} className="accent-sky-500 mt-0.5" />
+                <input type={singleSelect ? "radio" : "checkbox"} name={singleSelect ? "sched-event" : undefined} checked={!!ev[e.key]} onChange={() => setEv(singleSelect ? Object.fromEntries(events.map((x) => [x.key, x.key === e.key])) : { ...ev, [e.key]: !ev[e.key] })} className="accent-sky-600 mt-0.5" />
                 <div><div className="text-sm text-slate-800">{e.label}</div><div className="text-xs text-slate-500">{e.desc}</div></div>
               </label>
               {ev[e.key] && e.fields && (

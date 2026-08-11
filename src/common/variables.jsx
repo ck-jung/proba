@@ -98,7 +98,7 @@ export function VariablesScreen() {
       )}
       <Card className="p-4 space-y-1.5">
         <div className="flex items-center gap-2 border-b border-slate-200 pb-2 text-xs font-semibold text-slate-500">
-          <div className="flex w-6 justify-center"><input type="checkbox" checked={allShownPicked} onChange={toggleAll} className="accent-sky-500" title="전체 선택" /></div>
+          <div className="flex w-6 justify-center"><input type="checkbox" checked={allShownPicked} onChange={toggleAll} className="accent-sky-600" title="전체 선택" /></div>
           <div className="grid flex-1 grid-cols-12 gap-2">
             <div className="col-span-3">키</div><div className="col-span-3">값</div><div className="col-span-1 text-center">참조</div><div className="col-span-2">생성 일시</div><div className="col-span-2">변경 일시</div><div className="col-span-1 text-right">관리</div>
           </div>
@@ -107,7 +107,7 @@ export function VariablesScreen() {
           const n = refCount(v.key);
           return (
           <div key={v.id} className={"flex items-center gap-2 border-b border-slate-200/60 py-1.5 text-sm " + (picked.has(v.id) ? "bg-slate-100/40" : "")}>
-            <div className="flex w-6 justify-center"><input type="checkbox" checked={picked.has(v.id)} onChange={() => togglePick(v.id)} className="accent-sky-500" /></div>
+            <div className="flex w-6 justify-center"><input type="checkbox" checked={picked.has(v.id)} onChange={() => togglePick(v.id)} className="accent-sky-600" /></div>
             <div className="grid flex-1 grid-cols-12 items-center gap-2">
               <div className="col-span-3 min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0"><span className="truncate font-mono text-slate-800">{v.key}</span>{v.secret && <KeyRound size={12} className="shrink-0 text-amber-600" />}</div>
