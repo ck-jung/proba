@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { DatasetPicker } from "../common/DatasetPicker.jsx";
-import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Seg, Toast, useToast, RunTime, stampPlus, Portal } from "../common/ui.jsx";
+import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Seg, Toast, useToast, RunTime, stampPlus, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
 import { Gauge, Plus, X, Save, Smartphone, Cpu, Wifi, Package, Upload, Link2, CheckCircle2, Globe, Monitor, Server, Zap, Activity, AlertTriangle, TrendingUp, Bug, Pencil, ChevronLeft, FileDown, Layers, Code2, Play, ClipboardList } from "lucide-react";
 import { NQA_SUBTYPES, NQA_HTTP_METHODS, NQA_AUTH_TYPES, NQA_LOAD_UNITS, NQA_LOAD_SHAPES } from "./data.js";
 
@@ -54,7 +54,7 @@ export function NqaTargetScreen() {
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setNf({ name: "", baseUrl: "", protocol: "HTTP/HTTPS", env: "스테이징" }); setModal(true); }}>부하 대상 추가</Btn>
           {systems.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 대상이 없습니다.</div>}
           {systems.map((sy, i) => (
-            <Card key={sy.id} className={"cursor-pointer p-3 " + (sel === i ? "border-sky-500" : "hover:border-slate-300")}>
+            <Card key={sy.id} className={"cursor-pointer p-3 " + (sel === i ? SEL_CARD : SEL_IDLE)}>
               <div onClick={() => choose(i)}>
                 <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-900">{sy.name}</span><div className="flex items-center gap-1.5"><Badge kind="warn">부하</Badge><button onClick={(e) => { e.stopPropagation(); delSut(i, sy); }} className="text-slate-500 hover:text-red-600" title="대상 삭제"><X size={12} /></button></div></div>
                 <div className="mt-1 truncate text-xs text-slate-500">{sy.baseUrl}</div>
@@ -249,7 +249,7 @@ export function NqaScenarioScreen() {
             const su = systems.find((x) => x.id === s.sutId) || {};
             const j = epCorrelated(s.endpoints) || s.forceOrder;
             return (
-              <Card key={s.id} className={"cursor-pointer p-3 " + (sel === i ? "border-sky-500" : "hover:border-slate-300")}>
+              <Card key={s.id} className={"cursor-pointer p-3 " + (sel === i ? SEL_CARD : SEL_IDLE)}>
                 <div onClick={() => choose(i)}>
                   <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-900">{s.name}</span><button onClick={(e) => { e.stopPropagation(); delScn(i, s); }} className="text-slate-500 hover:text-red-600" title="삭제"><X size={12} /></button></div>
                   <div className="mt-1 flex flex-wrap items-center gap-1"><Badge kind="info">{su.name || "대상 미지정"}</Badge><Badge kind={j ? "active" : "info"}>{j ? "순차 진행" : "비율 혼합"}</Badge></div>

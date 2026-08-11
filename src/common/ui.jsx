@@ -19,6 +19,14 @@ import { C } from "./theme.js";
    body 직속으로 렌더하면 조상이 무엇이든 항상 화면 전체를 덮는다. */
 export const Portal = ({ children }) => createPortal(children, document.body);
 
+/* 🔑 "지금 보고 있는 항목" 표시 — 목록·행 전 화면 단일 출처.
+   얇은 테두리 하나로는 흰 카드가 줄지어 선 목록에서 눈에 띄지 않는다.
+   배경까지 바꿔야 한눈에 잡힌다. ring 은 레이아웃을 밀지 않는다. */
+export const SEL_CARD = "border-sky-600 bg-sky-50 ring-1 ring-sky-600";
+export const SEL_IDLE = "hover:border-slate-300 hover:bg-slate-50";
+/* 표·목록의 행 — hover(회색)와 색 계열 자체를 다르게 둔다 */
+export const SEL_ROW  = "bg-sky-100 hover:bg-sky-100";
+
 const ThemeCtx = createContext("light");  // 전면 라이트 전환(2026-08-07). 다크가 필요하면 <ThemeProvider value="dark">
 export const ThemeProvider = ThemeCtx.Provider;
 export const useTheme = () => useContext(ThemeCtx);

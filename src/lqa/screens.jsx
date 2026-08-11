@@ -8,7 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { C, CL, vKind, KIND } from "../common/theme.js";
-import { Badge, ScoreBar, Card, Field, Btn, Input, Select, Toggle, PageToolbar, EmptyState, SearchInput, RunTime, nowStamp, Portal } from "../common/ui.jsx";
+import { Badge, ScoreBar, Card, Field, Btn, Input, Select, Toggle, PageToolbar, EmptyState, SearchInput, RunTime, nowStamp, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 // 이벤트 트리거는 정보성(읽기전용) — 감지 방식은 챗봇 연결 "모델·배포 소스"에서 정의된 값을 상속만 표시.
 const lqaEvents = (bot) => {
@@ -774,7 +774,7 @@ export function Targets() {
         <div className="col-span-3 space-y-3">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => openModal("addChatbot")}>챗봇 추가</Btn>
           {list.map((c, i) => (
-            <Card key={c.id} className={"cursor-pointer p-3 " + (cur && cur.id === c.id ? "border-sky-500" : "hover:border-slate-300")}>
+            <Card key={c.id} className={"cursor-pointer p-3 " + (cur && cur.id === c.id ? SEL_CARD : SEL_IDLE)}>
               <div onClick={() => chooseCb(i)}>
                 <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-900">{c.name}</span><Badge kind={stK[c.status]}>{c.status}</Badge></div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1"><Badge kind="info">{c.env}</Badge><Badge kind={chK[c.channel]}>{c.channel}</Badge></div>
@@ -1007,7 +1007,7 @@ export function Plans() {
         <Btn kind="primary" icon={Plus} className="w-full" onClick={() => openModal("newPlan")} disabled={!okBot || !okCase} title={!okBot ? "평가 대상 챗봇을 먼저 등록하세요" : !okCase ? "승인된 테스트케이스가 필요합니다" : ""}>새 평가 계획</Btn>
         {plans.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 계획이 없습니다.</div>}
         {plans.map((p) => (
-          <Card key={p.id} className={"p-4 cursor-pointer " + (cur.id === p.id ? "border-sky-500" : "hover:border-slate-300")}>
+          <Card key={p.id} className={"p-4 cursor-pointer " + (cur.id === p.id ? SEL_CARD : SEL_IDLE)}>
             <div onClick={() => chooseSel(p)}>
               <div className="flex items-center justify-between"><div className="font-semibold text-slate-900">{p.name}</div><div className="flex items-center gap-1.5"><Badge kind={p.status === "활성" ? "active" : "draft"}>{p.status}</Badge><button onClick={(e) => { e.stopPropagation(); if (window.confirm(p.name + " 계획을 삭제할까요?" + (plans.length <= 1 ? "\n\n마지막 계획입니다 — 삭제하면 평가를 실행할 계획이 없어집니다." : ""))) { removePlan(p.id); if ((sel || {}).id === p.id) setSel(plans.find((x) => x.id !== p.id) || null); toast(p.name + " 삭제됨", "ok"); } }} className="text-slate-500 hover:text-red-600" title="계획 삭제"><X size={13} /></button></div></div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-center">
@@ -1549,7 +1549,7 @@ export function Run() {
               </div>
               <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
                 {shown.map((c) => (
-                  <div key={c.id} onClick={() => setSel(c)} className={"px-4 py-3 border-b border-slate-200 cursor-pointer hover:bg-slate-100 " + (sel && sel.id === c.id ? "bg-slate-100" : "")}>
+                  <div key={c.id} onClick={() => setSel(c)} className={"px-4 py-3 border-b border-slate-200 cursor-pointer hover:bg-slate-100 " + (sel && sel.id === c.id ? SEL_ROW : "")}>
                     <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 font-mono text-xs text-sky-600">{c.id}{(c.final || c.verdict) === "FAIL" && openDefectOf(c.id, runBot) && <Bug size={12} className="text-red-600" title="열린 결함 있음" />}</span><div className="flex items-center gap-2">{c.final && <CheckCircle2 size={13} className={c.final === c.verdict ? "text-emerald-600" : "text-amber-600"} />}<span className="text-sm font-semibold text-slate-800">{c.score}</span><Badge kind={vKind(c.final || c.verdict)}>{c.final || c.verdict}</Badge>{c.final && c.final !== c.verdict && <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">정정</span>}</div></div>
                     <div className="text-xs text-slate-500 mt-1 truncate">{c.q}</div>
                   </div>

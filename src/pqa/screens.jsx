@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
-import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Toast, useToast, nowStamp, RunTime, Portal } from "../common/ui.jsx";
+import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Toast, useToast, nowStamp, RunTime, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
 import { Plus, X, Smartphone, Cpu, Zap, Package, Save, RefreshCw, Copy, Play, Activity, Code2, Gauge, ChevronLeft, Download, Bug, CheckCircle2, TrendingUp, AlertTriangle, ClipboardList } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from "recharts";
 import { PERF_PLATFORMS, PERF_BUILD_SOURCES, PERF_VARIANTS, PERF_METRICS, PERF_DEVICES, PERF_LAB, PERF_ENV } from "./data.js";
@@ -15,7 +15,7 @@ import { PERF_PLATFORMS, PERF_BUILD_SOURCES, PERF_VARIANTS, PERF_METRICS, PERF_D
 const PQA_EVENTS = [{ key: "deploy", label: "배포 시", desc: "대상 앱에 새 빌드가 배포되면 자동 측정합니다", short: "배포", fields: [{ k: "detect", type: "readonly", label: "감지 방식", value: "대상 앱의 CI 배포 웹훅 (상속)" }] }];
 const genSecret = () => "whsec_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
 
-const cardCls = (on) => "cursor-pointer p-3 " + (on ? "border-sky-500" : "hover:border-slate-300");
+const cardCls = (on) => "cursor-pointer p-3 " + (on ? SEL_CARD : SEL_IDLE);
 const Modal = ({ title, onClose, children }) => (
   <Portal><div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
     <div className="w-full max-w-md rounded-xl border border-slate-300 bg-white p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
@@ -680,7 +680,7 @@ export function PqaRunScreen() {
               <tbody>
                 {queue.length === 0 && (<tr><td colSpan={4} className="px-3 py-6 text-center text-sm text-slate-500">진행 중이거나 대기 중인 실행이 없습니다 — 계획을 골라 &quot;실행&quot;하세요.</td></tr>)}
                 {queue.map((r) => { const pg = progOf(r); return (
-                  <tr key={r.id} onClick={() => setSelId(r.id)} className={"cursor-pointer border-b border-slate-200 text-slate-700 hover:bg-slate-100 " + ((selRun && selRun.id === r.id) ? "bg-slate-100" : "")}>
+                  <tr key={r.id} onClick={() => setSelId(r.id)} className={"cursor-pointer border-b border-slate-200 text-slate-700 hover:bg-slate-100 " + ((selRun && selRun.id === r.id) ? SEL_ROW : "")}>
                     <td className="px-3 py-2.5"><div className="font-mono text-xs text-sky-600">{r.id}</div><div className="text-slate-800">{r.plan}</div><div className="text-xs text-slate-500">{r.app} · 단말 {r.devices} · 시나리오 {r.scns}</div></td>
                     <td><Badge kind={sK[r.status] || "info"}>{r.status}</Badge></td>
                     <td style={{ minWidth: 96 }}>{r.status === "대기" ? <span className="text-xs text-slate-500">대기</span> : (<div><div className="mb-0.5 text-xs text-slate-500">{pg.d}/{pg.t}</div><div className="h-1.5 rounded bg-slate-100"><div className="h-1.5 rounded bg-sky-500" style={{ width: pg.pct + "%" }} /></div></div>)}</td>
