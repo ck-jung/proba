@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, createContext, useContext } from "react";
 import {
   LayoutDashboard, ClipboardList, MessageSquare, Play, GitCompare, Bug,
   SlidersHorizontal, ShieldCheck, CheckCircle2, XCircle, AlertTriangle,
-  ChevronRight, Plus, Search, Bell, Server, TrendingUp, TrendingDown,
+  ChevronRight, ChevronDown, Plus, Search, Bell, TrendingUp, TrendingDown,
   Sparkles, FileDown, Ghost, Lock, Send, X, Megaphone, Slack, Mail,
   FileText, Calendar, RefreshCw, Trash2, ExternalLink, Plug, Link2,
   Building2, Users, Cpu, CreditCard, ScrollText, Shield, ArrowLeft, UserCog, Tag, Upload, History, Brain, Code2, Video, Layers
@@ -86,7 +86,10 @@ export default function App() {
   const [prompts, setPrompts] = useState(INIT_PROMPTS);
   const [chatbots, setChatbots] = useState(stampSeeds(INIT_CHATBOTS));
   const [pendingSelect, setPendingSelect] = useState(null);
-  const [role, setRole] = useState("admin");
+  /* 역할 전환은 데모용 — 기본은 조직 관리자(고객사 QA 리더) 시점이다 */
+  const ROLE_OPTS = [{ id: "admin", label: "서비스 관리자" }, { id: "tadmin", label: "조직 관리자" }, { id: "user", label: "QA 엔지니어" }];
+  const [role, setRole] = useState("tadmin");
+  const [roleMenu, setRoleMenu] = useState(false);   // 사람 아이콘 하위 드롭다운 열림
   const [space, setSpace] = useState("product");
   const [domain, setDomain] = useState("LQA");
   const [nqaWs, setNqaWs] = useState(null);   // 성능 QA 워크스페이스: null(미선택) / perf(앱 성능) / load(부하) — 드롭다운에서 고를 때 확정
@@ -237,7 +240,7 @@ export default function App() {
               </div>
               <div className="flex items-center gap-1.5" title="테넌트(조직)"><Building2 size={13} className="text-slate-500" />{role === "admin" ? <select value={tenantId} onChange={(e) => { setTenantId(e.target.value); toast("테넌트 전환: " + ((tenants.find((t) => t.id === e.target.value) || {}).name), "info"); }} className="bg-white border border-zinc-400 rounded-lg px-2.5 py-1.5 text-slate-700 text-xs">{tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select> : <span className="rounded-lg bg-white border border-zinc-400 px-2.5 py-1.5 text-slate-700 text-xs">{tenantName}</span>}</div>
               <div className="relative">
-                <button onClick={() => setBellOpen(!bellOpen)} className="relative text-slate-500 hover:text-slate-800"><Bell size={18} />{notifs.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center" style={{ fontSize: 9 }}>{notifs.length}</span>}</button>
+                <button onClick={() => { setBellOpen(!bellOpen); setRoleMenu(false); }} className="relative text-slate-500 hover:text-slate-800"><Bell size={18} />{notifs.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center" style={{ fontSize: 9 }}>{notifs.length}</span>}</button>
                 {bellOpen && (
                   <div className="absolute right-0 mt-2 w-80 rounded-xl border border-zinc-200 bg-white shadow-xl z-30">
                     <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between"><span className="text-sm font-semibold text-slate-800">알림</span><button onClick={() => { setNotifs([]); }} className="text-xs text-slate-400 hover:text-slate-600">모두 지우기</button></div>
@@ -251,8 +254,17 @@ export default function App() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1.5" title="역할 전환 (데모)"><UserCog size={15} className="text-slate-500" /><select value={role} onChange={(e) => setRole(e.target.value)} className="bg-white border border-zinc-400 rounded-lg px-2.5 py-1.5 text-slate-700 text-xs"><option value="admin">서비스 관리자</option><option value="tadmin">조직 관리자</option><option value="user">QA 엔지니어</option></select></div>
-              <Server size={17} className="text-emerald-500" />
+              <div className="relative">
+                <button onClick={() => { setRoleMenu((v) => !v); setBellOpen(false); }} title={"역할 전환 (데모) · 현재 " + ((ROLE_OPTS.find((r) => r.id === role) || {}).label)} className={"flex items-center gap-0.5 rounded-lg px-2 py-1.5 " + (roleMenu ? "bg-zinc-200 text-slate-800" : "text-slate-500 hover:bg-zinc-200 hover:text-slate-800")}><UserCog size={16} /><ChevronDown size={12} /></button>
+                {roleMenu && (
+                  <div className="absolute right-0 top-full z-30 mt-1 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+                    <div className="px-3 pb-1 pt-0.5 text-slate-400" style={{ fontSize: 10 }}>역할 전환 (데모)</div>
+                    {ROLE_OPTS.map((r) => (
+                      <button key={r.id} onClick={() => { setRole(r.id); setRoleMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (role === r.id ? "bg-sky-50 text-sky-700 font-semibold" : "text-slate-600 hover:bg-zinc-100")}>{r.label}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
         </div>
         {/* ── 사이드바(메뉴) + 본문 ── */}
