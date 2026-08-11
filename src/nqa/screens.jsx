@@ -142,7 +142,7 @@ function ShapeChart({ cfg }) {
   return (
     <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-16 w-full rounded-lg bg-slate-50">
       <polygon points={"0,38 " + line + " 100,38"} fill="#e0f2fe" opacity="0.45" />
-      <polyline points={line} fill="none" stroke="#0ea5e9" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      <polyline points={line} fill="none" stroke="#0ea5e9" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -480,7 +480,7 @@ function TSPanel({ title, points, pick, color, unit }) {
       <div className="flex items-center justify-between"><div className="text-xs font-semibold text-slate-700">{title}</div><div className="text-sm font-semibold" style={{ color }}>{last.toLocaleString()}<span className="text-xs text-slate-500"> {unit}</span></div></div>
       <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" className="mt-2 h-20 w-full">
         <path d={area} fill={color} opacity="0.15" />
-        <path d={line} fill="none" stroke={color} strokeWidth="1.5" />
+        <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
     </div>
   );
@@ -498,7 +498,7 @@ function TSMulti({ title, points, series, unit }) {
         <div className="flex items-center gap-2 text-xs">{series.map((sr, k) => <span key={k} className="flex items-center gap-1" style={{ color: sr.color }}><span className="inline-block h-1.5 w-2 rounded-sm" style={{ background: sr.color }} />{sr.label} {Math.round(sr.pick(lastP) || 0).toLocaleString()}</span>)}</div>
       </div>
       <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" className="mt-2 h-20 w-full">
-        {series.map((sr, k) => <path key={k} d={lineOf(sr.pick)} fill="none" stroke={sr.color} strokeWidth="1.5" />)}
+        {series.map((sr, k) => <path key={k} d={lineOf(sr.pick)} fill="none" stroke={sr.color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />)}
       </svg>
     </div>
   );
