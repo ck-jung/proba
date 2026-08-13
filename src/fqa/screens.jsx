@@ -4,7 +4,7 @@ import {
   Wrench, Search, RefreshCw, Save, Copy, Plus, CheckCircle2, X, Send, ChevronLeft,
   Code2, ArrowRight, Lock, GripVertical, Layers, Calendar, Bug, Clock, History, XCircle, AlertTriangle,
   LayoutDashboard, TrendingUp, Activity, ClipboardList, Pencil,
-  Smartphone, ChevronRight, ChevronDown, Server, Trash2,
+  Smartphone, ChevronRight, ChevronDown, Server, Trash2, Tag,
 } from "lucide-react";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { Card, Badge, Btn, Seg, Field, Input, Select, Modal, Toast, useToast, PageToolbar, backTo, RunTime, nowStamp, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
@@ -770,6 +770,10 @@ export function FqaApiImportScreen({ onDone }) {
   const [msg, flash] = useToast();
   const apiSuites = fqaSuites || [];
   const [suite, setSuite] = useState((apiSuites[0] && apiSuites[0].name) || "API 연동");
+  /* 임포트 단위로 공통인 태그(대개 regression)를 여기서 한 번에 건다.
+     엔드포인트마다 갈리는 태그(smoke·critical)는 목록의 일괄 태그 지정에서 조정한다 —
+     이 화면이 케이스 에디터를 흉내내기 시작하면 끝이 없다. */
+  const [tags, setTags] = useState("");
   const [src, setSrc] = useState("OpenAPI 파일"); // OpenAPI 파일 | OpenAPI URL | cURL | HAR
   const [curlText, setCurlText] = useState("");
   const [specUrl, setSpecUrl] = useState("");   // 비워 둔다 — 예시는 placeholder로
@@ -810,7 +814,7 @@ export function FqaApiImportScreen({ onDone }) {
   const runCurl = () => { if (!curlText.trim()) { setErr("cURL을 붙여넣으세요 (또는 아래 '샘플로 시연')"); return; } const r = parseCurl(curlText); if (!r.length) { setErr("cURL을 인식하지 못했습니다 — 'curl '로 시작해야 합니다."); setRows([]); setPhase("done"); return; } setResult(r); };
   const toggle = (k) => setPicked((pv) => { const n = new Set(pv); n.has(k) ? n.delete(k) : n.add(k); return n; });
   // 다건 임포트 → 목록에 '초안'으로 쌓는다. 각 케이스는 목록에서 에디터로 열어 보강한다.
-  const commit = () => { if (!picked.size) { flash("요청을 선택하세요"); return; } const sel = rows.filter((r) => picked.has(r._k)); sel.forEach((ep, i) => addFqaCase({ id: nextTcId(fqaCases, i), origin: "API 임포트", name: ep.name, suite, tags: "", status: "초안", level: "Low-Code", dataset: "-", steps: apiSteps(ep) })); if (onDone) onDone(sel.length + "건 API 케이스 초안 등록 · 목록에서 에디터로 보강하세요"); };
+  const commit = () => { if (!picked.size) { flash("요청을 선택하세요"); return; } const sel = rows.filter((r) => picked.has(r._k)); sel.forEach((ep, i) => addFqaCase({ id: nextTcId(fqaCases, i), origin: "API 임포트", name: ep.name, suite, tags, status: "초안", level: "Low-Code", dataset: "-", steps: apiSteps(ep) })); if (onDone) onDone(sel.length + "건 API 케이스 초안 등록 · 목록에서 에디터로 보강하세요"); };
   return (
     <>
       <Hdr icon={FileText} title="API 임포트" badge="API" desc="OpenAPI · cURL · HAR → 요청·검증 케이스 골격" />
@@ -844,6 +848,7 @@ export function FqaApiImportScreen({ onDone }) {
             {/* 모든 탭 공통 보조 링크 — 입력 없이 동작을 확인. 실 개발 시 이 줄만 제거. */}
             <div className="text-center"><button type="button" onClick={loadSample} className="text-xs text-slate-500 underline decoration-dotted hover:text-sky-600">샘플 {src.replace("OpenAPI ", "")}로 시연</button></div>
             <Field label="등록 스위트"><Select value={suite} onChange={(e) => setSuite(e.target.value)}>{apiSuites.map((x) => <option key={x.id}>{x.name}</option>)}{apiSuites.length === 0 && <option>API 연동</option>}</Select></Field>
+            <Field label="태그" hint="선택한 요청 전부에 동일하게 붙습니다. 케이스별 조정은 목록에서 합니다."><TagPicker value={tags} onChange={setTags} /></Field>
             {err && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">{err}</div>}
             <div className="text-xs text-slate-500">요청+상태 검증 골격을 만듭니다. 본문·검증은 에디터에서 보강합니다.{(src === "cURL" || src === "HAR") && <span className="text-amber-700"> 인증·비밀번호는 <span className="font-mono">${"{…}"}</span>로 마스킹됩니다.</span>}</div>
           </Card>
@@ -2359,7 +2364,7 @@ export function FqaDashboardScreen({ nav }) {
 }
 /* ═══════════ 9. 테스트케이스 (통합 저장소) ═══════════ */
 export function FqaCasesScreen() {
-  const { fqaCases, fqaSuites, addFqaCase, setFqaCaseStatus, removeFqaCase, fqaEditTc, setFqaEditTc, fqaSuiteFocus, setFqaSuiteFocus, goTo } = useApp();
+  const { fqaCases, fqaSuites, addFqaCase, setFqaCaseStatus, removeFqaCase, commitFqaCase, fqaEditTc, setFqaEditTc, fqaSuiteFocus, setFqaSuiteFocus, goTo } = useApp();
   const editorDirty = useRef(false);
   useEffect(() => { if (fqaEditTc) { const c = fqaCases.find((x) => x.id === fqaEditTc); if (c) { setSel(c); setMode("edit"); } setFqaEditTc(null); } }, [fqaEditTc]);
   const [msg, flash] = useToast();
@@ -2389,6 +2394,34 @@ export function FqaCasesScreen() {
   const toggleAll = () => { if (allPicked) setPicked(new Set()); else setPicked(new Set(list.map((c) => c.id))); };
   const bulkSet = (st) => { picked.forEach((id) => setFqaCaseStatus(id, st)); flash(picked.size + "건 " + st + " 처리"); setPicked(new Set()); };
   const bulkDel = () => { if (!window.confirm(picked.size + "건을 삭제할까요? 되돌릴 수 없습니다.")) return; picked.forEach((id) => removeFqaCase(id)); flash(picked.size + "건 삭제됨"); setPicked(new Set()); };
+  /* 일괄 스위트·태그 변경.
+     🔑 상태(status)와 달리 스위트·태그는 VER_FIELDS 에 있는 '리비전 대상' 필드다.
+        updateFqaCase 로 조용히 바꾸면 케이스 변경 이력에 흔적이 남지 않는다 — commitFqaCase 로 리비전을 남긴다.
+     🔑 스위트가 틀리면 실행 계획이 그 케이스를 아예 잡지 않는다(실패가 아니라 누락). 그래서 되돌릴 길이 있어야 한다. */
+  const pickedCases = () => fqaCases.filter((c) => picked.has(c.id));
+  const [suiteModal, setSuiteModal] = useState(null);   // 일괄 스위트 변경: 이동할 스위트명
+  const [tagModal, setTagModal] = useState(null);       // 일괄 태그: { [caseId]: "tag,tag" } 초안
+  const openSuiteModal = () => setSuiteModal((fqaSuites[0] || {}).name || "");
+  const applySuite = () => {
+    const to = suiteModal, tgt = pickedCases().filter((c) => c.suite !== to);
+    if (!to) { flash("이동할 스위트를 고르세요"); return; }
+    if (!tgt.length) { flash("이미 모두 " + to + " 입니다"); setSuiteModal(null); return; }
+    tgt.forEach((c) => commitFqaCase(c.id, { suite: to }, { note: "일괄 스위트 변경" }));
+    flash(tgt.length + "건 → " + to); setSuiteModal(null); setPicked(new Set());
+  };
+  const openTagModal = () => { const d = {}; pickedCases().forEach((c) => { d[c.id] = c.tags || ""; }); setTagModal(d); };
+  const tagOn = (id, t) => tagList(tagModal[id]).includes(t);
+  const togTag = (id, t) => setTagModal((d) => { const cur = tagList(d[id]); return { ...d, [id]: (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]).join(",") }; });
+  /* 열 머리 = 전체 토글. 하나라도 꺼져 있으면 전부 켜고, 전부 켜져 있으면 전부 끈다.
+     임포트 직후처럼 'regression 을 전부에' 다는 경우가 대부분이라 이게 없으면 결국 하나씩 누르게 된다. */
+  const colAll = (t) => Object.keys(tagModal || {}).every((id) => tagList(tagModal[id]).includes(t));
+  const togCol = (t) => setTagModal((d) => { const all = Object.keys(d).every((id) => tagList(d[id]).includes(t)); const o = {}; Object.keys(d).forEach((id) => { const cur = tagList(d[id]); o[id] = (all ? cur.filter((x) => x !== t) : (cur.includes(t) ? cur : [...cur, t])).join(","); }); return o; });
+  const applyTags = () => {
+    const tgt = pickedCases().filter((c) => (c.tags || "") !== (tagModal[c.id] || ""));
+    if (!tgt.length) { flash("변경된 태그가 없습니다"); setTagModal(null); return; }
+    tgt.forEach((c) => commitFqaCase(c.id, { tags: tagModal[c.id] || "" }, { note: "일괄 태그 변경" }));
+    flash(tgt.length + "건 태그 변경"); setTagModal(null); setPicked(new Set());
+  };
   const Back = () => <button onClick={() => { if (editorDirty.current && !window.confirm("저장하지 않은 변경이 있습니다. 목록으로 나가시겠습니까?")) return; editorDirty.current = false; setMode("목록"); }} className="mb-3 inline-flex items-center gap-1 text-xs text-sky-600"><ChevronLeft size={14} />테스트케이스 목록</button>;
   /* 직접 작성 — 빈 케이스를 만들고 에디터를 연다.
      스크립트로 시작하면 Full-Code로 진입한다(외부에서 쓰던 코드를 그대로 붙여넣는 경로). */
@@ -2432,9 +2465,65 @@ export function FqaCasesScreen() {
           <span className="flex-1 text-sky-700">{picked.size}건 선택됨</span>
           <Btn kind="primary" icon={CheckCircle2} onClick={() => bulkSet("승인")}>선택 승인</Btn>
           <Btn onClick={() => bulkSet("검토중")}>검토중으로</Btn>
+          <Btn icon={Layers} onClick={openSuiteModal}>스위트 변경</Btn>
+          <Btn icon={Tag} onClick={openTagModal}>태그 지정</Btn>
           <Btn kind="danger" icon={Trash2} onClick={bulkDel}>선택 삭제</Btn>
           <Btn onClick={() => setPicked(new Set())}>선택 해제</Btn>
         </div>
+      )}
+      {/* ── 일괄 스위트 변경 ── 선택분이 여러 스위트에 흩어져 있을 수 있으니 현재 분포를 먼저 보여준다 */}
+      {suiteModal !== null && (
+        <Modal title={"스위트 일괄 변경 · " + picked.size + "건"} onClose={() => setSuiteModal(null)}>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="mb-1.5 text-xs font-semibold text-slate-600">현재 스위트</div>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(pickedCases().reduce((a, c) => { a[c.suite || "—"] = (a[c.suite || "—"] || 0) + 1; return a; }, {})).map(([k, v]) => (
+                  <span key={k} className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-600">{k} <span className="text-slate-400">{v}</span></span>
+                ))}
+              </div>
+            </div>
+            <Field label="이동할 스위트" hint="선택한 케이스 전부가 이 스위트로 옮겨집니다. 변경 이력에 리비전으로 남습니다.">
+              <Select value={suiteModal} onChange={(e) => setSuiteModal(e.target.value)}>{fqaSuites.map((su) => <option key={su.id} value={su.name}>{su.name}</option>)}</Select>
+            </Field>
+            <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setSuiteModal(null)}>취소</Btn><Btn kind="primary" onClick={applySuite}>적용</Btn></div>
+          </div>
+        </Modal>
+      )}
+      {/* ── 일괄 태그 지정 ── 케이스별로 켜고 끈다. 열 머리를 누르면 전체 일괄. */}
+      {tagModal && (
+        <Modal wide title={"태그 지정 · " + picked.size + "건"} onClose={() => setTagModal(null)}>
+          <div className="space-y-3">
+            <div className="text-xs text-slate-500">칸을 눌러 케이스별로 켜고 끕니다. <span className="text-slate-700">열 머리</span>를 누르면 전체에 한 번에 적용됩니다.</div>
+            <div className="overflow-y-auto rounded-lg border border-slate-200" style={{ maxHeight: 380 }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+                    <th className="py-2 pl-3 pr-2 font-medium">케이스</th>
+                    {TAGS.map((t) => (
+                      <th key={t} className="w-24 px-2 py-1.5 text-center">
+                        <button onClick={() => togCol(t)} title={TAG_DESC[t] + " · 전체 토글"} className={"w-full rounded-full border px-2 py-0.5 text-xs " + (colAll(t) ? "border-sky-600 bg-sky-100 text-sky-700 font-semibold" : "border-slate-300 bg-white text-slate-500 hover:bg-slate-100")}>{t}</button>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pickedCases().map((c) => (
+                    <tr key={c.id} className="border-b border-slate-200">
+                      <td className="py-1.5 pl-3 pr-2"><span className="font-mono text-xs text-slate-500">{c.id}</span> <span className="text-slate-700">{c.name}</span> <span className="text-xs text-slate-400">· {c.suite}</span></td>
+                      {TAGS.map((t) => (
+                        <td key={t} className="px-2 py-1.5 text-center">
+                          <button onClick={() => togTag(c.id, t)} className={"rounded-full border px-2.5 py-0.5 text-xs " + (tagOn(c.id, t) ? "border-sky-600 bg-sky-100 text-sky-700" : "border-slate-200 bg-white text-slate-300 hover:bg-slate-100")}>{tagOn(c.id, t) ? t : "—"}</button>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end gap-2 pt-1"><Btn onClick={() => setTagModal(null)}>취소</Btn><Btn kind="primary" onClick={applyTags}>적용</Btn></div>
+          </div>
+        </Modal>
       )}
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
