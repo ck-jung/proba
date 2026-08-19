@@ -43,7 +43,7 @@ export const PERF_METRICS = [
    adb로 두 APK를 설치하고 am instrument로 실행하므로 호스트에 JDK·Gradle·앱 소스가 필요 없다. */
 export const PERF_LAB = {
   id: "lab1", name: "사내 디바이스 랩", host: "qa-lab-01", os: "Ubuntu 22.04",
-  agent: "exq-lab-agent 1.2.0", adb: "35.0.2", status: "온라인", lastSeen: "방금 전",
+  agent: "proba-lab-agent 1.2.0", adb: "35.0.2", status: "온라인", lastSeen: "방금 전",
   maxParallel: 4,   // 호스트 부하가 측정값을 오염시키므로 동시 실행 상한을 둔다
   devices: 8,
 };

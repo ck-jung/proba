@@ -166,10 +166,10 @@ const relPath = (u, base) => {
 
    구현 전제 — 공식 CLI만 사용한다(내부 API 없음):
      1) 웹에서 세션 생성 → 명령어 발급
-     2) 사용자가 터미널에서  npx @exq/cli record --session <id>
+     2) 사용자가 터미널에서  npx @proba/cli record --session <id>
      3) CLI가 세션 정보를 받아  npx playwright codegen [플래그] <base+시작경로> -o out.spec.ts  실행
         · --load-storage  : 이전 녹화에서 저장한 로그인 상태 재사용
-        · --save-storage  : 이번 로그인 상태를 로컬(~/.exq)에만 저장 — 플랫폼에 올리지 않는다
+        · --save-storage  : 이번 로그인 상태를 로컬(~/.proba)에만 저장 — 플랫폼에 올리지 않는다
         · --viewport-size / --ignore-https-errors : 환경 설정에서 주입
      4) 브라우저에서 조작 · 툴바로 검증 추가 → 창을 닫으면 codegen 종료
      5) CLI가 out.spec.ts를 AST로 파싱 → 스텝으로 변환 → 플랫폼에 업로드
@@ -220,9 +220,9 @@ export function FqaRecordScreen({ onDone, onEdit }) {
        · CLI 버전: 플랫폼 API 스키마에 묶이므로 @latest가 아니라 호환 버전을 박는다
        · 세션 토큰: 대상 환경 정보를 받아가고 스텝을 올리는 '사실상 인증'이므로
                     단명(10분) · 1회용 · 128bit 이상. 짧은 ID는 대입 가능해 위험하다.        */
-  // npm 패키지는 @exq/cli (조직의 CLI 모듈), 전역 설치 시 명령어는 exq — @angular/cli → ng 와 같은 관례
+  // npm 패키지는 @proba/cli (조직의 CLI 모듈), 전역 설치 시 명령어는 proba — @angular/cli → ng 와 같은 관례
   const CLI_VER = "1.4";
-  const cmd = "npx @exq/cli@" + CLI_VER + " record --session " + sid;
+  const cmd = "npx @proba/cli@" + CLI_VER + " record --session " + sid;
 
   // 목업용 토큰 — 실제로는 서버가 발급한다(128bit·10분·1회용). 클라 Math.random은 데모 표시용일 뿐.
   const newToken = () => {
@@ -607,10 +607,10 @@ function stepsToCode(steps, tc) {
     "import { test, expect } from '@playwright/test';",
     "",
     "// 실행 계획의 대상·환경에서 러너가 주입 — 케이스는 환경을 모른다",
-    "const V = JSON.parse(process.env.EXQ_VARS || '{}');        // 계정·공통 변수",
-    hasApi ? "const API_BASE = process.env.EXQ_API_BASE || '';           // 환경 apiUrl" : "",
-    hasApi ? "const AUTH = JSON.parse(process.env.EXQ_API_AUTH || '{}');  // API 인증 헤더 (API 호출에만)" : "",
-    (ds || usesRow) ? "const rows = JSON.parse(process.env.EXQ_ROWS || '[]');      // 데이터셋 " + (ds || "행") : "",
+    "const V = JSON.parse(process.env.PROBA_VARS || '{}');        // 계정·공통 변수",
+    hasApi ? "const API_BASE = process.env.PROBA_API_BASE || '';           // 환경 apiUrl" : "",
+    hasApi ? "const AUTH = JSON.parse(process.env.PROBA_API_AUTH || '{}');  // API 인증 헤더 (API 호출에만)" : "",
+    (ds || usesRow) ? "const rows = JSON.parse(process.env.PROBA_ROWS || '[]');      // 데이터셋 " + (ds || "행") : "",
     "",
   ].filter((l) => l !== "").join("\n");
   const pre = hasApi ? "  let res: any, body: any;\n" : "";
@@ -2890,7 +2890,7 @@ export function FqaTargetScreen() {
               {apiT === "OAuth 2.0 (Client Credentials)" && (<>
                 <Field label="토큰 엔드포인트"><Input value={(cfg.apiAuth || {}).tokenUrl || ""} onChange={(e) => setSub("apiAuth", { tokenUrl: e.target.value })} placeholder="https://auth-stg.onmarket.io/oauth2/token" className="font-mono text-xs" /></Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="client_id"><Input value={(cfg.apiAuth || {}).clientId || ""} onChange={(e) => setSub("apiAuth", { clientId: e.target.value })} placeholder="exq-qa-runner" className="font-mono text-xs" /></Field>
+                  <Field label="client_id"><Input value={(cfg.apiAuth || {}).clientId || ""} onChange={(e) => setSub("apiAuth", { clientId: e.target.value })} placeholder="proba-qa-runner" className="font-mono text-xs" /></Field>
                   <Field label="client_secret (변수 참조)">{secretRef((cfg.apiAuth || {}).clientSecret, (val) => setSub("apiAuth", { clientSecret: val }), "${stg_oauth_secret}")}</Field>
                 </div>
                 <Field label="scope (선택)"><Input value={(cfg.apiAuth || {}).scope || ""} onChange={(e) => setSub("apiAuth", { scope: e.target.value })} placeholder="orders.read orders.write" className="font-mono text-xs" /></Field>
