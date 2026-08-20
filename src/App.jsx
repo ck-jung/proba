@@ -216,7 +216,7 @@ export default function App() {
       <div className="flex flex-col flex-1 min-w-0">
         {/* ── 상단 앱바 (로고 · 검증 영역 · 전역 컨트롤) ── */}
         <div className="flex items-center justify-between gap-4 px-5 h-14 shrink-0 border-b border-zinc-400/40 bg-zinc-300">
-          <div className="flex items-center gap-2 shrink-0"><div className="w-7 h-7 rounded-lg bg-sky-700 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 48 48" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M24 8 V26" /><path d="M9 26 H39" /><path d="M24 26 L17 40 H31 Z" /></svg></div><span className="font-bold text-slate-800">PROBA</span><span className="text-slate-500" style={{ fontSize: 10 }}>Prove every release</span></div>
+          <div className="flex items-center gap-2 shrink-0"><div className="w-7 h-7 rounded-lg bg-sky-700 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 48 48" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M24 8 V24" /><path d="M8 24 H40" /><path d="M24 24 L14 40 H34 Z" /></svg></div><span className="font-bold text-slate-800">PROBA</span><span className="text-slate-500" style={{ fontSize: 10 }}>Prove every release</span></div>
           <div className="flex items-center gap-3 text-sm shrink-0">
               <div className="flex items-center gap-1 border-r border-zinc-400/40 pr-3">
                 {DOMAINS.map((d) => d.id === "NQA" ? (

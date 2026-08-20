@@ -166,7 +166,7 @@ const relPath = (u, base) => {
 
    구현 전제 — 공식 CLI만 사용한다(내부 API 없음):
      1) 웹에서 세션 생성 → 명령어 발급
-     2) 사용자가 터미널에서  npx @proba/cli record --session <id>
+     2) 사용자가 터미널에서  npx proba-cli record --session <id>
      3) CLI가 세션 정보를 받아  npx playwright codegen [플래그] <base+시작경로> -o out.spec.ts  실행
         · --load-storage  : 이전 녹화에서 저장한 로그인 상태 재사용
         · --save-storage  : 이번 로그인 상태를 로컬(~/.proba)에만 저장 — 플랫폼에 올리지 않는다
@@ -220,9 +220,11 @@ export function FqaRecordScreen({ onDone, onEdit }) {
        · CLI 버전: 플랫폼 API 스키마에 묶이므로 @latest가 아니라 호환 버전을 박는다
        · 세션 토큰: 대상 환경 정보를 받아가고 스텝을 올리는 '사실상 인증'이므로
                     단명(10분) · 1회용 · 128bit 이상. 짧은 ID는 대입 가능해 위험하다.        */
-  // npm 패키지는 @proba/cli (조직의 CLI 모듈), 전역 설치 시 명령어는 proba — @angular/cli → ng 와 같은 관례
+  /* npm 패키지는 스코프 없는 proba-cli — npx 한 줄로 끝나야 하므로 짧은 쪽을 골랐다.
+     스코프(@org/cli)는 조직을 바꾸면 패키지 이름까지 바뀌지만, 스코프 없는 이름은 조직 소유로 옮겨도 그대로다.
+     전역 설치 시 명령어는 package.json 의 bin 이 정한다 → proba (vercel/eslint 와 같은 관례) */
   const CLI_VER = "1.4";
-  const cmd = "npx @proba/cli@" + CLI_VER + " record --session " + sid;
+  const cmd = "npx proba-cli@" + CLI_VER + " record --session " + sid;
 
   // 목업용 토큰 — 실제로는 서버가 발급한다(128bit·10분·1회용). 클라 Math.random은 데모 표시용일 뿐.
   const newToken = () => {
