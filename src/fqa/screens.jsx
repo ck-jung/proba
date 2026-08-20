@@ -2672,7 +2672,7 @@ export function FqaTargetScreen() {
   // API 스펙(계약)도 환경 설정이 아니다 — 케이스 생성 소스일 뿐이므로 "API 스펙 임포트" 화면에서만 다룬다.
   const CFG_DEF = {
     webUrl: "", apiUrl: "",
-    apiAuth: { type: "API Key", header: "X-API-Key", secretRef: "" },
+    apiAuth: { type: "없음", header: "X-API-Key", secretRef: "" },
     access: { basicAuth: false, baUser: "", baPw: "", tlsIgnore: false },
     deploy: { mode: "수동", verUrl: "", verPath: "$.version", interval: "15분" },
   };
@@ -2681,7 +2681,7 @@ export function FqaTargetScreen() {
   const setSub = (key, patch) => setEnvCfg({ [key]: { ...(cfg[key] || {}), ...patch } });
   const hasWeb = !!cfg.webUrl;
   const hasApi = !!cfg.apiUrl;
-  const apiT = (cfg.apiAuth || {}).type || "API Key";
+  const apiT = (cfg.apiAuth || {}).type || "없음";
   const verMode = (cfg.deploy || {}).mode || "수동";
   const dirty = Object.keys(draft).length > 0 || (nameDraft !== null && nameDraft !== ((sys || {}).name || ""));
   /* 사이드바 이동은 화면 안의 dirty를 모른다 — 전역 가드에 등록하고 떠날 때 해제한다 */
@@ -2722,6 +2722,8 @@ export function FqaTargetScreen() {
     const e = [];
     if (!hasWeb && !hasApi) e.push("접점(웹 또는 API base URL)이 없습니다");
     if (hasApi) {
+      /* 방식이 "없음"이면 아래 세 조건에 걸리지 않아 통과한다 —
+         인증 없는 공개 API(헬스체크·공개 조회)와, 접속 조건의 Basic Auth 로 보호되는 API 가 여기 해당한다. */
       const a = cfg.apiAuth || {};
       if (a.type === "API Key" && (!a.header || !a.secretRef)) e.push("API Key — 헤더 이름·키가 필요합니다");
       if (a.type === "Bearer 토큰 (정적)" && !a.secretRef) e.push("Bearer — 토큰이 필요합니다");
@@ -2874,7 +2876,7 @@ export function FqaTargetScreen() {
               <div className="text-sm font-semibold text-slate-800">API 인증</div>
               <Field label="방식">
                 <Select value={apiT} onChange={(e) => setSub("apiAuth", { type: e.target.value })}>
-                  <option>API Key</option><option>Bearer 토큰 (정적)</option><option>OAuth 2.0 (Client Credentials)</option>
+                  <option>없음</option><option>API Key</option><option>Bearer 토큰 (정적)</option><option>OAuth 2.0 (Client Credentials)</option>
                 </Select>
               </Field>
 
