@@ -1,3 +1,8 @@
 node_modules
 dist
 .vite
+
+# 에디터 설정 — 사람마다 다르므로 저장소에 두지 않는다
+.idea/
+.vscode/
+.DS_Store
