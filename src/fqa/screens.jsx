@@ -223,7 +223,10 @@ export function FqaRecordScreen({ onDone, onEdit }) {
   /* npm 패키지는 스코프 없는 proba-cli — npx 한 줄로 끝나야 하므로 짧은 쪽을 골랐다.
      스코프(@org/cli)는 조직을 바꾸면 패키지 이름까지 바뀌지만, 스코프 없는 이름은 조직 소유로 옮겨도 그대로다.
      전역 설치 시 명령어는 package.json 의 bin 이 정한다 → proba (vercel/eslint 와 같은 관례) */
-  const CLI_VER = "1.4";
+  /* 실제 배포 버전과 반드시 일치해야 한다 — 화면의 명령어를 복사해 실행하는 구조라
+     없는 버전을 적으면 사용자 터미널에서 "No matching version" 이 난다.
+     0.1 은 0.1.x 범위 — 패치는 자동으로 따라오고 마이너는 고정된다. */
+  const CLI_VER = "0.1";
   const cmd = "npx proba-cli@" + CLI_VER + " record --session " + sid;
 
   // 목업용 토큰 — 실제로는 서버가 발급한다(128bit·10분·1회용). 클라 Math.random은 데모 표시용일 뿐.

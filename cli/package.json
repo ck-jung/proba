@@ -1,13 +1,16 @@
 {
   "name": "proba-cli",
   "version": "0.1.0",
-  "private": true,
   "description": "PROBA 레코딩 CLI — Playwright codegen 출력을 PROBA 스텝으로 변환",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/comesample/proba.git",
     "directory": "cli"
   },
+  "files": [
+    "bin",
+    "src"
+  ],
   "bin": {
     "proba": "bin/proba.js"
   },
@@ -27,6 +30,10 @@
     "1.49.1 → 1.60.0 (2026-08-21). 올린 이유는 브라우저 빌드를 하나로 합치기 위해서다",
     "(1.49.1 은 chromium-1148, 1.60.0 은 chromium-1223 을 따로 받는다).",
     "확인한 것: 1.60 이 실제로 뽑은 codegen 출력을 파서가 커버리지 100% 로 변환했고,",
-    "파서가 의존하는 출력 패턴(getBy*·await expect·toBeVisible 등)이 1.60 번들에 모두 남아 있다."
+    "파서가 의존하는 출력 패턴(getBy*·await expect·toBeVisible 등)이 1.60 번들에 모두 남아 있다.",
+    "",
+    "0.x 로 두는 이유: --session 토큰 흐름이 아직 없고 플랫폼 API 도 고정되지 않았다.",
+    "1.0 은 '이 인터페이스로 써도 된다'는 약속이므로, 그 약속이 가능해질 때 올린다.",
+    "목업이 화면에 내는 npx proba-cli@<VER> 의 VER 은 이 버전과 항상 일치해야 한다."
   ]
 }
