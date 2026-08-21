@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    # CLI 만 고쳤을 때는 Pages 를 다시 빌드하지 않는다
+    paths-ignore:
+      - 'cli/**'
 
 permissions:
   contents: read

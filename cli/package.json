@@ -1,0 +1,27 @@
+{
+  "name": "proba-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PROBA 레코딩 CLI — Playwright codegen 출력을 PROBA 스텝으로 변환",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comesample/proba.git",
+    "directory": "cli"
+  },
+  "bin": {
+    "proba": "bin/proba.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "playwright": "1.49.1"
+  },
+  "scripts": {
+    "test": "node test/parse.test.js"
+  },
+  "_comment": [
+    "playwright 버전은 정확히 고정한다(캐럿 ^ 없이).",
+    "codegen 출력 포맷이 바뀌면 파서가 깨지므로, 올릴 때는 반드시 npm test 를 통과시킨다."
+  ]
+}
