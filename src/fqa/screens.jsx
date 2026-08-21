@@ -1658,7 +1658,7 @@ export function FqaRunScreen({ nav }) {
   const [pcModal, setPcModal] = useState(null);
   /* 🔴 문제 케이스만 빼고 돌리지 않는다 — 일부만 돈 회차가 품질 게이트를 통과하면
      검증이 사라진 것을 아무도 모른다. 빼는 결정은 사람이 '격리'로 내린다. */
-  const quarantine = (list) => { list.forEach((c) => updateFqaCase(c.id, { quarantined: true })); setPcModal(null); flash(list.length + "건 격리됨 — 다시 실행하세요"); };
+  const quarantine = (list) => { list.forEach((c) => updateFqaCase(c.id, { quarantined: true })); setPcModal(null); flash(list.length + "건 격리됨 — 실행 대상에서 빠집니다. 다시 실행하세요"); };
   const gatePlan = (plan) => { if (plan.status !== "활성") { flash(plan.name + " — 초안 계획은 실행할 수 없습니다. 계획을 활성화하세요"); return false; } if (!suiteNames(plan).length) { flash(plan.name + " — 스위트가 선택되지 않았습니다"); return false; } if (!buildTcs(plan).length) { flash(plan.name + " — 실행할 승인 케이스가 없습니다 (스위트·태그·승인 상태 확인)"); return false; } const pc = precheck(plan); if (pc.length) { setPcModal({ plan, groups: pc }); return false; } return true; };
   // 실행 시점의 대상·환경·빌드 버전을 run에 스탬프 — "이 회귀가 어느 빌드에서 나왔나"를 추적하기 위함
   const stampOf = (plan) => { const { e, label } = envRefOf(plan); return { target: label, ver: (e && e.ver && e.ver !== "-") ? e.ver : "-" }; };
@@ -1761,7 +1761,7 @@ export function FqaRunScreen({ nav }) {
         </div>
       {pcModal && (
         <Modal title="사전 검사 실패 — 실행할 수 없습니다" onClose={() => setPcModal(null)} wide>
-          <div className="mb-3 text-xs text-slate-500">{pcModal.plan.name} · 문제 케이스만 빼고 실행하지 않습니다 — 일부만 돈 회차가 품질 게이트를 통과하면 검증이 사라진 것을 알 수 없습니다.</div>
+          <div className="mb-3 text-xs text-slate-500">{pcModal.plan.name} · 아래 케이스를 고치거나 격리해야 실행됩니다. 격리하면 그 케이스는 실행되지 않고 게이트 집계에서도 빠집니다 — 검증이 사라지는 것이므로 임시 조치로만 쓰세요.</div>
           <div className="space-y-2">
             {pcModal.groups.map((g, i) => (
               <div key={i} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
@@ -1958,8 +1958,10 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
     let trail = 0; for (let i = h.length - 1; i >= 0; i--) { if (h[i] === "FAIL") trail++; else break; }
     const rate = Math.round((fails / h.length) * 100);
     const persistent = h.length >= 3 && fails / h.length >= 0.6 && trail >= 2;
-    // 불안정 = 재시도 통과(flaky, Playwright가 직접 표시) 또는 PASS/FAIL 교차(데이터 3회+)
-    const flaky = !persistent && (warns > 0 || (h.length >= 3 && fails > 0 && passes > 0));
+    /* 불안정 = 재시도 통과(WARN) 또는 PASS/FAIL 교차.
+       🔑 표본 수 조건은 두 경로에 똑같이 건다 — 1회 실행의 재시도 통과 하나로
+          "이 케이스는 불안정하다"고 단정하면 안 된다(화면에 적어 둔 기준과도 어긋난다). */
+    const flaky = !persistent && h.length >= 3 && (warns > 0 || (fails > 0 && passes > 0));
     const streak = persistent ? ("최근 " + trail + "회 연속 실패 · " + rate + "% 실패") : (warns > 0 ? ("재시도 통과(flaky) " + warns + "회" + (flips >= 1 ? " · PASS/FAIL 교차 " + flips + "회" : "")) : ("PASS/FAIL 교차 " + flips + "회 · " + rate + "% 실패"));
     return { id: c.id, name: c.name, suite: c.suite, runs: h.length, fails, rate, flips, warns, unstable: fails + warns, urate: Math.round(((fails + warns) / h.length) * 100), flaky, persistent, quarantined: !!c.quarantined, streak };
   }).filter((r) => r.flaky || r.persistent);
@@ -1978,7 +1980,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
       artifacts: [{ k: "shot", label: "스크린샷", file: "screenshot.png", size: "220 KB" }, { k: "trace", label: "Playwright 트레이스", file: "trace.zip", size: "3 MB" }],
     });
   };
-  const toggleQuar = (r) => { updateFqaCase(r.id, { quarantined: !r.quarantined }); flash(r.id + (r.quarantined ? " 격리 해제 — 차단 실행에 복귀" : " 격리(quarantine) — 차단 실행에서 제외")); };
+  const toggleQuar = (r) => { updateFqaCase(r.id, { quarantined: !r.quarantined }); flash(r.id + (r.quarantined ? " 격리 해제 — 실행 대상에 복귀" : " 격리(quarantine) — 실행 대상에서 제외")); };
   const vK = { PASS: "pass", FAIL: "fail", HEAL: "teal", WARN: "warn" };
   /* 데이터 구동 케이스의 행 요약 — 판정·집계는 케이스 단위(1건)이고 행은 보조 표기다.
      rows가 없는 케이스는 기존 동작 그대로다(빈 문자열 반환). */
@@ -2211,13 +2213,19 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                     <td className="pr-4" style={{ minWidth: 150 }}><div className="mb-0.5 text-xs text-slate-500">{r.unstable}/{r.runs}회 · {r.urate}%</div><div className="h-1.5 rounded bg-slate-100" style={{ width: 130 }}><div className="h-1.5 rounded" style={{ width: r.urate + "%", background: r.flaky ? "#d97706" : "#dc2626" }} /></div></td>
                     <td>{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}</td>
                     <td className="text-xs text-slate-500">{r.streak}</td>
-                    <td className="pr-4 text-right whitespace-nowrap">{r.flaky ? <button onClick={() => toggleQuar(r)} className={"mr-3 text-xs " + (r.quarantined ? "text-sky-600 hover:text-sky-700" : "text-amber-700 hover:text-amber-800")}>{r.quarantined ? "격리 해제" : "격리"}</button> : (hasDefFQA(r.id) ? <span className="mr-3 text-xs text-slate-500">등록됨</span> : <button onClick={() => regFail(r)} className="mr-3 text-xs text-red-700 hover:text-red-800">결함 등록</button>)}<button onClick={() => (nav ? nav("fqa-cases", r.id) : flash(r.id + " 테스트케이스로 이동"))} className="text-xs text-slate-500 hover:text-sky-600">TC 보기</button></td>
+                    <td className="pr-4 text-right whitespace-nowrap">{/* 🔑 격리 여부를 먼저 본다. flaky 로만 분기하면 격리된 케이스가 지속 실패로
+                        재분류되는 순간 해제 버튼이 사라져 되돌릴 방법이 없어진다(앱에 다른 해제 경로가 없다). */}
+                    {r.quarantined
+                      ? <button onClick={() => toggleQuar(r)} className="mr-3 text-xs text-sky-600 hover:text-sky-700">격리 해제</button>
+                      : r.flaky
+                        ? <button onClick={() => toggleQuar(r)} className="mr-3 text-xs text-amber-700 hover:text-amber-800">격리</button>
+                        : (hasDefFQA(r.id) ? <span className="mr-3 text-xs text-slate-500">등록됨</span> : <button onClick={() => regFail(r)} className="mr-3 text-xs text-red-700 hover:text-red-800">결함 등록</button>)}<button onClick={() => (nav ? nav("fqa-cases", r.id) : flash(r.id + " 테스트케이스로 이동"))} className="text-xs text-slate-500 hover:text-sky-600">TC 보기</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </Card>
-          <div className="text-xs text-slate-500">판정 기준: <span className="text-slate-500">같은 빌드 버전 내 최근 실행 변동</span>을 TC별 누적 · 결과 교차(PASS/FAIL 혼재)=<span className="text-amber-700">Flaky→격리</span>, 연속 실패=<span className="text-red-700">지속 실패→결함</span>. 격리된 TC는 차단(게이팅) 실행에서 제외되며(비차단), 안정화 후 복귀합니다. <span className="text-slate-400">※ 신뢰 판정에는 충분한 표본(다회 실행)이 필요합니다.</span></div>
+          <div className="text-xs text-slate-500">판정 기준: <span className="text-slate-500">최근 실행 4회</span>를 TC별 누적 · 결과 교차(PASS/FAIL 혼재)=<span className="text-amber-700">Flaky→격리</span>, 연속 실패=<span className="text-red-700">지속 실패→결함</span>. 격리된 TC는 <span className="text-slate-700">실행 대상에서 빠지며</span>, 그동안 이력이 쌓이지 않으므로 복귀는 사람이 판단해 해제해야 합니다. <span className="text-slate-400">※ 3회 이상 실행된 TC만 분류합니다.</span></div>
         </>
       )}
       <Toast msg={msg} />
@@ -2255,7 +2263,8 @@ export function FqaDashboardScreen({ nav }) {
     let trail = 0; for (let i = h.length - 1; i >= 0; i--) { if (h[i] === "FAIL") trail++; else break; }
     const rt = Math.round((fails / h.length) * 100);
     const persistent = h.length >= 3 && fails / h.length >= 0.6 && trail >= 2;
-    const flaky = !persistent && (warns > 0 || (h.length >= 3 && fails > 0 && passes > 0));
+    /* 불안정 화면(1964)과 같은 식이어야 한다 — 두 화면이 같은 TC 를 다르게 분류하면 안 된다 */
+    const flaky = !persistent && h.length >= 3 && (warns > 0 || (fails > 0 && passes > 0));
     return { id: c.id, name: c.name, runs: h.length, fails, rate: rt, flaky, persistent };
   }).filter((r) => r.flaky || r.persistent);
   const unstableN = flakyRows.length;
@@ -3155,7 +3164,7 @@ export function FqaPlanScreen() {
               </Field>
               {/* 스위트 ∩ 태그 ∩ 승인 — 실제로 몇 건이 돌지 여기서 확인된다 */}
               <div className={"rounded-lg border px-2.5 py-1.5 text-xs " + (planTargets === 0 ? "border-amber-200 bg-amber-50 text-amber-700" : "border-slate-200 bg-slate-50 text-slate-500")}>
-                {planTargets === 0 ? "⚠ 조건에 맞는 승인 케이스가 없습니다 — 실행해도 0건입니다." : <>대상 케이스 <span className="font-semibold text-sky-600">{planTargets}건</span> <span className="text-slate-400">(승인된 것만)</span></>}
+                {planTargets === 0 ? "⚠ 조건에 맞는 승인 케이스가 없습니다 — 실행해도 0건입니다." : <>대상 케이스 <span className="font-semibold text-sky-600">{planTargets}건</span> <span className="text-slate-400">(승인 · 격리 제외)</span></>}
               </div>
               {/* 케이스의 접점 ↔ 환경의 접점 — 여기가 어긋나면 실행은 반드시 실패한다 */}
               {uncovered.length > 0 && (
