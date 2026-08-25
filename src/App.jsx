@@ -90,8 +90,8 @@ export default function App() {
   const [prompts, setPrompts] = useState(INIT_PROMPTS);
   const [chatbots, setChatbots] = useState(stampSeeds(INIT_CHATBOTS));
   const [pendingSelect, setPendingSelect] = useState(null);
-  /* 역할 전환은 데모용 — 기본은 조직 관리자(고객사 QA 리더) 시점이다 */
-  const ROLE_OPTS = [{ id: "admin", label: "서비스 관리자" }, { id: "tadmin", label: "조직 관리자" }, { id: "user", label: "QA 엔지니어" }];
+  /* 역할 전환은 데모용 — 기본은 Owner(고객사 QA 리더) 시점이다 */
+  const ROLE_OPTS = [{ id: "admin", label: "Super Admin" }, { id: "tadmin", label: "Owner" }, { id: "user", label: "Member" }];
   const [role, setRole] = useState("tadmin");
   const [roleMenu, setRoleMenu] = useState(false);   // 사람 아이콘 하위 드롭다운 열림
   const [space, setSpace] = useState("product");
@@ -340,10 +340,10 @@ export default function App() {
             addChatbot: ["챗봇 " + (modal.data ? "편집" : "연결 추가"), <AddChatbotForm close={close} data={modal.data} />, false],
             jiraConfig: ["Jira 연동 설정", <JiraConfigForm close={close} />, true],
             newTenant: ["조직 추가", <NewTenantForm close={close} />],
-            assignAdmin: ["조직 관리자 지정", <AssignAdminForm close={close} data={modal.data} />],
+            assignAdmin: ["Owner 지정", <AssignAdminForm close={close} data={modal.data} />],
             inviteMember: ["멤버 초대", <InviteMemberForm close={close} />],
             newModel: ["AI 모델 등록", <NewModelForm close={close} />],
-            newOperator: ["서비스 관리자 추가", <NewOperatorForm close={close} />],
+            newOperator: ["Super Admin 추가", <NewOperatorForm close={close} />],
           };
           const [title, body, wide] = map[modal.type] || ["", null, false];
           return <Modal title={title} onClose={close} wide={wide}>{body}</Modal>;

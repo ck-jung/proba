@@ -1,5 +1,5 @@
 // ============================================================
-// 관리자 콘솔 (서비스 관리자 · 전체 조직 횡단)
+// 관리자 콘솔 (Super Admin · 전체 조직 횡단)
 // 도메인 무관 플랫폼 영역 — App.jsx에서 분리(2026-07-01).
 // 구성: 조직/사용자/AI모델/사용량·과금/감사로그 + ConsoleShell.
 // ============================================================
@@ -35,7 +35,7 @@ const INIT_AUDIT = [
   { t: "2026-06-11 21:12", actor: "system", tenant: "t1", action: "결함 등록", target: "DEF-2001 (SLA p95 초과)" },
   { t: "2026-06-11 14:36", actor: "이민준", tenant: "t1", action: "평가 실행", target: "요금/청구 평가 (48 TC)" },
   { t: "2026-06-11 14:36", actor: "system", tenant: "t1", action: "결함 등록", target: "DEF-1842 (PII)" },
-  { t: "2026-06-11 11:20", actor: "김지훈", tenant: "t1", action: "권한 변경", target: "QA엔지니어 · 챗봇연결 조회→허용" },
+  { t: "2026-06-11 11:20", actor: "김지훈", tenant: "t1", action: "권한 변경", target: "Member · 챗봇연결 조회→허용" },
   { t: "2026-06-10 17:02", actor: "한도윤", tenant: "-", action: "모델 등록", target: "Gemini 2.0 Flash" },
   { t: "2026-06-10 15:48", actor: "최서연", tenant: "t1", action: "기능 실행", target: "회원가입 스위트 (32 TC)" },
   { t: "2026-06-10 09:15", actor: "한도윤", tenant: "t3", action: "조직 정지", target: "데모 조직" },
@@ -53,10 +53,10 @@ function UsersConsole() {
   const stK = KIND.userStatus;
   const isPlat = (u) => u.tenant === "platform";
   const scopeName = (u) => (isPlat(u) ? "플랫폼(본사)" : tName(u.tenant));
-  const opAdmins = users.filter((u) => isPlat(u) && u.status !== "차단").length;   // 활성 서비스 관리자 수
+  const opAdmins = users.filter((u) => isPlat(u) && u.status !== "차단").length;   // 활성 Super Admin 수
   const isMe = (u) => currentUser && u.name === currentUser;
   const lastAdmin = (u) => isPlat(u) && u.status !== "차단" && opAdmins <= 1;
-  const stat = [["전체 사용자", users.length, "text-slate-900"], ["활성", users.filter((u) => u.status === "활성").length, "text-emerald-600"], ["승인 대기", users.filter((u) => u.status === "대기").length, "text-amber-600"], ["서비스 관리자", users.filter(isPlat).length, "text-amber-600"]];
+  const stat = [["전체 사용자", users.length, "text-slate-900"], ["활성", users.filter((u) => u.status === "활성").length, "text-emerald-600"], ["승인 대기", users.filter((u) => u.status === "대기").length, "text-amber-600"], ["Super Admin", users.filter(isPlat).length, "text-amber-600"]];
   const inScope = (u) => scope === "all" || (scope === "platform" ? isPlat(u) : u.tenant === scope);
   const ql = q.trim().toLowerCase();
   const rows = users.filter((u) => inScope(u) && (!ql || (u.name + " " + u.email + " " + scopeName(u) + " " + u.role).toLowerCase().includes(ql)));
@@ -64,21 +64,21 @@ function UsersConsole() {
   const btnA = "text-xs rounded-lg px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white";
   const btnN = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700";
   const btnD = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-red-600";
-  const stopOp = (u) => { if (isMe(u)) { toast("본인 계정은 정지할 수 없습니다", "warn"); return; } if (lastAdmin(u)) { toast("마지막 서비스 관리자는 정지할 수 없습니다", "warn"); return; } setUserStatus(u.id, "차단"); toast(u.name + " 정지", "warn"); };
-  const delOp = (u) => { if (isMe(u)) { toast("본인 계정은 삭제할 수 없습니다", "warn"); return; } if (lastAdmin(u)) { toast("마지막 서비스 관리자는 삭제할 수 없습니다", "warn"); return; } if (!window.confirm(u.name + " 서비스 관리자를 삭제할까요?")) return; removeUser(u.id); toast(u.name + " 삭제됨", "warn"); };
+  const stopOp = (u) => { if (isMe(u)) { toast("본인 계정은 정지할 수 없습니다", "warn"); return; } if (lastAdmin(u)) { toast("마지막 Super Admin는 정지할 수 없습니다", "warn"); return; } setUserStatus(u.id, "차단"); toast(u.name + " 정지", "warn"); };
+  const delOp = (u) => { if (isMe(u)) { toast("본인 계정은 삭제할 수 없습니다", "warn"); return; } if (lastAdmin(u)) { toast("마지막 Super Admin는 삭제할 수 없습니다", "warn"); return; } if (!window.confirm(u.name + " Super Admin를 삭제할까요?")) return; removeUser(u.id); toast(u.name + " 삭제됨", "warn"); };
   const actions = (u) => isPlat(u)
     ? (u.status === "대기"
         ? <div className="flex gap-1.5"><button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 활성화", "ok"); }} className={btnA}>승인</button><button onClick={() => { removeUser(u.id); toast(u.name + " 초대 취소", "warn"); }} className={btnN}>취소</button></div>
         : isMe(u) ? <span className="text-xs text-slate-400">—</span>
         : <div className="flex gap-1.5">{u.status === "차단" ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 활성화", "ok"); }} className={btnN}>해제</button> : <button onClick={() => stopOp(u)} className={btnD}>정지</button>}<button onClick={() => delOp(u)} className={btnD}>삭제</button></div>)
     : (u.status === "대기"
-        ? <div className="flex gap-1.5"><button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 사용 승인", "ok"); }} className={btnA}>승인</button><button onClick={() => { if (!window.confirm(u.name + " (" + tName(u.tenant) + ") 가입을 거부하고 계정을 삭제할까요?\n되돌릴 수 없습니다. 멤버 승인/거부는 원칙적으로 조직 관리자의 업무입니다.")) return; removeUser(u.id); toast(u.name + " 가입 거부", "warn"); }} className={btnD}>거부</button></div>
+        ? <div className="flex gap-1.5"><button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 사용 승인", "ok"); }} className={btnA}>승인</button><button onClick={() => { if (!window.confirm(u.name + " (" + tName(u.tenant) + ") 가입을 거부하고 계정을 삭제할까요?\n되돌릴 수 없습니다. 멤버 승인/거부는 원칙적으로 Owner의 업무입니다.")) return; removeUser(u.id); toast(u.name + " 가입 거부", "warn"); }} className={btnD}>거부</button></div>
         : u.status === "차단" ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 차단 해제", "ok"); }} className={btnN}>차단 해제</button>
         : <button onClick={() => { if (!window.confirm(u.name + " (" + tName(u.tenant) + ") 계정을 정지할까요?\n해당 사용자의 로그인이 즉시 차단되며 감사 로그에 기록됩니다.")) return; setUserStatus(u.id, "차단"); toast(u.name + " 계정 정지", "warn"); }} className={btnD}>정지</button>);
   return (
     <div className="space-y-4">
       <PageToolbar desc="전체 조직 + 플랫폼 사용자 통합 디렉터리 · 모든 처리는 감사 로그에 기록">
-        <Btn kind="primary" icon={Plus} onClick={() => openModal("newOperator")}>서비스 관리자 추가</Btn>
+        <Btn kind="primary" icon={Plus} onClick={() => openModal("newOperator")}>Super Admin 추가</Btn>
       </PageToolbar>
       <div className="grid grid-cols-4 gap-3">
         {stat.map((x) => (<Card key={x[0]} className="p-3 text-center"><div className={"text-2xl font-bold " + x[2]}>{x[1]}</div><div className="text-xs text-slate-500 mt-0.5">{x[0]}</div></Card>))}
@@ -117,8 +117,8 @@ export function NewOperatorForm({ close }) {
   const submit = () => {
     if (!name.trim()) { toast("이름을 입력하세요", "warn"); return; }
     if (!email.trim() || !email.includes("@")) { toast("올바른 이메일을 입력하세요", "warn"); return; }
-    addUser({ id: "op" + Date.now(), name: name.trim(), email: email.trim(), tenant: "platform", role: "서비스 관리자", status: "대기", last: "미로그인" });
-    toast(name.trim() + " 서비스 관리자 초대됨 (대기)", "ok"); close();
+    addUser({ id: "op" + Date.now(), name: name.trim(), email: email.trim(), tenant: "platform", role: "Super Admin", status: "대기", last: "미로그인" });
+    toast(name.trim() + " Super Admin 초대됨 (대기)", "ok"); close();
   };
   return (
     <div className="space-y-4">
@@ -283,8 +283,8 @@ export function NewTenantForm({ close }) {
     const admin = hasAdmin ? adminName.trim() + (adminEmail.trim() ? " (" + adminEmail.trim() + ")" : "") : "미지정";
     const tid = "t" + Date.now();
     addTenant({ id: tid, name, plan, users: hasAdmin ? 1 : 0, status: "활성", admin, created: new Date().toISOString().slice(0, 10) });
-    // 관리자 지정 시 '대기(초대)' 사용자로 함께 등록 — 조직 목록 사용자 수·사용자 관리 탭과 일치
-    if (hasAdmin) addUser({ id: "u" + Date.now(), name: adminName.trim(), email: adminEmail.trim(), tenant: tid, role: "조직관리자", status: "대기", last: "미로그인" });
+    // Owner 지정 시 '대기(초대)' 사용자로 함께 등록 — 조직 목록 사용자 수·사용자 관리 탭과 일치
+    if (hasAdmin) addUser({ id: "u" + Date.now(), name: adminName.trim(), email: adminEmail.trim(), tenant: tid, role: "Owner", status: "대기", last: "미로그인" });
     toast("조직 '" + name + "' 추가됨", "ok"); close();
   };
   return (
@@ -292,10 +292,10 @@ export function NewTenantForm({ close }) {
       <Field label="조직명"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: KT" /></Field>
       <Field label="플랜"><Select value={plan} onChange={(e) => setPlan(e.target.value)}><option>Trial</option><option>Team</option><option>Enterprise</option></Select></Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="조직 관리자 이름"><Input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="예: 홍길동" /></Field>
-        <Field label="관리자 이메일"><Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="예: gildong@company.com" /></Field>
+        <Field label="Owner 이름"><Input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="예: 홍길동" /></Field>
+        <Field label="Owner 이메일"><Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="예: gildong@company.com" /></Field>
       </div>
-      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">조직 관리자에게 초대 메일이 발송되며, 관리자가 멤버를 초대·권한을 부여합니다.</div>
+      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">Owner에게 초대 메일이 발송되며, Owner가 멤버를 초대·권한을 부여합니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Plus} onClick={submit}>추가</Btn></div>
     </div>
   );
@@ -308,19 +308,19 @@ export function AssignAdminForm({ close, data }) {
   const [adminName, setAdminName] = useState(parsed ? parsed[1] : init);
   const [adminEmail, setAdminEmail] = useState(parsed ? parsed[2] : "");
   const submit = () => {
-    if (!adminName.trim()) { toast("관리자 이름을 입력하세요", "warn"); return; }
+    if (!adminName.trim()) { toast("Owner 이름을 입력하세요", "warn"); return; }
     if (adminEmail && !adminEmail.includes("@")) { toast("올바른 이메일 형식이 아닙니다", "warn"); return; }
     const admin = adminName.trim() + (adminEmail.trim() ? " (" + adminEmail.trim() + ")" : "");
-    setTenantAdmin(data.id, admin); toast(data.name + " 조직 관리자 지정됨", "ok"); close();
+    setTenantAdmin(data.id, admin); toast(data.name + " Owner 지정됨", "ok"); close();
   };
   return (
     <div className="space-y-4">
       <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">대상 조직 <span className="text-sky-600 font-medium">{data && data.name}</span></div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="조직 관리자 이름"><Input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="예: 홍길동" /></Field>
-        <Field label="관리자 이메일"><Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="예: gildong@company.com" /></Field>
+        <Field label="Owner 이름"><Input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="예: 홍길동" /></Field>
+        <Field label="Owner 이메일"><Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="예: gildong@company.com" /></Field>
       </div>
-      <div className="text-xs text-slate-500">지정된 관리자는 해당 조직 내에서 사용자 초대 · 메뉴별 권한 부여 권한을 갖습니다.</div>
+      <div className="text-xs text-slate-500">지정된 Owner는 해당 조직 내에서 사용자 초대 · 메뉴별 권한 부여 권한을 갖습니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={UserCog} onClick={submit}>지정</Btn></div>
     </div>
   );
@@ -332,7 +332,7 @@ function TenantsConsole() {
   const stat = [["전체 조직", tenants.length, "text-slate-900"], ["활성", tenants.filter((t) => t.status === "활성").length, "text-emerald-600"], ["정지", tenants.filter((t) => t.status === "정지").length, "text-red-600"]];
   return (
     <div className="space-y-4">
-      <PageToolbar desc="서비스 이용 조직 추가·관리 및 조직 관리자 지정">
+      <PageToolbar desc="서비스 이용 조직 추가·관리 및 Owner 지정">
         <Btn kind="primary" icon={Plus} onClick={() => openModal("newTenant")}>조직 추가</Btn>
       </PageToolbar>
       <div className="grid grid-cols-3 gap-3">
@@ -340,7 +340,7 @@ function TenantsConsole() {
       </div>
       <Card>
         <table className="w-full text-sm">
-          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 px-4 font-medium">조직명</th><th className="font-medium">플랜</th><th className="font-medium">사용자</th><th className="font-medium">조직 관리자</th><th className="font-medium">생성일</th><th className="font-medium">상태</th><th></th></tr></thead>
+          <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 px-4 font-medium">조직명</th><th className="font-medium">플랜</th><th className="font-medium">사용자</th><th className="font-medium">Owner</th><th className="font-medium">생성일</th><th className="font-medium">상태</th><th></th></tr></thead>
           <tbody className="text-slate-700">
             {tenants.map((t) => (
               <tr key={t.id} className="border-b border-slate-200 hover:bg-slate-100">
@@ -351,7 +351,7 @@ function TenantsConsole() {
                 <td className="text-slate-500 text-xs">{t.created}</td>
                 <td><Badge kind={KIND.tenantStatus[t.status]}>{t.status}</Badge></td>
                 <td className="pr-4"><div className="flex items-center gap-2">
-                  <button onClick={() => openModal("assignAdmin", { id: t.id, name: t.name, admin: t.admin })} className="text-slate-500 hover:text-sky-600" title="조직 관리자 지정"><UserCog size={15} /></button>
+                  <button onClick={() => openModal("assignAdmin", { id: t.id, name: t.name, admin: t.admin })} className="text-slate-500 hover:text-sky-600" title="Owner 지정"><UserCog size={15} /></button>
                   <button onClick={() => { const ns = t.status === "활성" ? "정지" : "활성"; setTenantStatus(t.id, ns); toast(t.name + " " + ns + " 처리", ns === "활성" ? "ok" : "warn"); }} className="text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700">{t.status === "활성" ? "정지" : "활성화"}</button>
                 </div></td>
               </tr>
@@ -380,7 +380,7 @@ export function ConsoleShell() {
       <aside className="w-60 shrink-0 border-r border-slate-200 bg-slate-50 flex flex-col">
         <div className="px-5 py-4 border-b border-slate-200">
           <div className="flex items-center gap-2"><Shield size={18} className="text-amber-600" /><span className="font-bold text-slate-900">관리자 콘솔</span></div>
-          <div className="mt-1 text-xs text-amber-600 font-semibold pl-7">서비스 관리자 · 전체 조직</div>
+          <div className="mt-1 text-xs text-amber-600 font-semibold pl-7">Super Admin · 전체 조직</div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {CONSOLE_NAV.map((n) => { const Icon = n.icon; const on = cv === n.id; return (

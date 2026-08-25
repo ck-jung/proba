@@ -1958,18 +1958,18 @@ export function Settings() {
       </PageToolbar>
       <div className="grid grid-cols-2 gap-4">
       <Card className="p-5">
-        <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-800">Judge 모델</div><span className="text-xs text-slate-500">관리자 등록 모델만 사용</span></div>
+        <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-800">Judge 모델</div><span className="text-xs text-slate-500">Super Admin 등록 모델만 사용</span></div>
         <div className="space-y-2">
           {models.map((m) => (
             <div key={m.id} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2.5">
               <div><div className="text-sm text-slate-900">{m.name}</div><div className="text-xs text-slate-500">{m.provider} · {m.price}</div></div>
               {m.status === "활성"
                 ? <div className="flex items-center gap-2 text-xs text-slate-500">사용 <Toggle on={!!use[m.id]} onClick={() => { const nv = !use[m.id]; setUse({ ...use, [m.id]: nv }); toast(m.name + (nv ? " 사용 설정" : " 사용 해제"), "info"); }} /></div>
-                : <Badge kind="draft">관리자 비활성</Badge>}
+                : <Badge kind="draft">Super Admin 비활성</Badge>}
             </div>
           ))}
         </div>
-        <div className="mt-3 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">신규 모델 등록은 <span className="text-amber-700">서비스 관리자(관리자 콘솔 → AI 모델)</span>에서만 가능합니다. 조직은 등록된 모델 중 사용 여부만 설정합니다.</div>
+        <div className="mt-3 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">신규 모델 등록은 <span className="text-amber-700">Super Admin(관리자 콘솔 → AI 모델)</span>에서만 가능합니다. 조직은 등록된 모델 중 사용 여부만 설정합니다.</div>
       </Card>
       <Card className="p-5">
         <div className="text-sm font-semibold text-slate-800 mb-3">Prompt 템플릿</div>
@@ -1994,7 +1994,7 @@ export function Settings() {
 export function InviteMemberForm({ close }) {
   const { addUser, tenantId, toast } = useApp();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("QA 엔지니어");
+  const [role, setRole] = useState("Member");
   const submit = () => {
     if (!email.trim()) { toast("이메일을 입력하세요", "warn"); return; }
     addUser({ id: "u" + Date.now(), name: email.split("@")[0], email, tenant: tenantId, role, status: "대기", last: "미로그인" });
@@ -2003,8 +2003,8 @@ export function InviteMemberForm({ close }) {
   return (
     <div className="space-y-4">
       <Field label="이메일"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" /></Field>
-      <Field label="역할"><Select value={role} onChange={(e) => setRole(e.target.value)}><option>조직관리자</option><option>QA 엔지니어</option><option>Viewer</option></Select></Field>
-      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">초대 메일이 발송되며, 수락 시 서비스 관리자 승인 후 활성화됩니다.</div>
+      <Field label="역할"><Select value={role} onChange={(e) => setRole(e.target.value)}><option>Owner</option><option>Member</option><option>Viewer</option></Select></Field>
+      <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-500">초대 메일이 발송되며, 수락 시 Super Admin 승인 후 활성화됩니다.</div>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Plus} onClick={submit}>초대</Btn></div>
     </div>
   );
@@ -2027,18 +2027,18 @@ export function MembersView() {
     { id: "NQA", label: "부하", menus: ["대시보드", "환경", "부하 테스트", "측정 실행", "실행 이력"] },
     { id: "COM", label: "공통", menus: ["결함", "리포트·알림", "데이터셋", "변수"] },
   ];
-  // QA 엔지니어 기본 조회: 설정성/민감 메뉴 + 부하 실행(위험 작업) + 변수(시크릿)
+  // Member 기본 조회: 설정성/민감 메뉴 + 부하 실행(위험 작업) + 변수(시크릿)
   const readOnlyForQA = new Set(["Judge · Prompt", "챗봇 연결", "대상·환경", "대상 앱", "환경", "측정 실행", "변수"]);
-  const ROLES = ["조직관리자", "QA 엔지니어", "Viewer"];
-  const adminCount = members.filter((m) => m.role === "조직관리자").length;
+  const ROLES = ["Owner", "Member", "Viewer"];
+  const adminCount = members.filter((m) => m.role === "Owner").length;
   const changeRole = (u, role) => {
     if (role === u.role) return;
-    if (u.role === "조직관리자" && adminCount <= 1) { toast("마지막 조직 관리자입니다 — 다른 멤버를 관리자로 지정한 뒤 변경하세요", "warn"); return; }
+    if (u.role === "Owner" && adminCount <= 1) { toast("마지막 Owner입니다 — 다른 멤버를 Owner로 지정한 뒤 변경하세요", "warn"); return; }
     setUserRole(u.id, role); toast(u.name + " 역할: " + role, "ok");
   };
   const [perm, setPerm] = useState(() => {
     const init = {};
-    MENU_GROUPS.forEach((g) => g.menus.forEach((m) => ROLES.forEach((r) => { init[g.id + "/" + m + "|" + r] = r === "조직관리자" ? "허용" : r === "Viewer" ? "조회" : (readOnlyForQA.has(m) ? "조회" : "허용"); })));
+    MENU_GROUPS.forEach((g) => g.menus.forEach((m) => ROLES.forEach((r) => { init[g.id + "/" + m + "|" + r] = r === "Owner" ? "허용" : r === "Viewer" ? "조회" : (readOnlyForQA.has(m) ? "조회" : "허용"); })));
     return init;
   });
   const cycle = { "허용": "조회", "조회": "차단", "차단": "허용" };
@@ -2050,8 +2050,8 @@ export function MembersView() {
     { id: "plan-activate", label: "실행·평가 계획 활성화", desc: "초안 계획을 '활성'으로 — 스케줄·무인 실행 허용" },
     { id: "defect-resolve", label: "결함 종결(Resolve)", desc: "결함을 최종 'Resolved'로 종결" },
   ];
-  // 기본값: 관리자 허용 · Viewer 차단 · QA 엔지니어는 '승인'만 차단(리드·관리자 권한, 직무 분리)
-  const [actPerm, setActPerm] = useState(() => { const init = {}; ACTIONS.forEach((a) => ROLES.forEach((r) => { init[a.id + "|" + r] = r === "조직관리자" ? "허용" : r === "Viewer" ? "차단" : (a.id === "tc-approve" ? "차단" : "허용"); })); return init; });
+  // 기본값: Owner 허용 · Viewer 차단 · Member는 '승인'만 차단(리드 권한, 직무 분리)
+  const [actPerm, setActPerm] = useState(() => { const init = {}; ACTIONS.forEach((a) => ROLES.forEach((r) => { init[a.id + "|" + r] = r === "Owner" ? "허용" : r === "Viewer" ? "차단" : (a.id === "tc-approve" ? "차단" : "허용"); })); return init; });
   const stK = KIND.userStatus;
   return (
     <div className="space-y-4">
@@ -2069,7 +2069,7 @@ export function MembersView() {
                 <td>{currentUser && u.name === currentUser
                   ? <span className="text-slate-700">{u.role} <span className="text-xs text-slate-400">(본인)</span></span>
                   : <select value={u.role} onChange={(e) => changeRole(u, e.target.value)} className="rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-800 outline-none focus:border-sky-500">{ROLES.map((r) => <option key={r}>{r}</option>)}</select>}</td><td><Badge kind={stK[u.status]}>{u.status}</Badge></td><td className="text-slate-500 text-xs">{u.last}</td>
-                <td>{u.role === "조직관리자" ? <span className="text-xs text-slate-400">—</span> : (
+                <td>{u.role === "Owner" ? <span className="text-xs text-slate-400">—</span> : (
                   <div className="flex gap-1.5">
                     {u.status === "차단"
                       ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 차단 해제", "ok"); }} className="text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700">해제</button>
