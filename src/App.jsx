@@ -73,6 +73,10 @@ export default function App() {
   const [datasets, setDatasets] = useState(stampSeeds(INIT_DATASETS));
   const [fqaRuns, setFqaRuns] = useState(INIT_FQA_RUNS);
   const [fqaPlans, setFqaPlans] = useState(stampSeeds(INIT_FQA_PLANS));
+  /* 🔑 보정 제안 검토 상태 — 화면 로컬로 두면 결과 화면을 벗어나는 순간 사라진다.
+     특히 "거절" 은 스스로 에디터로 이동하므로 기록되자마자 소멸했다.
+     제안이 몇 % 맞았는지가 자가보정의 유일한 효용 지표라 이건 반드시 남아야 한다. */
+  const [healState, setHealState] = useState({});
   const [fqaResultRun, setFqaResultRun] = useState("FRUN-502");
   /* 디버그 환경 — 에디터의 단건 실행에만 쓴다.
      케이스에는 저장하지 않는다(케이스는 환경 독립). 세션 동안만 기억한다. */
@@ -190,6 +194,7 @@ export default function App() {
     fqaRuns, addFqaRun: (r) => setFqaRuns((x) => [r, ...x]), updateFqaRun: (id, patch) => setFqaRuns((x) => x.map((r) => (r.id === id ? { ...r, ...patch } : r))), removeFqaRun: (id) => setFqaRuns((x) => x.filter((r) => r.id !== id)),
     fqaPlans, addFqaPlan: (pl) => setFqaPlans((x) => [withCreate(pl), ...x]), updateFqaPlan: (id, patch) => setFqaPlans((x) => x.map((pl) => (pl.id === id ? { ...pl, ...withUpdate(patch) } : pl))), removeFqaPlan: (id) => setFqaPlans((x) => x.filter((pl) => pl.id !== id)),
     fqaResultRun, setFqaResultRun,
+    healState, setHeal: (id, st) => setHealState((h) => Object.assign({}, h, { [id]: st })),
     debugEnv, setDebugEnv,
     fqaEditTc, setFqaEditTc,
     nqaScnFocus, setNqaScnFocus,

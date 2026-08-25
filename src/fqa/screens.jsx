@@ -75,6 +75,16 @@ const runsFor = (runs, id) => (runs || [])
   .filter((r) => r.status === "완료" && (r.tcs || []).some((t) => t.id === id))
   .sort((a, b) => String(b.startedAt || "").localeCompare(String(a.startedAt || "")));
 const histOf = (runs, id) => runsFor(runs, id).slice(0, 4).map((r) => ((r.tcs || []).find((t) => t.id === id) || {}).v).filter(Boolean).reverse();
+/* 🔑 이 케이스에 최근 붙은 보정 제안 — 케이스에 저장하지 않고 실행에서 파생한다.
+   케이스에 박아 두면 과거 회차의 판정 근거가 지금 값으로 바뀐다(F5 위반).
+   결함 등록 경로가 "제품 결함인가, 로케이터가 낡은 것인가" 를 구분하려면 이 정보가 필요하다. */
+/* 🔑 이 TC 에 쓸 수 있는 보정 제안인가 — 뱃지·필터·요약·패널이 전부 이 하나를 쓴다.
+   따로 판단하면 "뱃지는 보이는데 열면 아무것도 없는" 상태가 생긴다.
+   Full-Code 는 제외한다: 코드의 어느 줄을 고칠지 알 수 없어 스텝 치환이 성립하지 않는다. */
+const healUsable = (cases, t) => { if (!t || !t.heal) return null; const c = (cases || []).find((x) => x.id === t.id); return c && c.level === "Full-Code" ? null : t.heal; };
+const healOf = (runs, id) => { const rs = runsFor(runs, id); for (let i = 0; i < rs.length; i++) { const t = (rs[i].tcs || []).find((x) => x.id === id); if (t && t.heal) return t.heal; } return null; };
+/* 결함 등록 본문에 붙이는 안내 — 판정을 뒤집지 않고 사실만 알린다(F7·F8). */
+const healNote = (h) => (h ? "\n\n[보정 제안 있음] " + h.step + "\n  " + h.from + " → " + h.to + (h.why ? "\n  " + h.why : "") + "\n  ※ 제품 결함이 아니라 로케이터가 낡은 것일 수 있습니다. 등록 전 확인하세요." : "");
 const lastOf = (runs, id) => { const rs = runsFor(runs, id); return rs.length ? (((rs[0].tcs || []).find((t) => t.id === id) || {}).v || "-") : "-"; };
 const defectsOf = (defects, id) => (defects || []).filter((d) => d.tc === id && d.status !== "Resolved").length;
 /* 케이스 구성(웹/API/혼합) = 이 케이스가 환경에 요구하는 접점.
@@ -1840,14 +1850,13 @@ export function FqaHistoryScreen({ nav }) {
 }
 /* ═══════════ 7. 결과 상세 ═══════════ */
 export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }) {
-  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, commitFqaCase, setFqaEditTc, jiraConfig, setPendingSelect, goto } = useApp();
+  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, commitFqaCase, setFqaEditTc, jiraConfig, setPendingSelect, goto, healState, setHeal } = useApp();
   const [msg, flash] = useToast();
   const [filt, setFilt] = useState("전체");
   const [selId, setSelId] = useState(null);
   const [rowsAll, setRowsAll] = useState(false);   // 데이터 구동 케이스 — 기본은 실패 행만(30행 케이스가 화면을 덮지 않도록)
   const [selRow, setSelRow] = useState(null);      // 선택 행 — 스텝 타임라인·증적이 이 행을 따라간다
   const [etab, setEtab] = useState("스크린샷");
-  const [healState, setHealState] = useState({});
   const healSt = (id) => healState[id] || "검토 대기";
   const HEAL_MSG = {
     "승인됨": "제안 로케이터가 TC 스텝에 반영되었습니다(리비전 생성). 다음 실행에서 통과하면 확정됩니다.",
@@ -1863,18 +1872,18 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
        그때 조용히 성공 처리하면 사용자는 고쳐진 줄 알고 그대로 다시 돌린다 — 가장 위험한 실패다. */
     const hit = c && c.steps ? c.steps.filter((st) => st.loc === t.heal.from).length : 0;
     if (!hit) {
-      setHealState((h) => Object.assign({}, h, { [t.id]: "적용 실패" }));
+      setHeal(t.id, "적용 실패");
       flash(t.id + " 보정 적용 실패 — 제안한 로케이터가 케이스에 없습니다. 에디터에서 직접 수정하세요");
       return;
     }
     if (c && c.steps) commitFqaCase(t.id, { steps: c.steps.map((st) => (st.loc === t.heal.from ? Object.assign({}, st, { loc: t.heal.to }) : st)) }, { note: "보정 제안 승인 — " + t.heal.from + " → " + t.heal.to });
-    setHealState((h) => Object.assign({}, h, { [t.id]: "승인됨" }));
+    setHeal(t.id, "승인됨");
     flash(t.id + " 보정 승인 · 로케이터 갱신 (리비전 생성)");
   };
   /* 제안을 안 쓰기로 했다면 다음 행동은 "직접 고치기" 다 — 여기서 끊기면 사용자가 잊는다.
      아무것도 누르지 않으면 "검토 대기" 로 남는다(판단 보류). */
   const rejectHeal = (t) => {
-    setHealState((h) => Object.assign({}, h, { [t.id]: "직접 수정함" }));
+    setHeal(t.id, "직접 수정함");
     flash(t.id + " 제안 미사용 — 에디터에서 직접 수정하세요");
     /* nav 를 쓰면 안 된다 — mode="상세" 로 뜨는 이 화면에는 nav 가 전달되지 않고,
        화면마다 nav 의 인자 규약도 다르다(어떤 곳은 runId, 어떤 곳은 view+tc).
@@ -1931,6 +1940,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
         : { act: "결과 검증", info: "통과", dur: rl, ok: true });
       return base;
     }
+    const hl = healUsable(fqaCases, t);   // 뱃지·패널과 같은 판단을 쓴다
     const last = Math.round((parseFloat(t.dur) || 1) * 1000).toLocaleString() + "ms";
     const s = !run.brow
       ? [
@@ -1942,18 +1952,18 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
           { act: "페이지 이동", info: "goto · /" + seg.toLowerCase(), dur: _dur(id + "b", 300), ok: true },
           /* 🔑 보정은 실행 중에 적용되지 않는다 — 로케이터를 못 찾으면 그 자리에서 실패하고,
              판정이 확정된 뒤에 같은 페이지에서 대안 후보만 찾아 기록한다(진행하지 않는다). */
-          { act: t.name, info: t.heal ? "로케이터 " + t.heal.from + " 를 찾지 못함 · 대안 후보 탐색" : "액션 수행 → " + id, dur: _dur(id + "c", 500), ok: !t.heal },
+          { act: t.name, info: hl ? "로케이터 " + hl.from + " 를 찾지 못함 · 대안 후보 탐색" : "액션 수행 → " + id, dur: _dur(id + "c", 500), ok: !hl },
         ];
     s.push(
       t.v === "FAIL"
-        ? { act: t.heal ? "로케이터 없음" : "결과 검증 실패", info: t.heal ? t.heal.step + " — 대안 후보를 찾았습니다. 결과 화면에서 확인하세요" : t.name + " — 기대 결과 불일치 (재시도 2회)", dur: last, ok: false }
+        ? { act: hl ? "로케이터 없음" : "결과 검증 실패", info: hl ? hl.step + " — 대안 후보를 찾았습니다. 결과 화면에서 확인하세요" : t.name + " — 기대 결과 불일치 (재시도 2회)", dur: last, ok: false }
         : t.v === "WARN"
         ? { act: "결과 검증 (경고)", info: t.name + " — 통과, 임계 근접 경고", dur: last, ok: true, warn: true }
         : { act: "결과 검증", info: t.name + " — 통과", dur: last, ok: true }
     );
     return s;
   };
-  const SUM = [["전체 TC", run.total, "text-slate-900"], ["통과", run.pass, "text-emerald-600"], ["실패", run.fail, "text-red-600"], ["경고", run.warn, "text-amber-600"]].concat(!run.brow ? [] : [["보정 제안", tcs.filter((t) => t.heal).length, "text-sky-600"]]);
+  const SUM = [["전체 TC", run.total, "text-slate-900"], ["통과", run.pass, "text-emerald-600"], ["실패", run.fail, "text-red-600"], ["경고", run.warn, "text-amber-600"]].concat(!run.brow ? [] : [["보정 제안", tcs.filter((t) => healUsable(fqaCases, t)).length, "text-sky-600"]]);
   /* 중복 결함 판정 키 = (도메인, 대상 제품, TC).
      같은 TC라도 대상 제품이 다르면 다른 결함이다. 환경(스테이징/운영)은 발견 위치일 뿐 결함의 축이 아니다.
      '열린' 결함이 있으면 재등록 금지. Resolved만 있으면 재발이므로 재등록 허용. */
@@ -1974,14 +1984,14 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
     const failRows = Array.isArray(t.rows) ? t.rows.filter((r) => r.v === "FAIL") : [];
     if (!canRegister(t)) { flash(t.id + " 등록할 실패 행이 없습니다 — 이미 모두 결함에 연결되어 있습니다"); return; }
     openModal("jira", {
-      domain: "FQA", sev: "Major", tc: t.id, target: runTarget, labels: "fqa, functional",
+      domain: "FQA", sev: "Major", tc: t.id, target: runTarget, labels: "fqa, functional" + (healUsable(fqaCases, t) ? ", locator-changed" : ""),
       rows: failRows, ds: t.ds || "",
       regRows: defectsOfTc(t.id).flatMap((d) => (d.rows || []).map((r) => JSON.stringify(r.data || {}))),
       title: (isRegression(t.id) ? "[재발] " : "") + t.name + " 기능 실패",
-      desc: "기능 케이스: " + t.name + " (" + t.id + ")\n대상 제품: " + runTarget,
+      desc: "기능 케이스: " + t.name + " (" + t.id + ")\n대상 제품: " + runTarget + healNote(healUsable(fqaCases, t)),
       steps: "1. 케이스 '" + t.name + "' 실행\n2. 단언(assertion) 검증",
       expected: t.expected || "케이스에 정의된 기대 결과 충족",
-      actual: "단언 불일치 — 케이스 실패",
+      actual: healUsable(fqaCases, t) ? "로케이터 " + healUsable(fqaCases, t).from + " 를 찾지 못함 — 보정 제안 있음" : "단언 불일치 — 케이스 실패",
       env: runTarget,
       artifacts: [{ k: "shot", label: "스크린샷", file: "screenshot.png", size: "220 KB" }, { k: "har", label: "네트워크 HAR", file: "session.har", size: "1.2 MB" }, { k: "trace", label: "Playwright 트레이스", file: "trace.zip", size: "3 MB" }],
     });
@@ -1997,20 +2007,22 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
           "이 케이스는 불안정하다"고 단정하면 안 된다(화면에 적어 둔 기준과도 어긋난다). */
     const flaky = !persistent && h.length >= 3 && (warns > 0 || (fails > 0 && passes > 0));
     const streak = persistent ? ("최근 " + trail + "회 연속 실패 · " + rate + "% 실패") : (warns > 0 ? ("재시도 통과(flaky) " + warns + "회" + (flips >= 1 ? " · PASS/FAIL 교차 " + flips + "회" : "")) : ("PASS/FAIL 교차 " + flips + "회 · " + rate + "% 실패"));
-    return { id: c.id, name: c.name, suite: c.suite, runs: h.length, fails, rate, flips, warns, unstable: fails + warns, urate: Math.round(((fails + warns) / h.length) * 100), flaky, persistent, quarantined: !!c.quarantined, streak };
+    return { heal: healOf(fqaRuns, c.id), id: c.id, name: c.name, suite: c.suite, runs: h.length, fails, rate, flips, warns, unstable: fails + warns, urate: Math.round(((fails + warns) / h.length) * 100), flaky, persistent, quarantined: !!c.quarantined, streak };
   }).filter((r) => r.flaky || r.persistent);
   const flakyN = FLAKY.filter((r) => r.flaky).length;
   const persistN = FLAKY.filter((r) => r.persistent).length;
   const hasDefFQA = (id) => defects.some((d) => d.tc === id && d.domain === "FQA");
   const regFail = (r) => {
     if (hasDefFQA(r.id)) { flash(r.id + " 이미 결함 등록됨"); return; }
+    /* 이 화면의 [결함 등록] 은 결과 화면을 거치지 않는다 — 보정 제안을 여기서 안 실으면
+       로케이터가 낡아 생긴 지속 실패가 제품 결함으로 등록된다. */
     openModal("jira", {
-      domain: "FQA", sev: "Major", tc: r.id, labels: "fqa, flaky, persistent",
+      domain: "FQA", sev: "Major", tc: r.id, labels: "fqa, flaky, persistent" + (r.heal ? ", locator-changed" : ""),
       title: "지속 실패: " + r.name,
-      desc: "케이스 '" + r.name + "' (" + r.id + ")\n최근 " + r.runs + "회 중 " + r.fails + "회 실패 (" + r.rate + "%)\n" + (r.streak || ""),
+      desc: "케이스 '" + r.name + "' (" + r.id + ")\n최근 " + r.runs + "회 중 " + r.fails + "회 실패 (" + r.rate + "%)\n" + (r.streak || "") + healNote(r.heal),
       steps: "1. 케이스 '" + r.name + "' 반복 실행\n2. 실패 재현 확인",
       expected: "케이스 통과",
-      actual: "지속 실패 — " + (r.streak || (r.rate + "% 실패")),
+      actual: (r.heal ? "로케이터 " + r.heal.from + " 를 찾지 못함 — 보정 제안 있음 · " : "") + "지속 실패 — " + (r.streak || (r.rate + "% 실패")),
       artifacts: [{ k: "shot", label: "스크린샷", file: "screenshot.png", size: "220 KB" }, { k: "trace", label: "Playwright 트레이스", file: "trace.zip", size: "3 MB" }],
     });
   };
@@ -2019,7 +2031,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   /* 데이터 구동 케이스의 행 요약 — 판정·집계는 케이스 단위(1건)이고 행은 보조 표기다.
      rows가 없는 케이스는 기존 동작 그대로다(빈 문자열 반환). */
   const rowSum = (t) => { const rs = t && t.rows; if (!Array.isArray(rs) || !rs.length) return ""; const p = rs.filter((r) => r.v === "PASS").length; const s = rs.filter((r) => r.v === "SKIP").length; return rs.length + "행 중 " + p + "행 통과" + (s ? " · " + s + "행 미실행" : ""); };
-  const shown = tcs.filter((t) => filt === "전체" || (filt === "실패만" && t.v === "FAIL") || (filt === "통과만" && t.v === "PASS") || (filt === "보정 제안" && t.heal));
+  const shown = tcs.filter((t) => filt === "전체" || (filt === "실패만" && t.v === "FAIL") || (filt === "통과만" && t.v === "PASS") || (filt === "보정 제안" && healUsable(fqaCases, t)));
   // 실행은 계획을 id로 참조(planId) — 이름이 바뀌어도 이력이 안 끊긴다. 레거시 런(planId 없음)은 이름으로 매칭.
   const finishedOf = (pid) => fqaRuns.filter((r) => (r.planId != null ? r.planId === pid : r.plan === ((fqaPlans.find((p) => p.id === pid) || {}).name)) && r.status === "완료").sort((x, y) => parseInt(y.id.split("-")[1] || "0", 10) - parseInt(x.id.split("-")[1] || "0", 10));
   const [regPlan, setRegPlan] = useState((fqaPlans && fqaPlans[0]) ? fqaPlans[0].id : null);
@@ -2072,7 +2084,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
             {SUM.map((k) => (<Card key={k[0]} className="p-3 text-center"><div className={"text-2xl font-bold " + k[2]}>{k[1]}</div><div className="mt-0.5 text-xs text-slate-500">{k[0]}</div></Card>))}
             <Card className="p-3 text-center"><div className="text-2xl font-bold text-slate-900">{run.dur}</div><div className="mt-0.5 text-xs text-slate-500">소요</div></Card>
           </div>
-          <Card className="flex flex-wrap items-center gap-3 p-3 text-sm"><span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>품질 게이트: {gate}</span><span className="text-slate-500">기준 {gval}% · 실제 <span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>{passRate}%</span></span>{run.brow && (<><span className="text-slate-400">·</span><span className="text-slate-500">보정 제안 {tcs.filter((t) => t.heal).length}건</span></>)}</Card>
+          <Card className="flex flex-wrap items-center gap-3 p-3 text-sm"><span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>품질 게이트: {gate}</span><span className="text-slate-500">기준 {gval}% · 실제 <span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>{passRate}%</span></span>{run.brow && (<><span className="text-slate-400">·</span><span className="text-slate-500">보정 제안 {tcs.filter((t) => healUsable(fqaCases, t)).length}건</span></>)}</Card>
           {tcs.length === 0 ? (
             <Card className="p-8 text-center text-sm text-slate-500">{run.status === "실행 중" || run.status === "대기 중" ? "실행이 진행 중입니다 — 완료 후 케이스 결과가 표시됩니다." : "이 실행에는 케이스 상세 결과가 없습니다."}</Card>
           ) : (
@@ -2085,14 +2097,14 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                 {shown.map((t) => (
                   <div key={t.id} onClick={() => setSelId(t.id)} className={"flex items-center justify-between border-b border-slate-200 px-4 py-2.5 cursor-pointer hover:bg-slate-100 " + (cur && cur.id === t.id ? SEL_ROW : "")}>
                     <div><span className="font-mono text-xs text-sky-600">{t.id}</span>{t.rev != null && <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {t.rev}</span>}<div className="text-xs text-slate-700">{t.name}</div>{rowSum(t) && <div className="text-slate-500" style={{ fontSize: 11 }}>{rowSum(t)}</div>}</div>
-                    <div className="flex items-center gap-2">{t.v === "FAIL" && openDefectOf(t.id) && <Bug size={12} className="text-red-600" />}<span className="text-xs text-slate-500">{t.dur}</span>{t.heal && <Badge kind="teal">보정</Badge>}<Badge kind={vK[t.v]}>{t.v}</Badge></div>
+                    <div className="flex items-center gap-2">{t.v === "FAIL" && openDefectOf(t.id) && <Bug size={12} className="text-red-600" />}<span className="text-xs text-slate-500">{t.dur}</span>{healUsable(fqaCases, t) && <Badge kind="teal">보정</Badge>}<Badge kind={vK[t.v]}>{t.v}</Badge></div>
                   </div>
                 ))}
               </div>
             </Card>
             {cur && (
             <Card className="col-span-3 p-4">
-              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-sky-600">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{cur.heal && <Badge kind="teal">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && openDefectOf(cur.id) && <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); goto("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>}
+              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-sky-600">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{healUsable(fqaCases, cur) && <Badge kind="teal">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && openDefectOf(cur.id) && <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); goto("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>}
                 {/* 행이 있는 케이스는 열린 결함이 있어도 다른 행에 대해 추가 등록할 수 있다 */}
                 {canRegister(cur) && <Btn kind="danger" icon={Bug} onClick={() => regDefect(cur)}>{isRegression(cur.id) ? "재발 결함 등록" : "결함 등록"}</Btn>}</div></div>
               <div className="mb-3 text-sm text-slate-700">{cur.name}</div>
@@ -2104,7 +2116,9 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   <span>이 결과는 <span className="font-mono">rev {cur.rev}</span> 로 실행되었고 케이스는 현재 <span className="font-mono">rev {curCase.rev || 1}</span> 입니다 — 지금 다시 돌리면 다른 결과가 나올 수 있습니다. <span className="text-amber-600/80">테스트케이스에서 변경 이력을 확인하세요.</span></span>
                 </div>
               )}
-              {cur.heal && (
+              {/* 🔑 Full-Code 는 제외한다 — 아래 안내 문구와 같은 규칙이다.
+                  코드의 어느 줄을 고쳐야 하는지 알 수 없으므로 스텝 치환이 성립하지 않는다. */}
+              {healUsable(fqaCases, cur) && (
                 <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
                   <div className="flex items-center justify-between"><span className="text-xs font-semibold text-sky-700">자가보정 제안 (로케이터 자동 복구)</span><Badge kind={healSt(cur.id) === "승인됨" ? "pass" : healSt(cur.id) === "거절됨" ? "fail" : "warn"}>{healSt(cur.id)}</Badge></div>
                   <div className="mt-2 text-xs text-slate-500">{cur.heal.step}</div>
@@ -2248,7 +2262,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   <tr key={r.id} className="border-b border-slate-200 text-slate-700 hover:bg-slate-100">
                     <td className="px-4 py-3"><div className="font-mono text-xs text-sky-600">{r.id}</div><div className="flex items-center gap-1.5 text-slate-800">{r.name}{r.quarantined && <Badge kind="draft">격리됨</Badge>}</div><div className="text-xs text-slate-500">{r.suite}</div></td>
                     <td className="pr-4" style={{ minWidth: 150 }}><div className="mb-0.5 text-xs text-slate-500">{r.unstable}/{r.runs}회 · {r.urate}%</div><div className="h-1.5 rounded bg-slate-100" style={{ width: 130 }}><div className="h-1.5 rounded" style={{ width: r.urate + "%", background: r.flaky ? "#d97706" : "#dc2626" }} /></div></td>
-                    <td>{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}</td>
+                    <td><div className="flex items-center gap-1">{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}{r.heal && <Badge kind="teal">보정</Badge>}</div></td>
                     <td className="text-xs text-slate-500">{r.streak}</td>
                     <td className="pr-4 text-right whitespace-nowrap">{/* 🔑 격리 여부를 먼저 본다. flaky 로만 분기하면 격리된 케이스가 지속 실패로
                         재분류되는 순간 해제 버튼이 사라져 되돌릴 방법이 없어진다(앱에 다른 해제 경로가 없다). */}
@@ -2272,7 +2286,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
 /* ═══════════ 8. FQA 대시보드 ═══════════ */
 const barColor = (p) => (p >= 90 ? "#0ea5e9" : p >= 80 ? "#d97706" : "#dc2626");
 export function FqaDashboardScreen({ nav }) {
-  const { fqaRuns, fqaCases, fqaSuites, fqaPlans, defects } = useApp();
+  const { fqaRuns, fqaCases, fqaSuites, fqaPlans, defects, healState } = useApp();
   const [msg, flash] = useToast();
   const toISO = (d) => { const z = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()); };
   const [today] = useState(() => toISO(new Date()));
@@ -2320,12 +2334,19 @@ export function FqaDashboardScreen({ nav }) {
   const browMap = {}; finished.filter((r) => r.brow).forEach((r) => (browMap[r.brow] = browMap[r.brow] || []).push(rate(r)));
   const browRows = Object.keys(browMap).sort().map((b) => ({ b, p: Math.round(browMap[b].reduce((a, x) => a + x, 0) / browMap[b].length), runs: browMap[b].length }));
   const planNow = (id) => (fqaPlans.find((p) => p.id === id) || {}).name;
+  /* 🔑 보정 제안 지표 — 자가보정이 도움인지 소음인지 판단하는 유일한 신호는 채택률이다.
+     제안 건수는 실행에서 파생하고(케이스에 저장하지 않는다), 검토 결과만 healState 에서 읽는다.
+     승인률이 낮으면 제안을 늘릴 게 아니라 제안 규칙을 고쳐야 한다는 뜻이다. */
+  const healIds = Array.from(new Set(finished.reduce((a, r) => a.concat((r.tcs || []).filter((t) => healUsable(fqaCases, t)).map((t) => t.id)), [])));
+  const healPend = healIds.filter((id) => !healState[id]).length;
+  const healOk = healIds.filter((id) => healState[id] === "승인됨").length;
   const KPI = [
     ["자동화 TC", totalTc, "text-slate-900", "저장소 등록"],
     ["PASS율(최근 실행)", lastRun ? rate(lastRun) + "%" : "—", "text-emerald-600", lastRun ? lastRun.id : "실행 없음"],
     ["승인 TC", approved + "/" + totalTc, "text-sky-600", "승인/전체"],
     ["불안정 TC", unstableN, "text-amber-600", "Flaky+지속 실패"],
     ["미해결 결함", openDef, "text-red-600", "기능 · Open"],
+    ["보정 제안", healPend, "text-teal-600", healIds.length ? "미검토 · 승인 " + healOk + "/" + healIds.length : "제안 없음"],
   ];
   return (
     <div className="space-y-4">
@@ -2336,7 +2357,7 @@ export function FqaDashboardScreen({ nav }) {
         <input type="date" value={to} min={from} max={today} onChange={(e) => setRange(from, e.target.value)} className="rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" />
       </PageToolbar>
       {filtered && <div className="text-xs text-slate-500">필터: {planF === "전체" ? "전체 계획" : planNow(planF)} · {from} ~ {to} · 실행 {fruns.length}건</div>}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-6 gap-3">
         {KPI.map((k) => (<Card key={k[0]} className="p-4"><div className="text-xs text-slate-500">{k[0]}</div><div className={"mt-1 text-3xl font-bold " + k[2]}>{k[1]}</div><div className="mt-1 text-xs text-slate-500">{k[3]}</div></Card>))}
       </div>
       <Card className="p-4">
