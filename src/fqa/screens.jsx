@@ -1644,7 +1644,8 @@ export function FqaRunScreen({ nav }) {
     const retry = plan.retry != null ? plan.retry : 0;
     return src.map((c) => {
       const base = lastOf(fqaRuns, c.id) === "FAIL" ? "FAIL" : "PASS";
-      // flaky = 1차 실패 후 재시도로 통과 — 재시도(retry>0)가 있어야 성립. 통과지만 불안정 → WARN. (healed는 self-healing 구현 시로 유보)
+      // flaky = 1차 실패 후 재시도로 통과 — 재시도(retry>0)가 있어야 성립. 통과지만 불안정 → WARN.
+      // 보정(heal)은 여기서 만들지 않는다 — 보정은 "실패한 뒤 제안"이라 판정을 바꾸지 않는다.
       const flaky = retry > 0 && base === "PASS" && Math.random() < 0.18;
       return { id: c.id, name: c.name, v: flaky ? "WARN" : base, flaky: flaky || undefined, dur: (Math.round((Math.random() * 3 + 0.3) * 10) / 10) + "s" };
     });
@@ -1839,7 +1840,7 @@ export function FqaHistoryScreen({ nav }) {
 }
 /* ═══════════ 7. 결과 상세 ═══════════ */
 export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }) {
-  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, jiraConfig, setPendingSelect, goto } = useApp();
+  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, commitFqaCase, jiraConfig, setPendingSelect, goto } = useApp();
   const [msg, flash] = useToast();
   const [filt, setFilt] = useState("전체");
   const [selId, setSelId] = useState(null);
@@ -1848,8 +1849,21 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const [etab, setEtab] = useState("스크린샷");
   const [healState, setHealState] = useState({});
   const healSt = (id) => healState[id] || "검토 대기";
-  const approveHeal = (t) => { const c = fqaCases.find((x) => x.id === t.id); if (c && c.steps) updateFqaCase(t.id, { steps: c.steps.map((st) => (st.loc === t.heal.from ? Object.assign({}, st, { loc: t.heal.to }) : st)) }); setHealState((h) => Object.assign({}, h, { [t.id]: "승인됨" })); flash(t.id + " 보정 승인 · 로케이터 갱신"); };
-  const rejectHeal = (t) => { setHealState((h) => Object.assign({}, h, { [t.id]: "거절됨" })); flash(t.id + " 보정 거절 · 원본 유지"); };
+  /* 🔑 로케이터를 바꾸면 그건 "테스트가 바뀐 것"이므로 리비전을 남긴다(F7).
+     안 남기면 다음 회귀 비교에서 "제품이 깨진 건가 테스트가 바뀐 건가" 를 구분할 수 없다. */
+  const approveHeal = (t) => {
+    const c = fqaCases.find((x) => x.id === t.id);
+    if (c && c.steps) commitFqaCase(t.id, { steps: c.steps.map((st) => (st.loc === t.heal.from ? Object.assign({}, st, { loc: t.heal.to }) : st)) }, { note: "보정 제안 승인 — " + t.heal.from + " → " + t.heal.to });
+    setHealState((h) => Object.assign({}, h, { [t.id]: "승인됨" }));
+    flash(t.id + " 보정 승인 · 로케이터 갱신 (리비전 생성)");
+  };
+  /* 제안을 안 쓰기로 했다면 다음 행동은 "직접 고치기" 다 — 여기서 끊기면 사용자가 잊는다.
+     아무것도 누르지 않으면 "검토 대기" 로 남는다(판단 보류). */
+  const rejectHeal = (t) => {
+    setHealState((h) => Object.assign({}, h, { [t.id]: "직접 수정함" }));
+    flash(t.id + " 제안 미사용 — 에디터에서 직접 수정하세요");
+    if (nav) nav("fqa-cases", t.id);
+  };
   const run = fqaRuns.find((r) => r.id === runId) || fqaRuns.find((r) => r.id === "FRUN-502") || fqaRuns[0] || { id: "-", tcs: [], total: 0, pass: 0, fail: 0, warn: 0, heal: 0, dur: "-" };
   const jr = (() => { if (!(jiraConfig && jiraConfig.connected !== false)) return {}; const pl = (fqaPlans || []).find((p) => p.name === run.plan); return (pl && pl.jira && pl.jira.override) ? pl.jira : jiraConfig; })(); // 결함 라우팅: 미연동 시 내부 결함
   const dkey = (base) => (jr.project || "DEF") + "-" + base;
@@ -1908,11 +1922,13 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
       : [
           { act: "브라우저 열기", info: (run.brow || "Chromium").toLowerCase().split("+")[0] + " · 세션 시작", dur: _dur(id + "a", 1400), ok: true },
           { act: "페이지 이동", info: "goto · /" + seg.toLowerCase(), dur: _dur(id + "b", 300), ok: true },
-          { act: t.name, info: t.heal ? "로케이터 " + t.heal.to + " · 자동 보정 적용" : "액션 수행 → " + id, dur: _dur(id + "c", 500), ok: true },
+          /* 🔑 보정은 실행 중에 적용되지 않는다 — 로케이터를 못 찾으면 그 자리에서 실패하고,
+             판정이 확정된 뒤에 같은 페이지에서 대안 후보만 찾아 기록한다(진행하지 않는다). */
+          { act: t.name, info: t.heal ? "로케이터 " + t.heal.from + " 를 찾지 못함 · 대안 후보 탐색" : "액션 수행 → " + id, dur: _dur(id + "c", 500), ok: !t.heal },
         ];
     s.push(
       t.v === "FAIL"
-        ? { act: "결과 검증 실패", info: t.name + " — 기대 결과 불일치 (재시도 2회)", dur: last, ok: false }
+        ? { act: t.heal ? "로케이터 없음" : "결과 검증 실패", info: t.heal ? t.heal.step + " — 대안 후보를 찾았습니다. 결과 화면에서 확인하세요" : t.name + " — 기대 결과 불일치 (재시도 2회)", dur: last, ok: false }
         : t.v === "WARN"
         ? { act: "결과 검증 (경고)", info: t.name + " — 통과, 임계 근접 경고", dur: last, ok: true, warn: true }
         : { act: "결과 검증", info: t.name + " — 통과", dur: last, ok: true }
@@ -2074,8 +2090,11 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                 <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
                   <div className="flex items-center justify-between"><span className="text-xs font-semibold text-sky-700">자가보정 제안 (로케이터 자동 복구)</span><Badge kind={healSt(cur.id) === "승인됨" ? "pass" : healSt(cur.id) === "거절됨" ? "fail" : "warn"}>{healSt(cur.id)}</Badge></div>
                   <div className="mt-2 text-xs text-slate-500">{cur.heal.step}</div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs"><span className="text-red-700 line-through">{cur.heal.from}</span><span className="text-slate-500">→</span><span className="text-emerald-700">{cur.heal.to}</span><span className="text-slate-500">· 신뢰도 {cur.heal.conf}%</span></div>
-                  {healSt(cur.id) === "검토 대기" ? <div className="mt-2 flex gap-2"><Btn kind="primary" icon={CheckCircle2} onClick={() => approveHeal(cur)}>승인 · 로케이터 반영</Btn><Btn icon={X} onClick={() => rejectHeal(cur)}>거절</Btn></div> : <div className="mt-2 text-xs text-slate-500">{healSt(cur.id) === "승인됨" ? "제안 로케이터가 TC 스텝에 반영되었습니다." : "원본 로케이터를 유지합니다 (수동 수정 대상)."}</div>}
+                  <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs"><span className="text-red-700 line-through">{cur.heal.from}</span><span className="text-slate-500">→</span><span className="text-emerald-700">{cur.heal.to}</span></div>
+                  {/* 🔑 신뢰도 %를 쓰지 않는다 — 규칙 점수의 합일 뿐인데 사람은 확률로 읽는다.
+                      "왜 이 후보인가" 를 문장으로 주는 편이 판단에 쓸모 있다. */}
+                  {cur.heal.why && <div className="mt-1 text-xs text-slate-500">{cur.heal.why}</div>}
+                  {healSt(cur.id) === "검토 대기" ? <div className="mt-2 flex gap-2"><Btn kind="primary" icon={CheckCircle2} onClick={() => approveHeal(cur)}>승인 · 로케이터 반영</Btn><Btn icon={Pencil} onClick={() => rejectHeal(cur)}>직접 수정</Btn></div> : <div className="mt-2 text-xs text-slate-500">{healSt(cur.id) === "승인됨" ? "제안 로케이터가 TC 스텝에 반영되었습니다(리비전 생성). 다음 실행에서 통과하면 확정됩니다." : "제안을 쓰지 않았습니다 — 에디터에서 직접 수정하세요."}</div>}
                 </div>
               )}
               {Array.isArray(cur.rows) && cur.rows.length > 0 && (
@@ -2113,7 +2132,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                       <span className="text-slate-500">{d || "-"}</span>
                     </div>; })()}
                   <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-500" style={{ fontSize: 11 }}>
-                    Full-Code 케이스는 스텝 상세가 없습니다 — 스텝 경계는 <span className="font-mono text-slate-500">test.step()</span> 으로만 만들어집니다. 코드에 없으면 러너도 알 수 없으므로 지어내지 않습니다.
+                    Full-Code 케이스는 스텝 상세가 없습니다 — 스텝 경계는 <span className="font-mono text-slate-500">test.step()</span> 으로만 만들어집니다. 코드에 없으면 러너도 알 수 없으므로 지어내지 않습니다. 같은 이유로 <span className="text-slate-700">보정 제안은 Low-Code 케이스에만</span> 제공됩니다 — 코드의 어느 줄을 고쳐야 하는지 알 수 없기 때문입니다.
                   </div>
                 </div>
               ) : (

@@ -257,8 +257,8 @@ export const INIT_FQA_RUNS = [
     { id: "TC-0101", name: "메인 배너 노출", rev: 1, v: "PASS", dur: "0.7s" },
     { id: "TC-0102", name: "추천 상품 카드 렌더", rev: 1, v: "PASS", dur: "1.1s" },
   ] },
-  { id: "FRUN-502", pw: "1.49.1", brVer: "131.0.6778.33", name: "결제 회귀", plan: "결제 회귀 (웹+API)", planId: 3, suite: "결제 / 주문", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "Chromium", trig: "스케줄", by: "스케줄", status: "완료", prog: 100, progt: "2/2", dur: "3분 30초", at: "오늘 11:10", startedAt: _rd(0, "11:10"), endedAt: _rd(0, "11:13"), total: 2, pass: 1, fail: 1, warn: 0, heal: 1, tcs: [
-    { id: "TC-0301", name: "상품 선택(웹) → 결제(API) → 주문 확인(웹)", rev: 1, v: "PASS", dur: "8.4s", heal: { step: "장바구니 버튼", from: "[data-testid=cart]", to: "[data-testid=cart-add]", conf: 90 } },
+  { id: "FRUN-502", pw: "1.49.1", brVer: "131.0.6778.33", name: "결제 회귀", plan: "결제 회귀 (웹+API)", planId: 3, suite: "결제 / 주문", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "Chromium", trig: "스케줄", by: "스케줄", status: "완료", prog: 100, progt: "2/2", dur: "3분 30초", at: "오늘 11:10", startedAt: _rd(0, "11:10"), endedAt: _rd(0, "11:13"), total: 2, pass: 0, fail: 2, warn: 0, heal: 1, tcs: [
+    { id: "TC-0301", name: "상품 선택(웹) → 결제(API) → 주문 확인(웹)", rev: 1, v: "FAIL", dur: "8.4s", heal: { step: "장바구니 버튼", from: "[data-testid=cart]", to: "[data-testid=cart-add]", why: "data-testid 값만 바뀌었고 같은 위치·같은 태그입니다" } },
     { id: "TC-0156", name: "쿠폰 적용 상태 반영", rev: 1, v: "FAIL", dur: "1.2s" },
   ] },
   { id: "FRUN-499", pw: "1.49.1", brVer: "131.0.6778.33", name: "API 스모크", plan: "API 스모크 (스테이징)", planId: 4, suite: "API 연동", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "", trig: "이벤트", by: "CI/CD Bot", status: "오류", prog: 0, progt: "연결 실패", dur: "-", at: "오늘 08:50", startedAt: _rd(0, "08:50"), endedAt: "-", total: 0, pass: 0, fail: 0, warn: 0, heal: 0, tcs: [] },
