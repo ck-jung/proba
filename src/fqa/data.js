@@ -210,7 +210,7 @@ export const INIT_FQA_RUNS = [
     { id: "TC-0404", name: "상품 목록 조회", rev: 1, v: "FAIL", dur: "0.6s" },
     { id: "TC-0405", name: "사용자 삭제", rev: 1, v: "PASS", dur: "0.2s" },
   ] },
-  { id: "FRUN-512", pw: "1.50.0", brVer: "132.0.6834.83", name: "로그인 회귀", plan: "로그인 회귀 (스테이징)", planId: 1, suite: "로그인 / 인증", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "Chromium", trig: "수동", by: "QA Engineer", status: "실행 중", prog: 62, progt: "2/3", dur: "3분 12초", at: "방금 전", total: 3, pass: 2, fail: 0, warn: 0, heal: 1, tcs: [] },
+  { id: "FRUN-512", pw: "1.50.0", brVer: "132.0.6834.83", name: "로그인 회귀", plan: "로그인 회귀 (스테이징)", planId: 1, suite: "로그인 / 인증", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "Chromium", trig: "수동", by: "QA Engineer", status: "실행 중", prog: 62, progt: "2/3", dur: "3분 12초", at: "방금 전", total: 3, pass: 2, fail: 0, warn: 0, heal: 0, tcs: [] },
   { id: "FRUN-511", pw: "1.49.1", brVer: "131.0.6778.33", name: "결제 회귀", plan: "결제 회귀 (웹+API)", planId: 3, suite: "결제 / 주문", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "Chromium", trig: "이벤트", by: "CI/CD Bot", status: "실행 중", prog: 50, progt: "1/2", dur: "5분 02초", at: "방금 전", total: 2, pass: 1, fail: 0, warn: 0, heal: 0, tcs: [] },
   /* 데이터 구동 30행 — 연속 3행 실패로 중단되어 나머지 18행은 미실행이다.
      판정은 케이스 단위 1건(FAIL)이고, 진행 상황은 행 요약으로 드러난다. */
@@ -258,7 +258,7 @@ export const INIT_FQA_RUNS = [
     { id: "TC-0102", name: "추천 상품 카드 렌더", rev: 1, v: "PASS", dur: "1.1s" },
   ] },
   { id: "FRUN-502", pw: "1.49.1", brVer: "131.0.6778.33", name: "결제 회귀", plan: "결제 회귀 (웹+API)", planId: 3, suite: "결제 / 주문", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "Chromium", trig: "스케줄", by: "스케줄", status: "완료", prog: 100, progt: "2/2", dur: "3분 30초", at: "오늘 11:10", startedAt: _rd(0, "11:10"), endedAt: _rd(0, "11:13"), total: 2, pass: 0, fail: 2, warn: 0, heal: 1, tcs: [
-    { id: "TC-0301", name: "상품 선택(웹) → 결제(API) → 주문 확인(웹)", rev: 1, v: "FAIL", dur: "8.4s", heal: { step: "장바구니 버튼", from: "[data-testid=cart]", to: "[data-testid=cart-add]", why: "data-testid 값만 바뀌었고 같은 위치·같은 태그입니다" } },
+    { id: "TC-0301", name: "상품 선택(웹) → 결제(API) → 주문 확인(웹)", rev: 1, v: "FAIL", dur: "8.4s", heal: { step: "추천 상품 카드", from: "[data-testid=product-featured]", to: "[data-testid=product-card-featured]", why: "data-testid 값만 바뀌었고 같은 위치·같은 태그입니다" } },
     { id: "TC-0156", name: "쿠폰 적용 상태 반영", rev: 1, v: "FAIL", dur: "1.2s" },
   ] },
   { id: "FRUN-499", pw: "1.49.1", brVer: "131.0.6778.33", name: "API 스모크", plan: "API 스모크 (스테이징)", planId: 4, suite: "API 연동", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "", trig: "이벤트", by: "CI/CD Bot", status: "오류", prog: 0, progt: "연결 실패", dur: "-", at: "오늘 08:50", startedAt: _rd(0, "08:50"), endedAt: "-", total: 0, pass: 0, fail: 0, warn: 0, heal: 0, tcs: [] },

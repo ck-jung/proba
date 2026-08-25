@@ -1849,10 +1849,24 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const [etab, setEtab] = useState("스크린샷");
   const [healState, setHealState] = useState({});
   const healSt = (id) => healState[id] || "검토 대기";
+  const HEAL_MSG = {
+    "승인됨": "제안 로케이터가 TC 스텝에 반영되었습니다(리비전 생성). 다음 실행에서 통과하면 확정됩니다.",
+    "직접 수정함": "제안을 쓰지 않았습니다 — 에디터에서 직접 수정하세요.",
+    "적용 실패": "제안한 로케이터가 케이스 스텝에 없어 반영되지 않았습니다. 에디터에서 직접 수정하세요.",
+  };
   /* 🔑 로케이터를 바꾸면 그건 "테스트가 바뀐 것"이므로 리비전을 남긴다(F7).
      안 남기면 다음 회귀 비교에서 "제품이 깨진 건가 테스트가 바뀐 건가" 를 구분할 수 없다. */
   const approveHeal = (t) => {
     const c = fqaCases.find((x) => x.id === t.id);
+    /* 🔑 적용할 스텝을 못 찾으면 '승인됨' 으로 넘기지 않는다.
+       Full-Code 라 steps 가 없거나, heal.from 이 어느 스텝과도 안 맞으면 치환이 0건이다.
+       그때 조용히 성공 처리하면 사용자는 고쳐진 줄 알고 그대로 다시 돌린다 — 가장 위험한 실패다. */
+    const hit = c && c.steps ? c.steps.filter((st) => st.loc === t.heal.from).length : 0;
+    if (!hit) {
+      setHealState((h) => Object.assign({}, h, { [t.id]: "적용 실패" }));
+      flash(t.id + " 보정 적용 실패 — 제안한 로케이터가 케이스에 없습니다. 에디터에서 직접 수정하세요");
+      return;
+    }
     if (c && c.steps) commitFqaCase(t.id, { steps: c.steps.map((st) => (st.loc === t.heal.from ? Object.assign({}, st, { loc: t.heal.to }) : st)) }, { note: "보정 제안 승인 — " + t.heal.from + " → " + t.heal.to });
     setHealState((h) => Object.assign({}, h, { [t.id]: "승인됨" }));
     flash(t.id + " 보정 승인 · 로케이터 갱신 (리비전 생성)");
@@ -2058,7 +2072,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
             {SUM.map((k) => (<Card key={k[0]} className="p-3 text-center"><div className={"text-2xl font-bold " + k[2]}>{k[1]}</div><div className="mt-0.5 text-xs text-slate-500">{k[0]}</div></Card>))}
             <Card className="p-3 text-center"><div className="text-2xl font-bold text-slate-900">{run.dur}</div><div className="mt-0.5 text-xs text-slate-500">소요</div></Card>
           </div>
-          <Card className="flex flex-wrap items-center gap-3 p-3 text-sm"><span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>품질 게이트: {gate}</span><span className="text-slate-500">기준 {gval}% · 실제 <span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>{passRate}%</span></span>{run.platform !== "API" && (<><span className="text-slate-400">·</span><span className="text-slate-500">보정 제안 {tcs.filter((t) => t.heal).length}건</span></>)}</Card>
+          <Card className="flex flex-wrap items-center gap-3 p-3 text-sm"><span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>품질 게이트: {gate}</span><span className="text-slate-500">기준 {gval}% · 실제 <span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>{passRate}%</span></span>{run.brow && (<><span className="text-slate-400">·</span><span className="text-slate-500">보정 제안 {tcs.filter((t) => t.heal).length}건</span></>)}</Card>
           {tcs.length === 0 ? (
             <Card className="p-8 text-center text-sm text-slate-500">{run.status === "실행 중" || run.status === "대기 중" ? "실행이 진행 중입니다 — 완료 후 케이스 결과가 표시됩니다." : "이 실행에는 케이스 상세 결과가 없습니다."}</Card>
           ) : (
@@ -2098,7 +2112,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   {/* 🔑 신뢰도 %를 쓰지 않는다 — 규칙 점수의 합일 뿐인데 사람은 확률로 읽는다.
                       "왜 이 후보인가" 를 문장으로 주는 편이 판단에 쓸모 있다. */}
                   {cur.heal.why && <div className="mt-1 text-xs text-slate-500">{cur.heal.why}</div>}
-                  {healSt(cur.id) === "검토 대기" ? <div className="mt-2 flex gap-2"><Btn kind="primary" icon={CheckCircle2} onClick={() => approveHeal(cur)}>승인 · 로케이터 반영</Btn><Btn icon={Pencil} onClick={() => rejectHeal(cur)}>직접 수정</Btn></div> : <div className="mt-2 text-xs text-slate-500">{healSt(cur.id) === "승인됨" ? "제안 로케이터가 TC 스텝에 반영되었습니다(리비전 생성). 다음 실행에서 통과하면 확정됩니다." : "제안을 쓰지 않았습니다 — 에디터에서 직접 수정하세요."}</div>}
+                  {healSt(cur.id) === "검토 대기" ? <div className="mt-2 flex gap-2"><Btn kind="primary" icon={CheckCircle2} onClick={() => approveHeal(cur)}>승인 · 로케이터 반영</Btn><Btn icon={Pencil} onClick={() => rejectHeal(cur)}>직접 수정</Btn></div> : <div className={"mt-2 text-xs " + (healSt(cur.id) === "적용 실패" ? "text-red-700" : "text-slate-500")}>{HEAL_MSG[healSt(cur.id)]}</div>}
                 </div>
               )}
               {Array.isArray(cur.rows) && cur.rows.length > 0 && (
