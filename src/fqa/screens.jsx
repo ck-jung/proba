@@ -1803,7 +1803,7 @@ export function FqaHistoryScreen({ nav }) {
   const hK = { "완료": "pass", "오류": "fail" };
   const vK = { "통과": "pass", "실패": "fail", "경고": "warn" };
   const verdict = (r) => { if (r.status !== "완료") return "-"; const tc = r.tcs || []; const hasFail = r.fail > 0 || tc.some((t) => t.v === "FAIL"); const hasWarn = r.warn > 0 || tc.some((t) => t.v === "WARN"); return hasFail ? "실패" : hasWarn ? "경고" : "통과"; };
-  const openRun = (r) => { if (r.status === "오류") { flash(r.id + " 오류로 종료 — 상세 결과 없음"); return; } if (nav) nav(r.id); };
+  const openRun = (r) => { if (r.status === "오류") { flash(r.id + " 오류로 종료 — 상세 결과 없음"); return; } if (nav) nav("fqa-result-detail", r.id); };
   const match = (r) => (fSt === "전체 상태" || r.status === fSt) && (fPlan === "전체 계획" || r.plan === fPlan);
   const hist = fqaRuns.filter((r) => r.status === "완료" || r.status === "오류").filter(match);
   return (
@@ -2204,7 +2204,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
               <tbody>
                 {regRows.length === 0 && (<tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">두 실행 모두 케이스 단위 결과가 없습니다.</td></tr>)}
                 {regRows.map((r) => { const v = cls(r.a, r.b); const revd = r.ra != null && r.rb != null && r.ra !== r.rb; const rv = (n) => (n == null ? null : <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {n}</span>); return (
-                  <tr key={r.id} onClick={() => nav && nav(bId)} title={bId + " 결과 상세로 이동"} className={"cursor-pointer border-b border-slate-200 text-slate-700 hover:brightness-125 " + (v.k === "퇴행" ? "bg-red-50" : "")}>
+                  <tr key={r.id} onClick={() => nav && nav("fqa-result-detail", bId)} title={bId + " 결과 상세로 이동"} className={"cursor-pointer border-b border-slate-200 text-slate-700 hover:brightness-125 " + (v.k === "퇴행" ? "bg-red-50" : "")}>
                     <td className="px-4 py-2.5 font-mono text-sky-600">{r.id}</td><td className="text-slate-700">{r.name}</td><td className="whitespace-nowrap">{r.a ? <Badge kind={vK[r.a]}>{r.a}</Badge> : <span className="text-xs text-slate-400">없음</span>}{rv(r.ra)}</td><td className="text-slate-400">→</td><td className="whitespace-nowrap">{r.b ? <Badge kind={vK[r.b]}>{r.b}</Badge> : <span className="text-xs text-slate-400">없음</span>}{rv(r.rb)}</td>
                     {/* rev가 다르면 판정 변화의 원인을 제품으로 단정할 수 없다 — 그 사실만 덧붙이고 결론은 내리지 않는다 */}
                     <td className={"font-semibold whitespace-nowrap " + v.c}>{v.k}{revd && <span className="ml-1.5 font-normal text-amber-600" style={{ fontSize: 11 }}>· 케이스 변경</span>}</td>

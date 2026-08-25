@@ -124,6 +124,17 @@ export default function App() {
   const navGuardRef = useRef(null);
   const setNavGuard = (msg) => { navGuardRef.current = msg || null; };
   const goTo = (v) => { if (navGuardRef.current && !window.confirm(navGuardRef.current)) return false; navGuardRef.current = null; setView(v); return true; };
+  /* 🔑 FQA 화면 간 이동 단일 출처.
+     전에는 화면마다 nav 람다를 따로 넘겨서 인자 규약이 셋으로 갈려 있었다 —
+     nav(rid) · nav(v, rid) · nav(v, tc). 같은 컴포넌트(FqaResultScreen)가 모드에 따라
+     다른 규약을 쓰고 있어서, 조건 하나만 어긋나도 rid 자리에 화면 이름이 들어간다.
+     규약을 nav(목적지, 인자) 하나로 고정하고 인자의 뜻은 목적지가 정한다.
+     setView 가 아니라 goTo 를 쓰므로 미저장 변경 가드를 우회하지 않는다. */
+  const fqaNav = (v, arg) => {
+    if (!goTo(v)) return;
+    if (arg && v === "fqa-result-detail") { setFqaResultRun(arg); setFqaResultFrom(view); }
+    if (arg && v === "fqa-cases") setFqaEditTc(arg);
+  };
   const api = {
     currentUser, setNavGuard, goTo,
     goto: setView, env, setEnv, reportCfg, setReportCfg, toast, notify, openModal: (type, data) => setModal({ type, data }),
@@ -205,7 +216,7 @@ export default function App() {
   const cur = [...ALL_SECTIONS.flatMap((s) => s.items), ...FQA_HIDDEN, ...LQA_HIDDEN, MEMBERS_ITEM].find((n) => n.id === view) || NAV[0];
   const curSection = ((ALL_SECTIONS.find((s) => s.items.some((i) => i.id === view)) || {}).group) || (FQA_HIDDEN.find((i) => i.id === view) || {}).group || (LQA_HIDDEN.find((i) => i.id === view) || {}).group;
   const tenantName = (tenants.find((t) => t.id === tenantId) || {}).name;
-  const screens = { dashboard: <Dashboard />, plans: <Plans />, cases: <Cases />, run: <Run key="run" />, "lqa-result": <Run key="lqa-result" />, history: <RunHistory />, compare: <Compare />, variables: <VariablesScreen />, datasets: <DatasetsScreen />, defects: <Defects />, report: <Report />, targets: <Targets />, settings: <Settings />, members: <MembersView />, "fqa-dashboard": <FqaDashboardScreen nav={(v, arg) => { if (v === "fqa-result-detail" && arg) { setFqaResultRun(arg); setFqaResultFrom("fqa-dashboard"); } setView(v); }} />, "fqa-targets": <FqaTargetScreen />, "fqa-suites": <FqaSuiteScreen />, "fqa-cases": <FqaCasesScreen />, "fqa-plan": <FqaPlanScreen nav={(v, rid) => { if (rid) setFqaResultRun(rid); setView(v); }} />, "fqa-run": <FqaRunScreen nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-run"); setView("fqa-result-detail"); }} />, "fqa-history": <FqaHistoryScreen nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-history"); setView("fqa-result-detail"); }} />, "fqa-regression": <FqaResultScreen mode="회귀" nav={(rid) => { setFqaResultRun(rid); setFqaResultFrom("fqa-regression"); setView("fqa-result-detail"); }} />, "fqa-flaky": <FqaResultScreen mode="불안정" nav={(v, tc) => { if (tc) setFqaEditTc(tc); setView(v); }} />, "fqa-result-detail": <FqaResultScreen mode="상세" runId={fqaResultRun} back={() => setView(fqaResultFrom || "fqa-history")} backLabel={{ "fqa-run": "실행", "fqa-history": "실행 이력", "fqa-dashboard": "대시보드", "fqa-regression": "회귀 비교" }[fqaResultFrom] || "뒤로"} />, "nqa-dashboard": <NqaDashboardScreen nav={(v) => setView(v)} />, "nqa-targets": <NqaTargetScreen />, "nqa-scenarios": <NqaScenarioScreen />, "nqa-run": <NqaRunScreen nav={(v) => setView(v)} />, "nqa-history": <NqaHistoryScreen />,"perf-targets": <PqaTargetScreen />, "perf-scenarios": <PqaScenarioScreen />, "perf-plan": <PqaPlanScreen />, "perf-run": <PqaRunScreen />, "perf-history": <PqaHistoryScreen />, "perf-trend": <PqaTrendScreen />, "perf-dashboard": <PqaDashboardScreen /> };
+  const screens = { dashboard: <Dashboard />, plans: <Plans />, cases: <Cases />, run: <Run key="run" />, "lqa-result": <Run key="lqa-result" />, history: <RunHistory />, compare: <Compare />, variables: <VariablesScreen />, datasets: <DatasetsScreen />, defects: <Defects />, report: <Report />, targets: <Targets />, settings: <Settings />, members: <MembersView />, "fqa-dashboard": <FqaDashboardScreen nav={fqaNav} />, "fqa-targets": <FqaTargetScreen />, "fqa-suites": <FqaSuiteScreen />, "fqa-cases": <FqaCasesScreen />, "fqa-plan": <FqaPlanScreen />, "fqa-run": <FqaRunScreen nav={fqaNav} />, "fqa-history": <FqaHistoryScreen nav={fqaNav} />, "fqa-regression": <FqaResultScreen mode="회귀" nav={fqaNav} />, "fqa-flaky": <FqaResultScreen mode="불안정" nav={fqaNav} />, "fqa-result-detail": <FqaResultScreen mode="상세" runId={fqaResultRun} back={() => setView(fqaResultFrom || "fqa-history")} backLabel={{ "fqa-run": "실행", "fqa-history": "실행 이력", "fqa-dashboard": "대시보드", "fqa-regression": "회귀 비교" }[fqaResultFrom] || "뒤로"} />, "nqa-dashboard": <NqaDashboardScreen nav={(v) => setView(v)} />, "nqa-targets": <NqaTargetScreen />, "nqa-scenarios": <NqaScenarioScreen />, "nqa-run": <NqaRunScreen nav={(v) => setView(v)} />, "nqa-history": <NqaHistoryScreen />,"perf-targets": <PqaTargetScreen />, "perf-scenarios": <PqaScenarioScreen />, "perf-plan": <PqaPlanScreen />, "perf-run": <PqaRunScreen />, "perf-history": <PqaHistoryScreen />, "perf-trend": <PqaTrendScreen />, "perf-dashboard": <PqaDashboardScreen /> };
   const tk = { ok: "border-emerald-200 bg-emerald-50 text-emerald-800", warn: "border-amber-200 bg-amber-50 text-amber-800", err: "border-red-200 bg-red-50 text-red-800", info: "border-slate-200 bg-white text-slate-800" };
   const nIcon = { play: Play, bug: Bug, send: Send };
 
