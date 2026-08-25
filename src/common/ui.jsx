@@ -21,8 +21,16 @@ export const Portal = ({ children }) => createPortal(children, document.body);
 
 /* 🔑 "지금 보고 있는 항목" 표시 — 목록·행 전 화면 단일 출처.
    얇은 테두리 하나로는 흰 카드가 줄지어 선 목록에서 눈에 띄지 않는다.
-   배경까지 바꿔야 한눈에 잡힌다. ring 은 레이아웃을 밀지 않는다. */
-export const SEL_CARD = "border-sky-600 bg-sky-50 ring-1 ring-sky-600";
+   배경까지 바꿔야 한눈에 잡힌다.
+
+   🔑 ring 을 쓰지 않는다 — ring 은 box-shadow 라 border 와 겹치면 테두리가 두 겹이 되고,
+      Windows 배율(125·150%)에서 변마다 반올림이 달라져 두께가 들쭉날쭉해 보인다.
+      두께는 카드 기본값(1px)을 그대로 쓰고 색만 바꾼다 — 안쪽 여백도 안 줄어든다.
+
+   🔑 ! 를 붙이는 이유 — Card 가 border-slate-200 을 이미 갖고 있고, border-color 끼리는
+      우선순위가 같아 CSS 에 늦게 나오는 쪽이 이긴다. Tailwind 팔레트 순서상 slate 가 sky 보다
+      뒤라서 ! 없이는 회색이 이긴다(파란색이 아예 안 나온다). 지우지 말 것. */
+export const SEL_CARD = "!border-sky-600 bg-sky-50";
 export const SEL_IDLE = "hover:border-slate-300 hover:bg-slate-50";
 /* 표·목록의 행 — hover(회색)와 색 계열 자체를 다르게 둔다 */
 export const SEL_ROW  = "bg-sky-100 hover:bg-sky-100";
