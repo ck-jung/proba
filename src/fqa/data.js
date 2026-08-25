@@ -261,6 +261,20 @@ export const INIT_FQA_RUNS = [
     { id: "TC-0301", name: "상품 선택(웹) → 결제(API) → 주문 확인(웹)", rev: 1, v: "FAIL", dur: "8.4s", heal: { step: "추천 상품 카드", from: "[data-testid=product-featured]", to: "[data-testid=product-card-featured]", why: "data-testid 값만 바뀌었고 같은 위치·같은 태그입니다" } },
     { id: "TC-0156", name: "쿠폰 적용 상태 반영", rev: 1, v: "FAIL", dur: "1.2s" },
   ] },
+  /* 🔑 로케이터가 깨져서 생긴 '지속 실패' — 보정 제안이 결과 화면을 넘어
+     불안정 화면·결함 등록까지 흘러가는 경로를 눈으로 볼 수 있게 둔 시드다.
+     4일 전(FRUN-497)에는 둘 다 통과했고 그 뒤 두 회차 연속 실패다.
+       TC-0301  로케이터가 낡았다 → 보정 제안 있음. 결함으로 올리면 오분류다.
+       TC-0156  같은 '지속 실패' 지만 제안이 없다 → 결함 등록이 맞다.
+     둘을 같은 목록에 나란히 두어야 "지속 실패라고 다 결함이 아니다" 가 드러난다. */
+  { id: "FRUN-500", pw: "1.49.1", brVer: "131.0.6778.33", name: "결제 회귀", plan: "결제 회귀 (웹+API)", planId: 3, suite: "결제 / 주문", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "Chromium", trig: "스케줄", by: "스케줄", status: "완료", prog: 100, progt: "2/2", dur: "3분 26초", at: "어제 09:40", startedAt: _rd(-1, "09:40"), endedAt: _rd(-1, "09:44"), total: 2, pass: 0, fail: 2, warn: 0, heal: 1, tcs: [
+    { id: "TC-0301", name: "상품 선택(웹) → 결제(API) → 주문 확인(웹)", rev: 1, v: "FAIL", dur: "8.1s", heal: { step: "추천 상품 카드", from: "[data-testid=product-featured]", to: "[data-testid=product-card-featured]", why: "data-testid 값만 바뀌었고 같은 위치·같은 태그입니다" } },
+    { id: "TC-0156", name: "쿠폰 적용 상태 반영", rev: 1, v: "FAIL", dur: "1.3s" },
+  ] },
+  { id: "FRUN-497", pw: "1.49.1", brVer: "131.0.6778.33", name: "결제 회귀", plan: "결제 회귀 (웹+API)", planId: 3, suite: "결제 / 주문", target: "온마켓 · 스테이징", ver: "v5.11.9-rc", brow: "Chromium", trig: "스케줄", by: "스케줄", status: "완료", prog: 100, progt: "2/2", dur: "3분 12초", at: "4일 전 20:30", startedAt: _rd(-4, "20:30"), endedAt: _rd(-4, "20:33"), total: 2, pass: 2, fail: 0, warn: 0, heal: 0, tcs: [
+    { id: "TC-0301", name: "상품 선택(웹) → 결제(API) → 주문 확인(웹)", rev: 1, v: "PASS", dur: "7.6s" },
+    { id: "TC-0156", name: "쿠폰 적용 상태 반영", rev: 1, v: "PASS", dur: "1.1s" },
+  ] },
   { id: "FRUN-499", pw: "1.49.1", brVer: "131.0.6778.33", name: "API 스모크", plan: "API 스모크 (스테이징)", planId: 4, suite: "API 연동", target: "온마켓 · 스테이징", ver: "v5.12.0-rc", brow: "", trig: "이벤트", by: "CI/CD Bot", status: "오류", prog: 0, progt: "연결 실패", dur: "-", at: "오늘 08:50", startedAt: _rd(0, "08:50"), endedAt: "-", total: 0, pass: 0, fail: 0, warn: 0, heal: 0, tcs: [] },
   { id: "FRUN-487", pw: "1.49.1", brVer: "131.0.6778.33", name: "로그인 회귀", plan: "로그인 회귀 (스테이징)", planId: 1, suite: "로그인 / 인증", target: "온마켓 · 스테이징", ver: "v5.11.9-rc", brow: "Chromium", trig: "스케줄", by: "스케줄", status: "완료", prog: 100, progt: "3/3", dur: "3분 22초", at: "6일 전 22:00", startedAt: _rd(-6, "22:00"), endedAt: _rd(-6, "22:03"), total: 3, pass: 2, fail: 0, warn: 1, heal: 0, tcs: [
     { id: "TC-0031", name: "로그인 성공", rev: 1, v: "PASS", dur: "1.1s" },
