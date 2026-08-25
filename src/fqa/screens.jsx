@@ -1840,7 +1840,7 @@ export function FqaHistoryScreen({ nav }) {
 }
 /* ═══════════ 7. 결과 상세 ═══════════ */
 export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }) {
-  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, commitFqaCase, jiraConfig, setPendingSelect, goto } = useApp();
+  const { fqaRuns, defects, addDefect, openModal, fqaPlans, fqaCases, updateFqaCase, commitFqaCase, setFqaEditTc, jiraConfig, setPendingSelect, goto } = useApp();
   const [msg, flash] = useToast();
   const [filt, setFilt] = useState("전체");
   const [selId, setSelId] = useState(null);
@@ -1862,7 +1862,11 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const rejectHeal = (t) => {
     setHealState((h) => Object.assign({}, h, { [t.id]: "직접 수정함" }));
     flash(t.id + " 제안 미사용 — 에디터에서 직접 수정하세요");
-    if (nav) nav("fqa-cases", t.id);
+    /* nav 를 쓰면 안 된다 — mode="상세" 로 뜨는 이 화면에는 nav 가 전달되지 않고,
+       화면마다 nav 의 인자 규약도 다르다(어떤 곳은 runId, 어떤 곳은 view+tc).
+       에디터 진입은 setFqaEditTc + goto 가 단일 경로다(스위트 화면도 같은 방식). */
+    setFqaEditTc(t.id);
+    goto("fqa-cases");
   };
   const run = fqaRuns.find((r) => r.id === runId) || fqaRuns.find((r) => r.id === "FRUN-502") || fqaRuns[0] || { id: "-", tcs: [], total: 0, pass: 0, fail: 0, warn: 0, heal: 0, dur: "-" };
   const jr = (() => { if (!(jiraConfig && jiraConfig.connected !== false)) return {}; const pl = (fqaPlans || []).find((p) => p.name === run.plan); return (pl && pl.jira && pl.jira.override) ? pl.jira : jiraConfig; })(); // 결함 라우팅: 미연동 시 내부 결함
