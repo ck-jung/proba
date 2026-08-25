@@ -84,8 +84,21 @@ const histOf = (runs, id) => runsFor(runs, id).slice(0, 4).map((r) => ((r.tcs ||
 /* 🔑 보정 제안 검토 상태의 키 — 케이스가 아니라 "제안" 단위여야 한다.
    케이스로 기억하면, 같은 TC 에서 나중에 다른 로케이터가 깨져 새 제안이 와도
    이미 "승인됨" 이라 승인·거절 버튼이 뜨지 않는다 — 새 제안이 조용히 묻힌다. */
+/* 실패 원인(0단계) — 러너가 에러 문장 규칙으로 붙인 딱지. 색은 "누가 고칠 일인가" 로 나눈다.
+   로케이터·타이밍은 우리(QA)가, 검증은 개발이, 환경은 인프라가 고친다. */
+const CAUSE_ORDER = ["로케이터", "검증", "타이밍", "환경", "기타"];
+const CAUSE_K = { "로케이터": "teal", "검증": "fail", "타이밍": "warn", "환경": "info", "기타": "draft" };
+const CAUSE_BG = { "로케이터": "bg-teal-500", "검증": "bg-red-500", "타이밍": "bg-amber-500", "환경": "bg-slate-400", "기타": "bg-slate-300" };
+const CAUSE_TX = { "로케이터": "text-teal-700", "검증": "text-red-700", "타이밍": "text-amber-700", "환경": "text-slate-600", "기타": "text-slate-500" };
+/* 케이스의 최근 실패 원인 — heal 과 같은 이유로 실행에서 파생한다 */
+const causeOf = (runs, id) => { const rs = runsFor(runs, id); for (let i = 0; i < rs.length; i++) { const t = (rs[i].tcs || []).find((x) => x.id === id); if (t && t.cause) return t.cause; } return null; };
 const healKey = (t) => t.id + "|" + ((t && t.heal && t.heal.from) || "");
-const healUsable = (cases, t) => { if (!t || !t.heal) return null; const c = (cases || []).find((x) => x.id === t.id); return c && c.level === "Full-Code" ? null : t.heal; };
+const healUsable = (cases, t) => {
+  if (!t || !t.heal) return null;
+  if (t.cause !== "로케이터") return null;   /* 0단계가 먼저다 — 분류되지 않은 실패에는 보정을 걸지 않는다 */
+  const c = (cases || []).find((x) => x.id === t.id);
+  return c && c.level === "Full-Code" ? null : t.heal;
+};
 const healOf = (runs, cases, id) => { const rs = runsFor(runs, id); for (let i = 0; i < rs.length; i++) { const h = healUsable(cases, (rs[i].tcs || []).find((x) => x.id === id)); if (h) return h; } return null; };
 /* 결함 등록 본문에 붙이는 안내 — 판정을 뒤집지 않고 사실만 알린다(F7·F8). */
 const healNote = (h) => (h ? "\n\n[보정 제안 있음] " + h.step + "\n  " + h.from + " → " + h.to + (h.why ? "\n  " + h.why : "") + "\n  ※ 제품 결함이 아니라 로케이터가 낡은 것일 수 있습니다. 등록 전 확인하세요." : "");
@@ -1992,11 +2005,11 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
     const failRows = Array.isArray(t.rows) ? t.rows.filter((r) => r.v === "FAIL") : [];
     if (!canRegister(t)) { flash(t.id + " 등록할 실패 행이 없습니다 — 이미 모두 결함에 연결되어 있습니다"); return; }
     openModal("jira", {
-      domain: "FQA", sev: "Major", tc: t.id, target: runTarget, labels: "fqa, functional" + (healUsable(fqaCases, t) ? ", locator-changed" : ""),
+      domain: "FQA", sev: "Major", tc: t.id, target: runTarget, labels: "fqa, functional" + (t.cause ? ", cause:" + t.cause : "") + (healUsable(fqaCases, t) ? ", locator-changed" : ""),
       rows: failRows, ds: t.ds || "",
       regRows: defectsOfTc(t.id).flatMap((d) => (d.rows || []).map((r) => JSON.stringify(r.data || {}))),
       title: (isRegression(t.id) ? "[재발] " : "") + t.name + " 기능 실패",
-      desc: "기능 케이스: " + t.name + " (" + t.id + ")\n대상 제품: " + runTarget + healNote(healUsable(fqaCases, t)),
+      desc: "기능 케이스: " + t.name + " (" + t.id + ")\n대상 제품: " + runTarget + (t.cause ? "\n실패 원인(자동 분류): " + t.cause : "") + healNote(healUsable(fqaCases, t)),
       steps: "1. 케이스 '" + t.name + "' 실행\n2. 단언(assertion) 검증",
       expected: t.expected || "케이스에 정의된 기대 결과 충족",
       actual: healUsable(fqaCases, t) ? "로케이터 " + healUsable(fqaCases, t).from + " 를 찾지 못함 — 보정 제안 있음" : "단언 불일치 — 케이스 실패",
@@ -2015,7 +2028,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
           "이 케이스는 불안정하다"고 단정하면 안 된다(화면에 적어 둔 기준과도 어긋난다). */
     const flaky = !persistent && h.length >= 3 && (warns > 0 || (fails > 0 && passes > 0));
     const streak = persistent ? ("최근 " + trail + "회 연속 실패 · " + rate + "% 실패") : (warns > 0 ? ("재시도 통과(flaky) " + warns + "회" + (flips >= 1 ? " · PASS/FAIL 교차 " + flips + "회" : "")) : ("PASS/FAIL 교차 " + flips + "회 · " + rate + "% 실패"));
-    return { heal: healOf(fqaRuns, fqaCases, c.id), id: c.id, name: c.name, suite: c.suite, runs: h.length, fails, rate, flips, warns, unstable: fails + warns, urate: Math.round(((fails + warns) / h.length) * 100), flaky, persistent, quarantined: !!c.quarantined, streak };
+    return { heal: healOf(fqaRuns, fqaCases, c.id), cause: causeOf(fqaRuns, c.id), id: c.id, name: c.name, suite: c.suite, runs: h.length, fails, rate, flips, warns, unstable: fails + warns, urate: Math.round(((fails + warns) / h.length) * 100), flaky, persistent, quarantined: !!c.quarantined, streak };
   }).filter((r) => r.flaky || r.persistent);
   const flakyN = FLAKY.filter((r) => r.flaky).length;
   const persistN = FLAKY.filter((r) => r.persistent).length;
@@ -2025,7 +2038,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
     /* 이 화면의 [결함 등록] 은 결과 화면을 거치지 않는다 — 보정 제안을 여기서 안 실으면
        로케이터가 낡아 생긴 지속 실패가 제품 결함으로 등록된다. */
     openModal("jira", {
-      domain: "FQA", sev: "Major", tc: r.id, labels: "fqa, flaky, persistent" + (r.heal ? ", locator-changed" : ""),
+      domain: "FQA", sev: "Major", tc: r.id, labels: "fqa, flaky, persistent" + (r.cause ? ", cause:" + r.cause : "") + (r.heal ? ", locator-changed" : ""),
       title: "지속 실패: " + r.name,
       desc: "케이스 '" + r.name + "' (" + r.id + ")\n최근 " + r.runs + "회 중 " + r.fails + "회 실패 (" + r.rate + "%)\n" + (r.streak || "") + healNote(r.heal),
       steps: "1. 케이스 '" + r.name + "' 반복 실행\n2. 실패 재현 확인",
@@ -2104,7 +2117,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
               <div className="overflow-y-auto" style={{ maxHeight: 340 }}>
                 {shown.map((t) => (
                   <div key={t.id} onClick={() => setSelId(t.id)} className={"flex items-center justify-between border-b border-slate-200 px-4 py-2.5 cursor-pointer hover:bg-slate-100 " + (cur && cur.id === t.id ? SEL_ROW : "")}>
-                    <div><span className="font-mono text-xs text-sky-600">{t.id}</span>{t.rev != null && <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {t.rev}</span>}<div className="text-xs text-slate-700">{t.name}</div>{rowSum(t) && <div className="text-slate-500" style={{ fontSize: 11 }}>{rowSum(t)}</div>}</div>
+                    <div><span className="font-mono text-xs text-sky-600">{t.id}</span>{t.rev != null && <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {t.rev}</span>}<div className="text-xs text-slate-700">{t.name}</div>{(t.cause || rowSum(t)) && <div className="flex items-center gap-1.5" style={{ fontSize: 11 }}>{t.cause && <span className={CAUSE_TX[t.cause] || "text-slate-500"}>원인 · {t.cause}</span>}{t.cause && rowSum(t) && <span className="text-slate-300">·</span>}{rowSum(t) && <span className="text-slate-500">{rowSum(t)}</span>}</div>}</div>
                     <div className="flex items-center gap-2">{t.v === "FAIL" && openDefectOf(t.id) && <Bug size={12} className="text-red-600" />}<span className="text-xs text-slate-500">{t.dur}</span>{healUsable(fqaCases, t) && <Badge kind="teal">보정</Badge>}<Badge kind={vK[t.v]}>{t.v}</Badge></div>
                   </div>
                 ))}
@@ -2270,7 +2283,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   <tr key={r.id} className="border-b border-slate-200 text-slate-700 hover:bg-slate-100">
                     <td className="px-4 py-3"><div className="font-mono text-xs text-sky-600">{r.id}</div><div className="flex items-center gap-1.5 text-slate-800">{r.name}{r.quarantined && <Badge kind="draft">격리됨</Badge>}</div><div className="text-xs text-slate-500">{r.suite}</div></td>
                     <td className="pr-4" style={{ minWidth: 150 }}><div className="mb-0.5 text-xs text-slate-500">{r.unstable}/{r.runs}회 · {r.urate}%</div><div className="h-1.5 rounded bg-slate-100" style={{ width: 130 }}><div className="h-1.5 rounded" style={{ width: r.urate + "%", background: r.flaky ? "#d97706" : "#dc2626" }} /></div></td>
-                    <td><div className="flex items-center gap-1">{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}{r.heal && <Badge kind="teal">보정</Badge>}</div></td>
+                    <td><div className="flex flex-wrap items-center gap-1">{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}{r.cause && <Badge kind={CAUSE_K[r.cause] || "draft"}>{r.cause}</Badge>}{r.heal && <Badge kind="teal">보정</Badge>}</div></td>
                     <td className="text-xs text-slate-500">{r.streak}</td>
                     <td className="pr-4 text-right whitespace-nowrap">{/* 🔑 격리 여부를 먼저 본다. flaky 로만 분기하면 격리된 케이스가 지속 실패로
                         재분류되는 순간 해제 버튼이 사라져 되돌릴 방법이 없어진다(앱에 다른 해제 경로가 없다). */}
@@ -2348,6 +2361,13 @@ export function FqaDashboardScreen({ nav }) {
   const healIds = Array.from(new Set(finished.reduce((a, r) => a.concat((r.tcs || []).filter((t) => healUsable(fqaCases, t)).map(healKey)), [])));
   const healPend = healIds.filter((k) => !healState[k]).length;
   const healOk = healIds.filter((k) => healState[k] === "승인됨").length;
+  /* 🔑 실패 원인 분포 — "무엇을 고칠까" 가 아니라 "어디에 투자할까" 를 답한다.
+     로케이터 비중이 낮으면 자가보정은 곁다리다. 이 숫자 없이 정하면 근거가 없다.
+     실행에서 파생하므로 기간·계획 필터를 그대로 따른다. */
+  const causeCnt = {};
+  finished.forEach((r) => (r.tcs || []).forEach((t) => { if (t.cause) causeCnt[t.cause] = (causeCnt[t.cause] || 0) + 1; }));
+  const causeTot = Object.keys(causeCnt).reduce((a, k) => a + causeCnt[k], 0);
+  const causeRows = CAUSE_ORDER.filter((k) => causeCnt[k]).map((k) => ({ k, n: causeCnt[k], p: Math.round((causeCnt[k] / causeTot) * 100) }));
   const KPI = [
     ["자동화 TC", totalTc, "text-slate-900", "저장소 등록"],
     ["PASS율(최근 실행)", lastRun ? rate(lastRun) + "%" : "—", "text-emerald-600", lastRun ? lastRun.id : "실행 없음"],
@@ -2368,6 +2388,30 @@ export function FqaDashboardScreen({ nav }) {
       <div className="grid grid-cols-6 gap-3">
         {KPI.map((k) => (<Card key={k[0]} className="p-4"><div className="text-xs text-slate-500">{k[0]}</div><div className={"mt-1 text-3xl font-bold " + k[2]}>{k[1]}</div><div className="mt-1 text-xs text-slate-500">{k[3]}</div></Card>))}
       </div>
+      <Card className="p-4">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-slate-800">실패 원인 분포 <span className="text-xs font-normal text-slate-500">완료 실행 · 실패/경고 {causeTot}건</span></span>
+          <span className="text-xs text-slate-500">러너가 에러 문장 규칙으로 자동 분류 · 애매하면 “기타”</span>
+        </div>
+        {causeTot === 0 ? (
+          <div className="rounded-lg bg-slate-100 px-3 py-4 text-center text-xs text-slate-500">기간 내 실패·경고가 없습니다</div>
+        ) : (
+          <>
+            <div className="flex h-2 overflow-hidden rounded bg-slate-100">
+              {causeRows.map((c) => (<div key={c.k} style={{ width: c.p + "%" }} className={CAUSE_BG[c.k]} title={c.k + " " + c.n + "건"} />))}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              {causeRows.map((c) => (
+                <span key={c.k} className="flex items-center gap-1.5">
+                  <span className={"inline-block h-2 w-2 rounded-sm " + CAUSE_BG[c.k]} />
+                  <span className={CAUSE_TX[c.k]}>{c.k}</span>
+                  <span className="text-slate-500">{c.n}건 · {c.p}%</span>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+      </Card>
       <Card className="p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800"><TrendingUp size={15} className="text-sky-600" />실행·PASS율 추이 <span className="font-normal text-slate-500">· 완료 실행 일자별</span></div>
         {trend.length === 0 ? (
