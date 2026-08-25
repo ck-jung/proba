@@ -2426,7 +2426,7 @@ export function FqaDashboardScreen({ nav }) {
             <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, color: "#334155" }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar yAxisId="l" dataKey="runs" name="실행 수" fill="#bae6fd" radius={[3, 3, 0, 0]} barSize={22} />
-            <Line yAxisId="r" type="monotone" dataKey="pass" name="PASS율(%)" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+            <Line yAxisId="r" type="monotone" dataKey="pass" name="PASS율(%)" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2 }} />
           </ComposedChart>
         </ResponsiveContainer>
         )}
