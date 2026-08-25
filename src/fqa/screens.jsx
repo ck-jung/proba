@@ -81,6 +81,10 @@ const histOf = (runs, id) => runsFor(runs, id).slice(0, 4).map((r) => ((r.tcs ||
 /* 🔑 이 TC 에 쓸 수 있는 보정 제안인가 — 뱃지·필터·요약·패널이 전부 이 하나를 쓴다.
    따로 판단하면 "뱃지는 보이는데 열면 아무것도 없는" 상태가 생긴다.
    Full-Code 는 제외한다: 코드의 어느 줄을 고칠지 알 수 없어 스텝 치환이 성립하지 않는다. */
+/* 🔑 보정 제안 검토 상태의 키 — 케이스가 아니라 "제안" 단위여야 한다.
+   케이스로 기억하면, 같은 TC 에서 나중에 다른 로케이터가 깨져 새 제안이 와도
+   이미 "승인됨" 이라 승인·거절 버튼이 뜨지 않는다 — 새 제안이 조용히 묻힌다. */
+const healKey = (t) => t.id + "|" + ((t && t.heal && t.heal.from) || "");
 const healUsable = (cases, t) => { if (!t || !t.heal) return null; const c = (cases || []).find((x) => x.id === t.id); return c && c.level === "Full-Code" ? null : t.heal; };
 const healOf = (runs, cases, id) => { const rs = runsFor(runs, id); for (let i = 0; i < rs.length; i++) { const h = healUsable(cases, (rs[i].tcs || []).find((x) => x.id === id)); if (h) return h; } return null; };
 /* 결함 등록 본문에 붙이는 안내 — 판정을 뒤집지 않고 사실만 알린다(F7·F8). */
@@ -1677,7 +1681,7 @@ export function FqaRunScreen({ nav }) {
   const [selRunId, setSelRunId] = useState(null);
   const selRun = fqaRuns.find((r) => r.id === selRunId && (r.status === "실행 중" || r.status === "대기 중")) || liveRun || rows[0] || null;
   // 실행 = 큐 맨끝에 '대기'로 적재만. 픽업·실행·완료는 아래 큐 프로세서가 담당(앞선 작업이 없어야 실행).
-  const runNow = (plan) => { if (!gatePlan(plan)) return; const tcs = buildTcs(plan); const total = tcs.length; const id = nextId(); const { e } = envRefOf(plan); addFqaRun({ id, planId: plan.id, plan: plan.name, name: plan.name, suite: suiteNames(plan).join(" · "), ...stampOf(plan), pw: "1.50.0", brVer: "132.0.6834.83", brow: (e && e.webUrl) ? ((plan.brow && plan.brow[0]) || "Chromium") : "", trig: "수동", by: "QA Engineer", status: "대기 중", prog: 0, progt: "대기", dur: "-", at: "방금 전", gate: plan.gate != null ? plan.gate : 95, total, pass: 0, fail: 0, warn: 0, heal: 0, tcs }); setSelRunId(id); flash(plan.name + " 실행 요청 · " + id + " — 큐 맨끝에 적재"); };
+  const runNow = (plan) => { if (!gatePlan(plan)) return; const tcs = buildTcs(plan); const total = tcs.length; const id = nextId(); const { e } = envRefOf(plan); addFqaRun({ id, planId: plan.id, plan: plan.name, name: plan.name, suite: suiteNames(plan).join(" · "), ...stampOf(plan), pw: "1.50.0", brVer: "132.0.6834.83", brow: (e && e.webUrl) ? ((plan.brow && plan.brow[0]) || "Chromium") : "", trig: "수동", by: "QA Engineer", status: "대기 중", prog: 0, progt: "대기", dur: "-", at: "방금 전", gate: plan.gate != null ? plan.gate : 95, total, pass: 0, fail: 0, warn: 0, tcs }); setSelRunId(id); flash(plan.name + " 실행 요청 · " + id + " — 큐 맨끝에 적재"); };
   // 큐 프로세서(단일 러너 FIFO) — 러너가 비면(실행 중 0) 대기 큐의 맨앞(가장 오래된)을 픽업해 실행→완료
   const procRef = useRef({});
   useEffect(() => {
@@ -1857,7 +1861,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const [rowsAll, setRowsAll] = useState(false);   // 데이터 구동 케이스 — 기본은 실패 행만(30행 케이스가 화면을 덮지 않도록)
   const [selRow, setSelRow] = useState(null);      // 선택 행 — 스텝 타임라인·증적이 이 행을 따라간다
   const [etab, setEtab] = useState("스크린샷");
-  const healSt = (id) => healState[id] || "검토 대기";
+  const healSt = (t) => healState[healKey(t)] || "검토 대기";
   const HEAL_MSG = {
     "승인됨": "제안 로케이터가 TC 스텝에 반영되었습니다(리비전 생성). 다음 실행에서 통과하면 확정됩니다.",
     "직접 수정함": "제안을 쓰지 않았습니다 — 에디터에서 직접 수정하세요.",
@@ -1872,26 +1876,26 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
        그때 조용히 성공 처리하면 사용자는 고쳐진 줄 알고 그대로 다시 돌린다 — 가장 위험한 실패다. */
     const hit = c && c.steps ? c.steps.filter((st) => st.loc === t.heal.from).length : 0;
     if (!hit) {
-      setHeal(t.id, "적용 실패");
+      setHeal(healKey(t), "적용 실패");
       flash(t.id + " 보정 적용 실패 — 제안한 로케이터가 케이스에 없습니다. 에디터에서 직접 수정하세요");
       return;
     }
     if (c && c.steps) commitFqaCase(t.id, { steps: c.steps.map((st) => (st.loc === t.heal.from ? Object.assign({}, st, { loc: t.heal.to }) : st)) }, { note: "보정 제안 승인 — " + t.heal.from + " → " + t.heal.to });
-    setHeal(t.id, "승인됨");
+    setHeal(healKey(t), "승인됨");
     flash(t.id + " 보정 승인 · 로케이터 갱신 (리비전 생성)");
   };
   /* 제안을 안 쓰기로 했다면 다음 행동은 "직접 고치기" 다 — 여기서 끊기면 사용자가 잊는다.
      아무것도 누르지 않으면 "검토 대기" 로 남는다(판단 보류). */
   const rejectHeal = (t) => {
-    setHeal(t.id, "직접 수정함");
-    flash(t.id + " 제안 미사용 — 에디터에서 직접 수정하세요");
+    setHeal(healKey(t), "직접 수정함");
+    flash(t.id + " 제안 미사용 — 에디터에서 " + t.heal.from + " 스텝을 직접 수정하세요");
     /* nav 를 쓰면 안 된다 — mode="상세" 로 뜨는 이 화면에는 nav 가 전달되지 않고,
        화면마다 nav 의 인자 규약도 다르다(어떤 곳은 runId, 어떤 곳은 view+tc).
        에디터 진입은 setFqaEditTc + goto 가 단일 경로다(스위트 화면도 같은 방식). */
     setFqaEditTc(t.id);
     goto("fqa-cases");
   };
-  const run = fqaRuns.find((r) => r.id === runId) || fqaRuns.find((r) => r.id === "FRUN-502") || fqaRuns[0] || { id: "-", tcs: [], total: 0, pass: 0, fail: 0, warn: 0, heal: 0, dur: "-" };
+  const run = fqaRuns.find((r) => r.id === runId) || fqaRuns.find((r) => r.id === "FRUN-502") || fqaRuns[0] || { id: "-", tcs: [], total: 0, pass: 0, fail: 0, warn: 0, dur: "-" };
   const jr = (() => { if (!(jiraConfig && jiraConfig.connected !== false)) return {}; const pl = (fqaPlans || []).find((p) => p.name === run.plan); return (pl && pl.jira && pl.jira.override) ? pl.jira : jiraConfig; })(); // 결함 라우팅: 미연동 시 내부 결함
   const dkey = (base) => (jr.project || "DEF") + "-" + base;
   const tcs = run.tcs || [];
@@ -2120,13 +2124,13 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   코드의 어느 줄을 고쳐야 하는지 알 수 없으므로 스텝 치환이 성립하지 않는다. */}
               {healUsable(fqaCases, cur) && (
                 <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
-                  <div className="flex items-center justify-between"><span className="text-xs font-semibold text-sky-700">자가보정 제안 (로케이터 자동 복구)</span><Badge kind={healSt(cur.id) === "승인됨" ? "pass" : healSt(cur.id) === "거절됨" ? "fail" : "warn"}>{healSt(cur.id)}</Badge></div>
+                  <div className="flex items-center justify-between"><span className="text-xs font-semibold text-sky-700">자가보정 제안 (로케이터 자동 복구)</span><Badge kind={healSt(cur) === "승인됨" ? "pass" : healSt(cur) === "적용 실패" ? "fail" : "warn"}>{healSt(cur)}</Badge></div>
                   <div className="mt-2 text-xs text-slate-500">{cur.heal.step}</div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs"><span className="text-red-700 line-through">{cur.heal.from}</span><span className="text-slate-500">→</span><span className="text-emerald-700">{cur.heal.to}</span></div>
                   {/* 🔑 신뢰도 %를 쓰지 않는다 — 규칙 점수의 합일 뿐인데 사람은 확률로 읽는다.
                       "왜 이 후보인가" 를 문장으로 주는 편이 판단에 쓸모 있다. */}
                   {cur.heal.why && <div className="mt-1 text-xs text-slate-500">{cur.heal.why}</div>}
-                  {healSt(cur.id) === "검토 대기" ? <div className="mt-2 flex gap-2"><Btn kind="primary" icon={CheckCircle2} onClick={() => approveHeal(cur)}>승인 · 로케이터 반영</Btn><Btn icon={Pencil} onClick={() => rejectHeal(cur)}>직접 수정</Btn></div> : <div className={"mt-2 text-xs " + (healSt(cur.id) === "적용 실패" ? "text-red-700" : "text-slate-500")}>{HEAL_MSG[healSt(cur.id)]}</div>}
+                  {healSt(cur) === "검토 대기" ? <div className="mt-2 flex gap-2"><Btn kind="primary" icon={CheckCircle2} onClick={() => approveHeal(cur)}>승인 · 로케이터 반영</Btn><Btn icon={Pencil} onClick={() => rejectHeal(cur)}>직접 수정</Btn></div> : <div className={"mt-2 text-xs " + (healSt(cur) === "적용 실패" ? "text-red-700" : "text-slate-500")}>{HEAL_MSG[healSt(cur)]}</div>}
                 </div>
               )}
               {Array.isArray(cur.rows) && cur.rows.length > 0 && (
@@ -2337,9 +2341,9 @@ export function FqaDashboardScreen({ nav }) {
   /* 🔑 보정 제안 지표 — 자가보정이 도움인지 소음인지 판단하는 유일한 신호는 채택률이다.
      제안 건수는 실행에서 파생하고(케이스에 저장하지 않는다), 검토 결과만 healState 에서 읽는다.
      승인률이 낮으면 제안을 늘릴 게 아니라 제안 규칙을 고쳐야 한다는 뜻이다. */
-  const healIds = Array.from(new Set(finished.reduce((a, r) => a.concat((r.tcs || []).filter((t) => healUsable(fqaCases, t)).map((t) => t.id)), [])));
-  const healPend = healIds.filter((id) => !healState[id]).length;
-  const healOk = healIds.filter((id) => healState[id] === "승인됨").length;
+  const healIds = Array.from(new Set(finished.reduce((a, r) => a.concat((r.tcs || []).filter((t) => healUsable(fqaCases, t)).map(healKey)), [])));
+  const healPend = healIds.filter((k) => !healState[k]).length;
+  const healOk = healIds.filter((k) => healState[k] === "승인됨").length;
   const KPI = [
     ["자동화 TC", totalTc, "text-slate-900", "저장소 등록"],
     ["PASS율(최근 실행)", lastRun ? rate(lastRun) + "%" : "—", "text-emerald-600", lastRun ? lastRun.id : "실행 없음"],
