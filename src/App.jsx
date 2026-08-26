@@ -270,7 +270,9 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1.5" title="테넌트(조직)"><Building2 size={13} className="text-slate-500" />{role === "admin" ? <select value={tenantId} onChange={(e) => { setTenantId(e.target.value); toast("테넌트 전환: " + ((tenants.find((t) => t.id === e.target.value) || {}).name), "info"); }} className="bg-white border border-zinc-400 rounded-lg px-2.5 py-1.5 text-slate-700 text-xs">{tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select> : <span className="rounded-lg bg-white border border-zinc-400 px-2.5 py-1.5 text-slate-700 text-xs">{tenantName}</span>}</div>
+              <div className="flex items-center gap-1.5" title="테넌트(조직)"><Building2 size={13} className="text-slate-500" />{role === "admin" ? <select value={tenantId} onChange={(e) => { setTenantId(e.target.value); toast("테넌트 전환: " + ((tenants.find((t) => t.id === e.target.value) || {}).name), "info"); }} className="bg-white border border-zinc-400 rounded-lg px-2.5 py-1.5 text-slate-700 text-xs">{tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select> : /* 🔑 Super Admin 만 조직을 전환한다. 나머지는 자기 조직 하나뿐이라 고를 게 없다.
+                       전환 상자와 같은 테두리를 두면 누를 수 있는 것처럼 보인다 — 글자만 남긴다. */
+                  <span className="py-1.5 text-xs font-medium text-slate-700">{tenantName}</span>}</div>
               <div className="relative">
                 <button onClick={() => { setBellOpen(!bellOpen); setRoleMenu(false); }} className="relative text-slate-500 hover:text-slate-800"><Bell size={18} />{/* 🔑 개수를 세지 않는다 — 12개까지 쌓이는 목록이라 숫자가 커져도 행동이 달라지지 않는다.
                                        "새 알림이 있다" 만 알리면 되고, 무엇인지는 열어서 본다. */}
