@@ -48,8 +48,8 @@ export default function App() {
   const [reportCfg, setReportCfg] = useState({ ch: { slack: true, teams: false, email: true }, cond: "fail", scope: "통합 (전체 도메인)", rsched: { on: true, freq: "weekly", time: "09:00", dow: 1, dom: 1 } });
   const [toasts, setToasts] = useState([]);
   const [notifs, setNotifs] = useState([
-    { icon: "play", text: "요금/청구 평가 완료 — PASS율 79%", t: "14:36", to: { domain: "LQA", view: "history" } },
-    { icon: "bug", text: "DEF-1842 자동 등록 (PII)", t: "14:36", to: { domain: "LQA", view: "defects" } },
+    { icon: "play", text: "결제/환불 상담 평가 완료 — PASS율 79%", t: "14:36", to: { domain: "LQA", view: "lqa-result", intent: { type: "view", runId: "R-2056" } } },
+    { icon: "bug", text: "DEF-1842 자동 등록 (PII)", t: "14:36", to: { domain: "LQA", view: "defects", select: { kind: "defect", key: "DEF-1842" } } },
   ]);
   const [bellOpen, setBellOpen] = useState(false);
   const [modal, setModal] = useState(null);
@@ -136,7 +136,12 @@ export default function App() {
     if (!n.to) return;
     if (!goTo(n.to.view)) return;                       // 미저장 변경 가드를 우회하지 않는다
     if (n.to.domain && n.to.domain !== domain) setDomain(n.to.domain);
-    if (n.to.run) { setFqaResultRun(n.to.run); setFqaResultFrom("fqa-history"); }
+    /* 🔑 목록이 아니라 그 항목을 연다 — 알림이 이미 어느 건인지 말했는데
+       목록만 열면 사용자가 그걸 다시 찾아야 한다(결함 화면 주석도 같은 말을 한다).
+       도메인마다 "특정 항목 열기" 수단이 이미 따로 있어 그대로 쓴다. */
+    if (n.to.run) { setFqaResultRun(n.to.run); setFqaResultFrom("fqa-history"); }   // FQA 실행
+    if (n.to.select) setPendingSelect(n.to.select);                                  // 결함 · 챗봇 · 계획
+    if (n.to.intent) setRunIntent(n.to.intent);                                      // LQA 실행
   };
   const goTo = (v) => { if (navGuardRef.current && !window.confirm(navGuardRef.current)) return false; navGuardRef.current = null; setView(v); return true; };
   /* 🔑 FQA 화면 간 이동 단일 출처.

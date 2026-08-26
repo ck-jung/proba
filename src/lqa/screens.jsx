@@ -241,7 +241,7 @@ export function NewCaseForm({ close, data }) {
 }
 
 export function JiraForm({ close, data }) {
-  const { addDefect, toast, notify, domain, jiraConfig } = useApp();
+  const { addDefect, toast, domain, jiraConfig } = useApp();   // notify 안 씀 — 수동 등록은 토스트만
   const d = data || {};
   const jconn = (jiraConfig || {}).connected !== false;
   const prioMap = { Critical: "Highest", Major: "High", Minor: "Medium" };
@@ -280,8 +280,11 @@ export function JiraForm({ close, data }) {
     const rowsSel = defRows.filter((r) => pickRows.has(r.i)).map((r) => ({ i: r.i, data: r.data }));
     const rowNote = rowsSel.length ? "\n\n[실패 행] " + (d.ds ? "데이터셋 " + d.ds + "\n" : "") + rowsSel.map((r) => r.i + "행 · " + Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")).join("\n") : "";
     addDefect({ key, tc: d.tc || "수동", target: d.target || "", sev, title, status: "Open", domain: dom, project: jira ? proj : "", assignee: assignee === "미지정" ? "" : assignee, desc: desc + rowNote, steps, expected, actual, evidence, ...(rowsSel.length ? { rows: rowsSel } : {}) });
-    if (jira) { toast("결함 등록 · Jira 이슈 " + key + " 생성", "ok"); notify({ icon: "bug", text: "Jira 이슈 " + key + " 생성 (" + (d.tc || "수동") + ")", to: { domain: dom, view: "defects" } }); }
-    else { toast("결함 " + key + " 등록 완료", "ok"); notify({ icon: "bug", text: "결함 " + key + " 등록 (" + (d.tc || "수동") + ")", to: { domain: dom, view: "defects" } }); }
+    /* 🔑 사용자가 방금 [등록] 을 눌러서 생긴 일은 알림에 넣지 않는다 — 토스트로 이미 말했다.
+       알림은 "내가 안 보고 있을 때 일어난 일" 이다. 자기 행동의 메아리로 채우면 진짜 알림이 묻힌다.
+       규칙에 의한 자동 등록(아래 FAIL 자동 등록)은 알림이 맞다. */
+    if (jira) toast("결함 등록 · Jira 이슈 " + key + " 생성", "ok");
+    else toast("결함 " + key + " 등록 완료", "ok");
     close();
   };
   return (
@@ -1441,7 +1444,7 @@ export function Run() {
       }
     });
     updateRun(id, { status: "완료", finishedAt: nowStamp() });
-    notify({ icon: "play", text: run.planName + " 완료 — PASS " + run.pass + " / FAIL " + run.fail, to: { domain: "LQA", view: "history" } });
+    notify({ icon: "play", text: run.planName + " 완료 — PASS " + run.pass + " / FAIL " + run.fail, to: { domain: "LQA", view: "lqa-result", intent: { type: "view", runId: run.id } } });
     if (made) notify({ icon: "bug", text: "FAIL " + made + "건 결함 자동 등록 (Jira 규칙)", to: { domain: "LQA", view: "defects" } });
     if (pendingRef.current === id) { pendingRef.current = null; setActiveRun({ ...run, status: "완료" }); setSel((run.results && run.results[0]) || null); setFromHistory(false); toast("평가 완료 · " + run.score + "점 · 실패 " + run.fail + "건" + (made ? " · 결함 " + made + "건 자동 등록" : ""), "ok"); }
   };
