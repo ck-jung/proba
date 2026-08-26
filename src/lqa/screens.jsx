@@ -1842,7 +1842,7 @@ export function Defects() {
   );
 }
 export function Report() {
-  const { toast, notify, openModal, reportCfg, setReportCfg, setNavGuard } = useApp();
+  const { toast, openModal, reportCfg, setReportCfg, setNavGuard } = useApp();   // notify 안 씀 — 발송은 이력에 남는다
   const [ch, setCh] = useState(reportCfg.ch);
   const [cond, setCond] = useState(reportCfg.cond);
   const [autoJira, setAutoJira] = useState(true);
@@ -1855,12 +1855,14 @@ export function Report() {
   const dowK = ["일", "월", "화", "수", "목", "금", "토"];
   const nextRun = () => rsched.freq === "daily" ? "매일 " + rsched.time : rsched.freq === "monthly" ? "매월 " + rsched.dom + "일 " + rsched.time : "매주 " + dowK[rsched.dow] + "요일 " + rsched.time;
   const [hist, setHist] = useState([
-    { t: "14:36", ch: "Slack", txt: "요금/청구 평가 완료 — PASS율 79% (▲)", ok: true },
+    { t: "14:36", ch: "Slack", txt: "결제/환불 상담 평가 완료 — PASS율 79% (▲)", ok: true },
     { t: "09:25", ch: "Email", txt: "주간 품질 리포트 발송 (수신 6명)", ok: true },
   ]);
   const sendTest = (channel) => {
     const row = { t: "now", ch: channel, txt: "테스트 알림 발송", ok: true };
-    setHist([row, ...hist]); toast(channel + " 테스트 알림 발송 완료", "ok"); notify({ icon: "send", text: channel + " 테스트 알림 발송", to: { domain: "LQA", view: "report" } });
+    /* 🔑 종 알림에 넣지 않는다 — 사용자가 [테스트 발송] 을 눌러서 생긴 일이고
+       토스트와 아래 발송 이력에 이미 남는다. 세 번 말할 이유가 없다. */
+    setHist([row, ...hist]); toast(channel + " 테스트 알림 발송 완료", "ok");
   };
   const genReport = () => { toast("HTML 리포트 생성 완료 · " + scope, "ok"); setHist([{ t: "now", ch: "Report", txt: scope + " HTML 리포트 생성", ok: true }, ...hist]); };
   const chCfg = [
@@ -1870,7 +1872,7 @@ export function Report() {
   ];
   return (
     <div className="space-y-4">
-      <PageToolbar desc="평가 결과 리포트 생성 및 알림 채널 설정">
+      <PageToolbar desc="평가 결과 리포트 생성 및 외부 채널(Slack · Teams · Email) 발송 설정">
         {dirty && <span className="text-xs text-amber-700">미저장 변경</span>}
         <Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>변경 저장</Btn>
       </PageToolbar>
