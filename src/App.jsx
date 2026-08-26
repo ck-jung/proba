@@ -272,7 +272,9 @@ export default function App() {
               </div>
               <div className="flex items-center gap-1.5" title="테넌트(조직)"><Building2 size={13} className="text-slate-500" />{role === "admin" ? <select value={tenantId} onChange={(e) => { setTenantId(e.target.value); toast("테넌트 전환: " + ((tenants.find((t) => t.id === e.target.value) || {}).name), "info"); }} className="bg-white border border-zinc-400 rounded-lg px-2.5 py-1.5 text-slate-700 text-xs">{tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select> : <span className="rounded-lg bg-white border border-zinc-400 px-2.5 py-1.5 text-slate-700 text-xs">{tenantName}</span>}</div>
               <div className="relative">
-                <button onClick={() => { setBellOpen(!bellOpen); setRoleMenu(false); }} className="relative text-slate-500 hover:text-slate-800"><Bell size={18} />{notifs.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center" style={{ fontSize: 9 }}>{notifs.length}</span>}</button>
+                <button onClick={() => { setBellOpen(!bellOpen); setRoleMenu(false); }} className="relative text-slate-500 hover:text-slate-800"><Bell size={18} />{/* 🔑 개수를 세지 않는다 — 12개까지 쌓이는 목록이라 숫자가 커져도 행동이 달라지지 않는다.
+                      "새 알림이 있다" 만 알리면 되고, 무엇인지는 열어서 본다. */}
+                  {notifs.length > 0 && <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />}</button>
                 {bellOpen && (
                   <div className="absolute right-0 mt-2 w-80 rounded-xl border border-zinc-200 bg-white shadow-xl z-30">
                     <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between"><span className="text-sm font-semibold text-slate-800">알림</span><button onClick={() => { setNotifs([]); }} className="text-xs text-slate-400 hover:text-slate-600">모두 지우기</button></div>
