@@ -56,25 +56,51 @@ function UsersConsole() {
   const opAdmins = users.filter((u) => isPlat(u) && u.status !== "차단").length;   // 활성 Super Admin 수
   const isMe = (u) => currentUser && u.name === currentUser;
   const lastAdmin = (u) => isPlat(u) && u.status !== "차단" && opAdmins <= 1;
-  const stat = [["전체 사용자", users.length, "text-slate-900"], ["활성", users.filter((u) => u.status === "활성").length, "text-emerald-600"], ["승인 대기", users.filter((u) => u.status === "대기").length, "text-amber-600"], ["Super Admin", users.filter(isPlat).length, "text-amber-600"]];
+  const stat = [["전체 사용자", users.length, "text-slate-900"], ["활성", users.filter((u) => u.status === "활성").length, "text-emerald-600"], ["초대 대기", users.filter((u) => u.status === "대기").length, "text-amber-600"], ["Super Admin", users.filter(isPlat).length, "text-amber-600"]];
   const inScope = (u) => scope === "all" || (scope === "platform" ? isPlat(u) : u.tenant === scope);
   const ql = q.trim().toLowerCase();
   const rows = users.filter((u) => inScope(u) && (!ql || (u.name + " " + u.email + " " + scopeName(u) + " " + u.role).toLowerCase().includes(ql)));
   const scopeOpts = [["all", "전체"], ["platform", "플랫폼(본사)"], ...tenants.map((t) => [t.id, t.name])];
-  const btnA = "text-xs rounded-lg px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white";
   const btnN = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700";
   const btnD = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-red-600";
-  const stopOp = (u) => { if (isMe(u)) { toast("본인 계정은 정지할 수 없습니다", "warn"); return; } if (lastAdmin(u)) { toast("마지막 Super Admin는 정지할 수 없습니다", "warn"); return; } setUserStatus(u.id, "차단"); toast(u.name + " 정지", "warn"); };
-  const delOp = (u) => { if (isMe(u)) { toast("본인 계정은 삭제할 수 없습니다", "warn"); return; } if (lastAdmin(u)) { toast("마지막 Super Admin는 삭제할 수 없습니다", "warn"); return; } if (!window.confirm(u.name + " Super Admin를 삭제할까요?")) return; removeUser(u.id); toast(u.name + " 삭제됨", "warn"); };
-  const actions = (u) => isPlat(u)
-    ? (u.status === "대기"
-        ? <div className="flex gap-1.5"><button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 활성화", "ok"); }} className={btnA}>승인</button><button onClick={() => { removeUser(u.id); toast(u.name + " 초대 취소", "warn"); }} className={btnN}>취소</button></div>
-        : isMe(u) ? <span className="text-xs text-slate-400">—</span>
-        : <div className="flex gap-1.5">{u.status === "차단" ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 활성화", "ok"); }} className={btnN}>해제</button> : <button onClick={() => stopOp(u)} className={btnD}>정지</button>}<button onClick={() => delOp(u)} className={btnD}>삭제</button></div>)
-    : (u.status === "대기"
-        ? <div className="flex gap-1.5"><button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 사용 승인", "ok"); }} className={btnA}>승인</button><button onClick={() => { if (!window.confirm(u.name + " (" + tName(u.tenant) + ") 가입을 거부하고 계정을 삭제할까요?\n되돌릴 수 없습니다. 멤버 승인/거부는 원칙적으로 Owner의 업무입니다.")) return; removeUser(u.id); toast(u.name + " 가입 거부", "warn"); }} className={btnD}>거부</button></div>
-        : u.status === "차단" ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 차단 해제", "ok"); }} className={btnN}>차단 해제</button>
-        : <button onClick={() => { if (!window.confirm(u.name + " (" + tName(u.tenant) + ") 계정을 정지할까요?\n해당 사용자의 로그인이 즉시 차단되며 감사 로그에 기록됩니다.")) return; setUserStatus(u.id, "차단"); toast(u.name + " 계정 정지", "warn"); }} className={btnD}>정지</button>);
+  /* 🔑 처리는 상태마다 하나. 같은 일에 이름을 하나만 쓴다.
+     전에는 활성으로 되돌리는 버튼이 승인·활성화·해제·차단 해제 넷이었고,
+     [정지] 를 누르면 status 는 "차단" 이 되어 다음엔 [차단 해제] 라는 다른 이름이 떴다.
+     화면 말과 데이터 값을 "차단" 하나로 맞춘다.
+
+     '승인' 을 없앤 이유 — 대기 사용자는 아직 로그인한 적이 없다(초대만 간 상태).
+     본인이 오지도 않았는데 관리자가 승인할 것이 없다. 수락하면 활성이 되는 게 초대 링크의 역할이고,
+     관리자에게 필요한 건 잘못 보낸 초대를 거두는 것 하나다.
+     수락 후 별도 승인이 필요한 조직이 생기면 그때 상태를 하나 더 둔다. */
+  const cancelInvite = (u) => {
+    if (!window.confirm(u.name + " (" + scopeName(u) + ") 에게 보낸 초대를 취소할까요?\n계정이 삭제되며 되돌릴 수 없습니다.")) return;
+    removeUser(u.id); toast(u.name + " 초대 취소", "warn");
+  };
+  const block = (u) => {
+    if (lastAdmin(u)) { toast("마지막 Super Admin 은 차단할 수 없습니다", "warn"); return; }
+    if (!window.confirm(u.name + " (" + scopeName(u) + ") 계정을 차단할까요?\n로그인이 즉시 막히며 감사 로그에 기록됩니다.")) return;
+    setUserStatus(u.id, "차단"); toast(u.name + " 차단", "warn");
+  };
+  const unblock = (u) => { setUserStatus(u.id, "활성"); toast(u.name + " 차단 해제", "ok"); };
+  const delOp = (u) => {
+    if (lastAdmin(u)) { toast("마지막 Super Admin 은 삭제할 수 없습니다", "warn"); return; }
+    if (!window.confirm(u.name + " Super Admin 계정을 삭제할까요?\n되돌릴 수 없습니다.")) return;
+    removeUser(u.id); toast(u.name + " 삭제됨", "warn");
+  };
+  /* 조직 사용자에게 삭제를 두지 않는다 — 남의 조직 멤버를 플랫폼 운영자가 지우는 일이다.
+     그건 Owner 의 몫이고, 여기서는 차단까지만 한다. */
+  const actions = (u) => {
+    if (isMe(u)) return <span className="text-xs text-slate-400">—</span>;
+    if (u.status === "대기") return <button onClick={() => cancelInvite(u)} className={btnD}>초대 취소</button>;
+    return (
+      <div className="flex gap-1.5">
+        {u.status === "차단"
+          ? <button onClick={() => unblock(u)} className={btnN}>차단 해제</button>
+          : <button onClick={() => block(u)} className={btnD}>차단</button>}
+        {isPlat(u) && <button onClick={() => delOp(u)} className={btnD}>삭제</button>}
+      </div>
+    );
+  };
   return (
     <div className="space-y-4">
       <PageToolbar desc="전체 조직 + 플랫폼 사용자 통합 디렉터리 · 모든 처리는 감사 로그에 기록">
