@@ -130,9 +130,13 @@ export default function App() {
   /* 🔑 알림 클릭 이동 — 알림은 "무슨 일이 났다" 만 말하고, 어디로 갈지는 알림이 들고 있어야 한다.
      도메인부터 바꾸는 이유: LQA 와 FQA 는 view id 체계가 다르다("history" vs "fqa-history").
      도메인을 안 바꾸고 setView 만 하면 그 도메인에 없는 화면이라 빈 화면이 된다.
-     목적지가 없는 알림은 누를 수 없게 둔다 — 눌리는 것과 아닌 것이 같아 보이면 고장으로 읽힌다. */
+     목적지가 없는 알림도 누를 수 있다 — 클릭이 곧 "확인함" 이라 목록에서 빠진다. */
   const openNotif = (n) => {
     setBellOpen(false);
+    /* 🔑 누른 알림은 목록에서 뺀다 — 이 목록은 영구 이력이 아니라 "아직 안 본 것들" 이다
+       ('모두 지우기' 가 있는 것도 같은 뜻이다). 그래야 빨간 점이 신호로 산다.
+       알림이 가리키는 대상(실행 결과·결함)은 각자 화면에 그대로 남으므로 잃는 것이 없다. */
+    setNotifs((x) => x.filter((v) => v !== n));
     if (!n.to) return;
     if (!goTo(n.to.view)) return;                       // 미저장 변경 가드를 우회하지 않는다
     if (n.to.domain && n.to.domain !== domain) setDomain(n.to.domain);
@@ -283,7 +287,7 @@ export default function App() {
                     <div className="max-h-80 overflow-y-auto">
                       {notifs.length === 0 && <div className="px-4 py-6 text-center text-sm text-slate-500">알림이 없습니다.</div>}
                       {notifs.map((n, i) => { const NI = nIcon[n.icon] || Bell; return (
-                        <div key={i} onClick={() => openNotif(n)} className={"px-4 py-2.5 border-b border-zinc-100 flex items-start gap-3" + (n.to ? " cursor-pointer hover:bg-zinc-50" : "")}><NI size={15} className="text-sky-500 mt-0.5" /><div className="flex-1"><div className="text-sm text-slate-700">{n.text}</div><div className="text-xs text-slate-500">{n.t}</div></div></div>
+                        <div key={i} onClick={() => openNotif(n)} className="px-4 py-2.5 border-b border-zinc-100 flex items-start gap-3 cursor-pointer hover:bg-zinc-50"><NI size={15} className="text-sky-500 mt-0.5" /><div className="flex-1"><div className="text-sm text-slate-700">{n.text}</div><div className="text-xs text-slate-500">{n.t}</div></div></div>
                       ); })}
                     </div>
                     <button onClick={() => { setBellOpen(false); setView("report"); }} className="w-full text-center text-xs font-semibold text-sky-600 py-2.5 hover:bg-zinc-50">리포트 · 알림 설정 →</button>
