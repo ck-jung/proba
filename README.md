@@ -36,10 +36,8 @@ src/
   fqa/              기능 QA — Playwright 기반 웹·API 테스트
   pqa/              앱 성능 — Macrobenchmark 기반 단말 측정
   nqa/              부하 — k6 기반 성능 테스트
+cli/                레코딩 CLI (proba-cli) — Playwright codegen 출력을 PROBA 스텝으로 변환
 ```
 
 스택은 Vite + React 18 + Tailwind CSS v3, 아이콘은 lucide-react, 차트는 recharts입니다.
-
-## 관련 저장소
-
-- [comesample/proba-cli](https://github.com/comesample/proba-cli) — 레코딩 CLI. Playwright codegen 출력을 PROBA 스텝으로 변환합니다.
+`cli/` 는 별도 npm 패키지로 배포되며 이 저장소 안에서 함께 관리합니다 — `cli/README.md` 참고.
