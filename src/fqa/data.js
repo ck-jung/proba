@@ -58,7 +58,7 @@ export const INIT_FQA_SYSTEMS = [
         // 로그인을 검증하는 케이스는 전용 역할을 쓴다 — 정식 실행에서 재로그인하면 같은 역할의 전제조건 세션이 무효화된다
         { role: "로그인 전용", acct: "qa_login01", secretRef: "${stg_test_pw}" },
       ],
-      apiAuth: { type: "OAuth 2.0 (Client Credentials)", tokenUrl: "https://auth-stg.onmarket.io/oauth2/token", clientId: "autoqa-runner", clientSecret: "${stg_oauth_secret}", scope: "orders.read orders.write" },
+      apiAuth: { type: "OAuth 2.0 (Client Credentials)", tokenUrl: "https://auth-stg.onmarket.io/oauth2/token", clientId: "proba-runner", clientSecret: "${stg_oauth_secret}", scope: "orders.read orders.write" },
       access: { basicAuth: true, baUser: "stg", baPw: "${stg_basic_pw}", tlsIgnore: true },
       deploy: { mode: "배포 웹훅 알림", verUrl: "", verPath: "$.version", interval: "15분" } },
     { env: "운영", prod: true, status: "연결됨", ver: "v5.11.3",
@@ -67,7 +67,7 @@ export const INIT_FQA_SYSTEMS = [
       accts: [
         { role: "일반", acct: "synth_prod01", secretRef: "${prod_synth_pw}" },
       ],
-      apiAuth: { type: "OAuth 2.0 (Client Credentials)", tokenUrl: "https://auth.onmarket.io/oauth2/token", clientId: "autoqa-runner", clientSecret: "${prod_oauth_secret}", scope: "orders.read" },
+      apiAuth: { type: "OAuth 2.0 (Client Credentials)", tokenUrl: "https://auth.onmarket.io/oauth2/token", clientId: "proba-runner", clientSecret: "${prod_oauth_secret}", scope: "orders.read" },
       access: { basicAuth: false, baUser: "", baPw: "", tlsIgnore: false },
       deploy: { mode: "배포 웹훅 알림", verUrl: "", verPath: "$.version", interval: "15분" } },
   ] },

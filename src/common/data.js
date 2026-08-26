@@ -44,10 +44,10 @@ export const INIT_USERS = [
   { id: "u4", name: "박지영", email: "jiyoung.park@berryshop.io", tenant: "t2", role: "Owner", status: "활성", last: "2시간 전" },
   { id: "u5", name: "윤수빈", email: "subin.yoon@partner.com", tenant: "t1", role: "Viewer", status: "대기", last: "미로그인" },
   { id: "u6", name: "오현태", email: "hyuntae.oh@demo.com", tenant: "t3", role: "Member", status: "차단", last: "2026-05-12" },
-  // Super Admin = 조직에 속하지 않는 플랫폼(본사) 계정 — tenant "platform" 로 구분
-  { id: "op1", name: "한도윤", email: "admin@autoqa.io", tenant: "platform", role: "Super Admin", status: "활성", last: "방금 전" },
-  { id: "op2", name: "서지안", email: "ops@autoqa.io", tenant: "platform", role: "Super Admin", status: "활성", last: "오늘 09:40" },
-  { id: "op3", name: "노경원", email: "kw.noh@autoqa.io", tenant: "platform", role: "Super Admin", status: "대기", last: "미로그인" },
+  // Super Admin = 조직에 속하지 않는 운영사(PROBA) 계정 — tenant "platform" 로 구분
+  { id: "op1", name: "한도윤", email: "admin@proba.co.kr", tenant: "platform", role: "Super Admin", status: "활성", last: "방금 전" },
+  { id: "op2", name: "서지안", email: "ops@proba.co.kr", tenant: "platform", role: "Super Admin", status: "활성", last: "오늘 09:40" },
+  { id: "op3", name: "노경원", email: "kw.noh@proba.co.kr", tenant: "platform", role: "Super Admin", status: "대기", last: "미로그인" },
 ];
 export const INIT_MODELS = [
   { id: "m1", name: "Claude (sonnet-4-6)", provider: "Anthropic", model: "claude-sonnet-4-6", price: "$3 / 1M", status: "활성", created: "2026-01-10" },

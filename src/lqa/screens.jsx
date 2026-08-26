@@ -615,7 +615,7 @@ function ChatbotDetail({ cb, onDirty }) {
   const [verUrl, setVerUrl] = useState(cb.verUrl || "");
   const [verInterval, setVerInterval] = useState(cb.verInterval || "15분");
   const [test, setTest] = useState(null);
-  const deployHook = "https://autoqa.io/api/hooks/model-" + (cb.name.trim() ? cb.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "chatbot") + "-9c1e";
+  const deployHook = "https://proba.co.kr/api/hooks/model-" + (cb.name.trim() ? cb.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "chatbot") + "-9c1e";
   const deploySecret = "whsec_" + deployHook.slice(-4) + "e1b7d4f60a2c";
   const setH = (i, key, val) => setHeaders(headers.map((h, j) => (j === i ? { ...h, [key]: val } : h)));
   const secretRef = (val, setVal, ph) => <VarRefInput value={val} onChange={setVal} placeholder={ph} />;

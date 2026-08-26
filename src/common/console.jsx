@@ -52,7 +52,9 @@ function UsersConsole() {
   const tName = (id) => (tenants.find((t) => t.id === id) || {}).name || id;
   const stK = KIND.userStatus;
   const isPlat = (u) => u.tenant === "platform";
-  const scopeName = (u) => (isPlat(u) ? "플랫폼(본사)" : tName(u.tenant));
+  /* 소속 칸에는 이름만 둔다 — 다른 행이 전부 조직명이라 여기만 설명어면 축이 어긋난다.
+     "고객사가 아니다" 는 호박색 뱃지가 이미 말해준다. */
+  const scopeName = (u) => (isPlat(u) ? "PROBA" : tName(u.tenant));
   const opAdmins = users.filter((u) => isPlat(u) && u.status !== "차단").length;   // 활성 Super Admin 수
   const isMe = (u) => currentUser && u.name === currentUser;
   const lastAdmin = (u) => isPlat(u) && u.status !== "차단" && opAdmins <= 1;
@@ -60,7 +62,7 @@ function UsersConsole() {
   const inScope = (u) => scope === "all" || (scope === "platform" ? isPlat(u) : u.tenant === scope);
   const ql = q.trim().toLowerCase();
   const rows = users.filter((u) => inScope(u) && (!ql || (u.name + " " + u.email + " " + scopeName(u) + " " + u.role).toLowerCase().includes(ql)));
-  const scopeOpts = [["all", "전체"], ["platform", "플랫폼(본사)"], ...tenants.map((t) => [t.id, t.name])];
+  const scopeOpts = [["all", "전체"], ["platform", "PROBA"], ...tenants.map((t) => [t.id, t.name])];
   const btnN = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700";
   const btnD = "text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-red-600";
   /* 🔑 처리는 상태마다 하나. 같은 일에 이름을 하나만 쓴다.
@@ -122,7 +124,7 @@ function UsersConsole() {
             {rows.map((u) => (
               <tr key={u.id} className="border-b border-slate-200 hover:bg-slate-100">
                 <td className="py-3 px-4"><div className="text-slate-900 font-medium">{u.name}{isMe(u) && <span className="ml-1 text-xs text-slate-400">(본인)</span>}</div><div className="text-xs text-slate-500">{u.email}</div></td>
-                <td>{isPlat(u) ? <Badge kind="warn">플랫폼(본사)</Badge> : <span className="text-slate-700">{tName(u.tenant)}</span>}</td>
+                <td>{isPlat(u) ? <Badge kind="warn">PROBA</Badge> : <span className="text-slate-700">{tName(u.tenant)}</span>}</td>
                 <td className="text-slate-500">{u.role}</td>
                 <td><Badge kind={stK[u.status]}>{u.status}</Badge></td>
                 <td className="text-slate-500 text-xs">{u.last}</td>
@@ -149,7 +151,7 @@ export function NewOperatorForm({ close }) {
   return (
     <div className="space-y-4">
       <Field label="이름"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 홍길동" /></Field>
-      <Field label="사내 이메일"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="예: ops@autoqa.io" /></Field>
+      <Field label="사내 이메일"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="예: ops@proba.co.kr" /></Field>
       <div className="flex justify-end gap-2 pt-1"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={Plus} onClick={submit}>추가</Btn></div>
     </div>
   );

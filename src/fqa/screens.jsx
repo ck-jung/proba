@@ -2819,7 +2819,7 @@ export function FqaTargetScreen() {
   const guardSwitch = (fn) => { if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 이동하시겠습니까?")) return; setDraft({}); setNameDraft(null); fn(); };
   useEffect(() => { setDraft({}); setNameDraft(null); }, [(sys || {}).id]);
   const envSlug = { "스테이징": "stg", "운영": "prod", "개발": "dev" }[(env || {}).env] || "env";
-  const hookUrl = "https://autoqa.io/api/hooks/t" + ((sys || {}).id || 0) + "-" + envSlug + "-3f9a2c";
+  const hookUrl = "https://proba.co.kr/api/hooks/t" + ((sys || {}).id || 0) + "-" + envSlug + "-3f9a2c";
   const choose = (i) => guardSwitch(() => { setSel(i); setEnvIdx(0); setTest(null); });
   // 참조 중이면 삭제 불가 — 계획의 targetRef가 조용히 끊어지는 것을 막는다
   /* '최소 1개 유지' 가드는 두지 않는다 — 업무 규칙이 아니라 sys.envs 접근 크래시를 피하려던 장치였다.

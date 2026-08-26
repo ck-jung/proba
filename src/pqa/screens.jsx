@@ -65,7 +65,7 @@ export function PqaTargetScreen() {
     addPerfApp({ id: Date.now(), name: nf.name.trim(), platform: "Android", pkg: nf.pkg.trim(), version: "-", versionCode: "-", variant: "release·profileable", source: "CI 아티팩트", build: "-", signed: false, artifactUrl: "", tokenRef: "", buildFile: "", benchModule: ":benchmark", deploySecret: genSecret() });
     setSel(0); setModal(false); toast("대상 앱 추가됨 — 상세에서 빌드를 연결하고 '빌드 파싱'을 실행하세요", "ok");
   };
-  const deployHook = app ? ("https://autoqa.io/api/hooks/perf/" + (app || {}).id + "-" + String((app || {}).pkg || "app").replace(/[^a-z0-9]+/gi, "-") + "-9c1e") : "";
+  const deployHook = app ? ("https://proba.co.kr/api/hooks/perf/" + (app || {}).id + "-" + String((app || {}).pkg || "app").replace(/[^a-z0-9]+/gi, "-") + "-9c1e") : "";
   const selectApp = (i) => { if (i === sel) return; if (dirty && !window.confirm("저장하지 않은 변경이 있습니다. 저장하지 않고 다른 앱으로 이동할까요?")) return; setSel(i); };
   const del = (a) => {
     const scn = (perfScenarios || []).filter((s) => s.appId === a.id).length;
