@@ -2391,7 +2391,7 @@ export function FqaDashboardScreen({ nav }) {
       <Card className="p-4">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-semibold text-slate-800">실패 원인 분포 <span className="text-xs font-normal text-slate-500">완료 실행 · 실패/경고 {causeTot}건</span></span>
-          <span className="text-xs text-slate-500">러너가 에러 문장 규칙으로 자동 분류 · 애매하면 “기타”</span>
+          <span className="text-xs text-slate-500">러너가 에러 문장 규칙으로 자동 분류</span>
         </div>
         {causeTot === 0 ? (
           <div className="rounded-lg bg-slate-100 px-3 py-4 text-center text-xs text-slate-500">기간 내 실패·경고가 없습니다</div>
