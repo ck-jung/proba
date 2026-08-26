@@ -329,7 +329,6 @@ export default function App() {
             {role === "admin" && (
               <div className="px-3 pb-2"><button onClick={() => setSpace("console")} className="w-full flex items-center gap-2 rounded-lg border border-zinc-400 bg-white px-3 py-2.5 text-sm text-amber-700 hover:bg-amber-50"><Shield size={16} />관리자 콘솔</button></div>
             )}
-            <div className="p-3 border-t border-zinc-400/40 text-xs text-zinc-600 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500" />엔진 연결됨 · {tenantName}</div>
           </aside>
           <main className="flex-1 flex flex-col overflow-hidden">
             <header className="flex items-center px-6 py-3.5 border-b border-zinc-200/60 bg-white">
