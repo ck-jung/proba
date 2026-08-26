@@ -48,8 +48,8 @@ export default function App() {
   const [reportCfg, setReportCfg] = useState({ ch: { slack: true, teams: false, email: true }, cond: "fail", scope: "통합 (전체 도메인)", rsched: { on: true, freq: "weekly", time: "09:00", dow: 1, dom: 1 } });
   const [toasts, setToasts] = useState([]);
   const [notifs, setNotifs] = useState([
-    { icon: "play", text: "요금/청구 평가 완료 — PASS율 79%", t: "14:36" },
-    { icon: "bug", text: "DEF-1842 자동 등록 (PII)", t: "14:36" },
+    { icon: "play", text: "요금/청구 평가 완료 — PASS율 79%", t: "14:36", to: { domain: "LQA", view: "history" } },
+    { icon: "bug", text: "DEF-1842 자동 등록 (PII)", t: "14:36", to: { domain: "LQA", view: "defects" } },
   ]);
   const [bellOpen, setBellOpen] = useState(false);
   const [modal, setModal] = useState(null);
@@ -127,6 +127,17 @@ export default function App() {
      이동에 성공하면 가드를 비운다 — 화면이 정리를 빠뜨려도 다음 이동에서 자동 해소된다. */
   const navGuardRef = useRef(null);
   const setNavGuard = (msg) => { navGuardRef.current = msg || null; };
+  /* 🔑 알림 클릭 이동 — 알림은 "무슨 일이 났다" 만 말하고, 어디로 갈지는 알림이 들고 있어야 한다.
+     도메인부터 바꾸는 이유: LQA 와 FQA 는 view id 체계가 다르다("history" vs "fqa-history").
+     도메인을 안 바꾸고 setView 만 하면 그 도메인에 없는 화면이라 빈 화면이 된다.
+     목적지가 없는 알림은 누를 수 없게 둔다 — 눌리는 것과 아닌 것이 같아 보이면 고장으로 읽힌다. */
+  const openNotif = (n) => {
+    setBellOpen(false);
+    if (!n.to) return;
+    if (!goTo(n.to.view)) return;                       // 미저장 변경 가드를 우회하지 않는다
+    if (n.to.domain && n.to.domain !== domain) setDomain(n.to.domain);
+    if (n.to.run) { setFqaResultRun(n.to.run); setFqaResultFrom("fqa-history"); }
+  };
   const goTo = (v) => { if (navGuardRef.current && !window.confirm(navGuardRef.current)) return false; navGuardRef.current = null; setView(v); return true; };
   /* 🔑 FQA 화면 간 이동 단일 출처.
      전에는 화면마다 nav 람다를 따로 넘겨서 인자 규약이 셋으로 갈려 있었다 —
@@ -263,7 +274,7 @@ export default function App() {
                     <div className="max-h-80 overflow-y-auto">
                       {notifs.length === 0 && <div className="px-4 py-6 text-center text-sm text-slate-500">알림이 없습니다.</div>}
                       {notifs.map((n, i) => { const NI = nIcon[n.icon] || Bell; return (
-                        <div key={i} className="px-4 py-2.5 border-b border-zinc-100 flex items-start gap-3"><NI size={15} className="text-sky-500 mt-0.5" /><div className="flex-1"><div className="text-sm text-slate-700">{n.text}</div><div className="text-xs text-slate-500">{n.t}</div></div></div>
+                        <div key={i} onClick={() => openNotif(n)} className={"px-4 py-2.5 border-b border-zinc-100 flex items-start gap-3" + (n.to ? " cursor-pointer hover:bg-zinc-50" : "")}><NI size={15} className="text-sky-500 mt-0.5" /><div className="flex-1"><div className="text-sm text-slate-700">{n.text}</div><div className="text-xs text-slate-500">{n.t}</div></div></div>
                       ); })}
                     </div>
                     <button onClick={() => { setBellOpen(false); setView("report"); }} className="w-full text-center text-xs font-semibold text-sky-600 py-2.5 hover:bg-zinc-50">리포트 · 알림 설정 →</button>

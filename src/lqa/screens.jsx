@@ -280,8 +280,8 @@ export function JiraForm({ close, data }) {
     const rowsSel = defRows.filter((r) => pickRows.has(r.i)).map((r) => ({ i: r.i, data: r.data }));
     const rowNote = rowsSel.length ? "\n\n[실패 행] " + (d.ds ? "데이터셋 " + d.ds + "\n" : "") + rowsSel.map((r) => r.i + "행 · " + Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")).join("\n") : "";
     addDefect({ key, tc: d.tc || "수동", target: d.target || "", sev, title, status: "Open", domain: dom, project: jira ? proj : "", assignee: assignee === "미지정" ? "" : assignee, desc: desc + rowNote, steps, expected, actual, evidence, ...(rowsSel.length ? { rows: rowsSel } : {}) });
-    if (jira) { toast("결함 등록 · Jira 이슈 " + key + " 생성", "ok"); notify({ icon: "bug", text: "Jira 이슈 " + key + " 생성 (" + (d.tc || "수동") + ")" }); }
-    else { toast("결함 " + key + " 등록 완료", "ok"); notify({ icon: "bug", text: "결함 " + key + " 등록 (" + (d.tc || "수동") + ")" }); }
+    if (jira) { toast("결함 등록 · Jira 이슈 " + key + " 생성", "ok"); notify({ icon: "bug", text: "Jira 이슈 " + key + " 생성 (" + (d.tc || "수동") + ")", to: { domain: dom, view: "defects" } }); }
+    else { toast("결함 " + key + " 등록 완료", "ok"); notify({ icon: "bug", text: "결함 " + key + " 등록 (" + (d.tc || "수동") + ")", to: { domain: dom, view: "defects" } }); }
     close();
   };
   return (
@@ -1441,8 +1441,8 @@ export function Run() {
       }
     });
     updateRun(id, { status: "완료", finishedAt: nowStamp() });
-    notify({ icon: "play", text: run.planName + " 완료 — PASS " + run.pass + " / FAIL " + run.fail });
-    if (made) notify({ icon: "bug", text: "FAIL " + made + "건 결함 자동 등록 (Jira 규칙)" });
+    notify({ icon: "play", text: run.planName + " 완료 — PASS " + run.pass + " / FAIL " + run.fail, to: { domain: "LQA", view: "history" } });
+    if (made) notify({ icon: "bug", text: "FAIL " + made + "건 결함 자동 등록 (Jira 규칙)", to: { domain: "LQA", view: "defects" } });
     if (pendingRef.current === id) { pendingRef.current = null; setActiveRun({ ...run, status: "완료" }); setSel((run.results && run.results[0]) || null); setFromHistory(false); toast("평가 완료 · " + run.score + "점 · 실패 " + run.fail + "건" + (made ? " · 결함 " + made + "건 자동 등록" : ""), "ok"); }
   };
   const procRef = useRef({});
@@ -1857,7 +1857,7 @@ export function Report() {
   ]);
   const sendTest = (channel) => {
     const row = { t: "now", ch: channel, txt: "테스트 알림 발송", ok: true };
-    setHist([row, ...hist]); toast(channel + " 테스트 알림 발송 완료", "ok"); notify({ icon: "send", text: channel + " 테스트 알림 발송" });
+    setHist([row, ...hist]); toast(channel + " 테스트 알림 발송 완료", "ok"); notify({ icon: "send", text: channel + " 테스트 알림 발송", to: { domain: "LQA", view: "report" } });
   };
   const genReport = () => { toast("HTML 리포트 생성 완료 · " + scope, "ok"); setHist([{ t: "now", ch: "Report", txt: scope + " HTML 리포트 생성", ok: true }, ...hist]); };
   const chCfg = [

@@ -569,7 +569,7 @@ export function NqaRunScreen({ nav }) {
     const t = setInterval(() => {
       setTick((x) => x + 1);
       const runs = nqaRuns || [];
-      runs.forEach((r) => { if (r.status === "실행중" && r.simStart && Date.now() - r.simStart >= SIM_MS) { updateNqaRun(r.id, { status: "완료", endedAt: stampPlus(r.durationSec || 0), result: r.target }); const p = (nqaScenarios || []).find((x) => x.id === r.scnId) || {}; if (notify) notify({ icon: "play", text: "부하 테스트 완료 · " + (p.name || "부하") + " · " + (r.target || {}).verdict }); } });
+      runs.forEach((r) => { if (r.status === "실행중" && r.simStart && Date.now() - r.simStart >= SIM_MS) { updateNqaRun(r.id, { status: "완료", endedAt: stampPlus(r.durationSec || 0), result: r.target }); const p = (nqaScenarios || []).find((x) => x.id === r.scnId) || {}; if (notify) notify({ icon: "play", text: "부하 테스트 완료 · " + (p.name || "부하") + " · " + (r.target || {}).verdict, to: { domain: "NQA", view: "nqa-history" } }); } });
       /* 🔑 부하 생성기는 전용 VM 1대다 — 두 부하가 한 머신에서 겹치면 양쪽 측정이 다 흔들린다.
          워커 산술이 아니라 '실행 중이면 대기'다 (PQA P4와 같은 모델). */
       let busy = runs.some((r) => r.status === "실행중" && !(r.simStart && Date.now() - r.simStart >= SIM_MS));

@@ -1618,7 +1618,7 @@ const RUN_LOG = [
   { lv: "ERROR", t: "TC-401 대상 응답 없음 · ECONNREFUSED (러너 오류)" },
 ];
 export function FqaRunScreen({ nav }) {
-  const { fqaRuns, addFqaRun, updateFqaRun, removeFqaRun, fqaCases, updateFqaCase, fqaSuites, fqaSystems, fqaPlans, datasets, goto } = useApp();
+  const { fqaRuns, addFqaRun, updateFqaRun, removeFqaRun, fqaCases, updateFqaCase, fqaSuites, fqaSystems, fqaPlans, datasets, goto, notify } = useApp();
   const [msg, flash] = useToast();
   const [lvl, setLvl] = useState("ALL");
   const [tab, setTab] = useState("진행");
@@ -1710,7 +1710,12 @@ export function FqaRunScreen({ nav }) {
     updateFqaRun(next.id, { status: "실행 중", prog: 12, progt: Math.max(1, Math.round(total * 0.12)) + "/" + total, dur: "0분 03초", startedAt: nowStamp() });
     setTimeout(() => updateFqaRun(next.id, { prog: 42, progt: Math.max(1, Math.round(total * 0.42)) + "/" + total, dur: "0분 06초" }), 3000);
     setTimeout(() => updateFqaRun(next.id, { prog: 74, progt: Math.max(1, Math.round(total * 0.74)) + "/" + total, dur: "0분 10초" }), 6000);
-    setTimeout(() => updateFqaRun(next.id, { status: "완료", prog: 100, progt: total + "/" + total, dur: "0분 " + (12 + total) + "초", endedAt: nowStamp(), pass: total - fail - warn, warn, fail }), 9000);
+    /* 🔑 실행이 끝났다는 사실은 화면을 보고 있지 않은 사람에게도 가야 한다.
+       LQA·NQA 는 보내는데 FQA 만 안 보내고 있었다. 목적지는 그 실행의 결과 화면이다. */
+    setTimeout(() => {
+      updateFqaRun(next.id, { status: "완료", prog: 100, progt: total + "/" + total, dur: "0분 " + (12 + total) + "초", endedAt: nowStamp(), pass: total - fail - warn, warn, fail });
+      if (notify) notify({ icon: "play", text: (next.plan || next.name) + " 완료 — PASS " + (total - fail - warn) + " / FAIL " + fail, to: { domain: "FQA", view: "fqa-result-detail", run: next.id } });
+    }, 9000);
   }, [fqaRuns]);
   const cancelRun = (r) => { if (!window.confirm(r.id + " 실행을 큐에서 취소할까요?")) return; removeFqaRun(r.id); if (selRunId === r.id) setSelRunId(null); flash(r.id + " 취소됨 — 큐에서 제거"); };
   const stopRun = (r) => { if (!window.confirm(r.id + " 실행을 중지할까요? — 러너에 취소 신호를 보내고 큐에서 제거합니다")) return; removeFqaRun(r.id); if (selRunId === r.id) setSelRunId(null); flash(r.id + " 중지됨 — 러너 취소 · 큐에서 제거"); };
