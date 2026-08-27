@@ -165,6 +165,15 @@ function report(src, base, outFile, accts) {
     [...new Set(stats.unknown)].slice(0, 12).forEach((u) => log(`${C.d}   · ${u}${C.r}`));
   }
 
+  /* 🔑 비밀번호를 치환했다면 알린다. 그리고 못 잡았을 수도 있다는 것까지 말한다 —
+     판단 기준이 로케이터의 힌트(비밀번호·password 등)라, 힌트가 없는 화면은 못 잡는다. */
+  if (stats.redacted) log(`\n${C.y}  비밀번호로 보이는 입력 ${stats.redacted}건을 \${계정 비밀번호} 로 바꿨습니다${C.r}`);
+  if (stats.unmapped) {
+    log(`\n${C.y}  ⚠ 코드 스텝에는 녹화 원본이 그대로 들어갑니다.${C.r}`);
+    log(`${C.d}     로그인이 포함된 녹화라면 ${outFile} 을 열어 남은 값이 없는지 확인하세요.${C.r}`);
+    log(`${C.d}     (치환은 로케이터에 '비밀번호'·password 같은 힌트가 있을 때만 걸립니다)${C.r}`);
+  }
+
   fs.writeFileSync(outFile, JSON.stringify({ base, steps, stats: { ...stats, unknown: undefined } }, null, 2), "utf8");
   log(`\n${C.g}✓${C.r} ${outFile} 저장`);
 }

@@ -92,6 +92,39 @@ function redact(loc, val, accts) {
   return hit ? "${계정 ID}" : val;
 }
 
+/* 🔑 코드 스텝 안의 비밀번호도 치환한다 — 여기는 "원본 보존" 원칙의 예외다.
+
+   왜 예외인가: 파서가 변환하지 못한 구간(팝업 로그인이 대표적이다 — page1. 이라
+   패턴에 안 걸린다)은 코드 스텝으로 원본이 통째로 들어간다. 그러면 위 redact 가
+   손대지 못하고 평문 비밀번호가 steps.json 에 남는다. 실제로 그렇게 샜다.
+
+   손실 0 은 편의고 평문 비밀번호는 사고다. 사고 쪽이 이긴다.
+
+   판단은 위 redact 와 같은 기준(PW_HINT)을 쓴다 — .fill()/.type() 호출 앞의
+   로케이터에 비밀번호 힌트가 있으면 그 인자만 바꾼다. 값 자체를 보고 추측하지 않는다
+   (정상 입력값을 날리는 쪽이 더 나쁘다). 힌트가 없으면 못 잡으므로,
+   CLI 가 로그인이 포함된 녹화는 결과를 확인하라고 알린다. */
+function redactCode(src) {
+  let hits = 0;
+  const out = String(src || "").split("\n").map((line) => {
+    let done = line, changed = false;
+    ["fill", "type"].forEach((fn) => {
+      const i = done.indexOf("." + fn + "(");
+      if (i < 0) return;
+      if (!PW_HINT.test(done.slice(0, i))) return;          // 로케이터에 힌트가 없으면 손대지 않는다
+      const head = done.slice(0, i);
+      const tail = done.slice(i);
+      const re = new RegExp("^\\." + fn + "\\(\\s*" + STR + "\\s*\\)");
+      if (!re.test(tail)) return;
+      done = head + tail.replace(re, "." + fn + "('${계정 비밀번호}')");
+      changed = true;
+    });
+    if (changed) hits++;
+    return done;
+  }).join("\n");
+  return { code: out, hits };
+}
+
 function toStep(st, base, accts) {
   const t = st.text;
 
@@ -174,16 +207,21 @@ function parseSpec(src, base, accts) {
   let pending = [];
   const unknown = [];
 
+  let redacted = 0;
   const flush = () => {
     if (!pending.length) return;
-    steps.push({ act: "코드 스텝", loc: "", val: "", code: pending.join("\n") });
+    const r = redactCode(pending.join("\n"));
+    redacted += r.hits;
+    steps.push({ act: "코드 스텝", loc: "", val: "", code: r.code });
     pending = [];
   };
 
   for (const st of sts) {
     const s = toStep(st, base, accts);
     if (s) { flush(); steps.push(s); }
-    else { pending.push(st.raw.join("\n")); unknown.push(st.text); }
+    /* 🔑 unknown 은 화면에 그대로 찍힌다 — 여기도 치환해야 한다.
+       스텝만 가리고 통계에 원문을 남기면 아무것도 안 가린 것과 같다. */
+    else { pending.push(st.raw.join("\n")); unknown.push(redactCode(st.text).code); }
   }
   flush();
 
@@ -196,6 +234,8 @@ function parseSpec(src, base, accts) {
       mapped,
       unmapped: unknown.length,
       codeSteps,
+      redacted,          // 코드 스텝 안에서 비밀번호로 판단해 치환한 줄 수
+
       coverage: sts.length ? Math.round((mapped / sts.length) * 100) : 100,
       unknown,
     },

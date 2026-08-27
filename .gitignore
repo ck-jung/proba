@@ -2,6 +2,19 @@ node_modules
 dist
 .vite
 
+# CLI 산출물 — 저장소 루트에서 실행해도 걸리도록 여기에도 둔다.
+# cli/.gitignore 는 cli/ 안에서만 유효한데, 사람들은 루트에서도 실행한다.
+# 🔑 steps.json 은 녹화 결과다. 팝업 로그인처럼 파서가 변환하지 못한 구간은
+#    '코드 스텝' 으로 원본이 그대로 들어가므로 입력값이 남을 수 있다. 커밋하지 않는다.
+steps.json
+*.spec.ts
+test-results/
+playwright-report/
+
+# 로그인 상태 — 세션 토큰이 평문으로 들어간다
+auth.json
+*.storage.json
+
 # 에디터 설정 — 사람마다 다르므로 저장소에 두지 않는다
 .idea/
 .vscode/

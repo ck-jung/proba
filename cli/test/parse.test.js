@@ -84,5 +84,39 @@ t("모든 문장이 스텝 또는 코드 스텝에 담긴다", () => {
 });
 t("커버리지 80% 이상", () => assert.ok(stats.coverage >= 80, "커버리지 " + stats.coverage + "%"));
 
+/* ───────── 비밀번호 치환 (코드 스텝 포함) ───────── */
+t("코드 스텝 안의 비밀번호도 치환된다 — 팝업 로그인", () => {
+  const r = parseSpec(`
+test('t', async ({ page }) => {
+  const p1 = page.waitForEvent('popup');
+  const page1 = await p1;
+  await page1.getByRole('textbox', { name: '아이디' }).fill('myid');
+  await page1.getByRole('textbox', { name: '비밀번호' }).fill('SuperSecret@123');
+});`, "", []);
+  const blob = JSON.stringify(r);
+  if (/SuperSecret/.test(blob)) throw new Error("평문 비밀번호가 남았다");
+  if (!/myid/.test(blob)) throw new Error("정상 입력값까지 날아갔다");
+  if (r.stats.redacted !== 1) throw new Error("redacted 가 1이 아님: " + r.stats.redacted);
+});
+
+t("stats.unknown 에도 원문이 남지 않는다 (화면에 찍힌다)", () => {
+  const r = parseSpec(`
+test('t', async ({ page }) => {
+  const page1 = await p1;
+  await page1.getByLabel('password').fill('pw-in-unknown');
+});`, "", []);
+  if (/pw-in-unknown/.test(JSON.stringify(r.stats.unknown))) throw new Error("unknown 에 원문이 남았다");
+});
+
+t("힌트가 없으면 손대지 않는다 — 값으로 추측하지 않는다", () => {
+  const r = parseSpec(`
+test('t', async ({ page }) => {
+  const page1 = await p1;
+  await page1.getByLabel('메모').fill('Abcd1234!');
+});`, "", []);
+  if (!/Abcd1234!/.test(JSON.stringify(r))) throw new Error("정상 입력을 날렸다");
+  if (r.stats.redacted !== 0) throw new Error("헛치환");
+});
+
 console.log(`\n${fail ? "\x1b[31m" : "\x1b[32m"}${pass} passed, ${fail} failed\x1b[0m  (커버리지 ${stats.coverage}%)\n`);
 process.exit(fail ? 1 : 0);
