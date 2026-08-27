@@ -47,15 +47,25 @@ npx playwright show-report
 node bin/proba.js parse ./rec.spec.ts --base https://stg.example.com
 ```
 
-### 대상 환경 바꾸기
+### 실행 조건 바꾸기
 
 ```powershell
 $env:PROBA_BASE_URL = "https://stg.example.com"
+$env:PROBA_VIEWPORT = "1920x1080"     # 기본 1280x720
 npx playwright test
 ```
 
+| 환경변수 | 뜻 |
+|---|---|
+| `PROBA_BASE_URL` | 상대경로의 기준. 기본 `https://demo.playwright.dev/todomvc` |
+| `PROBA_VIEWPORT` | 실행 해상도. `1920x1080` 또는 `1920,1080`. 형식이 틀리면 기본값 |
+
 스텝의 경로는 상대경로이고 `baseURL` 이 받습니다 — 그래야 **같은 케이스를 그대로**
-스테이징·운영에 돌릴 수 있습니다.
+스테이징·운영에 돌릴 수 있습니다. 해상도도 같은 이유로 케이스가 아니라 여기가 정합니다.
+
+> **녹화 해상도와 맞추세요.** `record --viewport 1920x1080` 으로 녹화했다면 실행도
+> `PROBA_VIEWPORT="1920x1080"` 이어야 합니다. 반응형 사이트는 해상도가 달라지면
+> 메뉴가 접혀 녹화한 요소가 안 보이고, 로케이터 문제처럼 보이는 실패가 납니다.
 
 **목업 저장소 루트(`C:\Data\proba`)에서는 돌지 않습니다.** 거기는 Vite/React 앱이라
 `playwright.config` 도 `@playwright/test` 도 없습니다. 반드시 `cli/` 에서 실행하세요.

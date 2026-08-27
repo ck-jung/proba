@@ -6,6 +6,20 @@ import { defineConfig } from '@playwright/test';
 
    baseURL 을 여기서 받는 이유: 스텝의 경로는 상대경로다(파서가 그렇게 저장한다).
    그래야 같은 케이스를 스테이징·운영에 그대로 돌릴 수 있다. */
+
+/* 🔑 해상도도 여기가 정한다 — 케이스가 아니다.
+   파서는 codegen 이 내는 test.use({ viewport: … }) 를 일부러 버린다(parse.js 참고).
+   해상도는 "이 케이스가 무엇을 검증하는가"가 아니라 "어떤 조건에서 돌릴 것인가"라서다.
+   그런데 버리기만 하고 여기서 받지 않으면 녹화 해상도와 실행 해상도가 어긋난다 —
+   반응형 사이트는 그 차이만으로 메뉴가 접혀 로케이터가 안 보이고 실패한다.
+
+   PROBA_VIEWPORT="1920x1080"  (x 또는 , 둘 다 받는다. 형식이 틀리면 기본값)
+   실 제품에서는 러너가 실행 요청의 해상도를 이 자리에 채운다. */
+function viewport() {
+  const m = String(process.env.PROBA_VIEWPORT || '').match(/^\s*(\d+)\s*[x,]\s*(\d+)\s*$/i);
+  return m ? { width: Number(m[1]), height: Number(m[2]) } : { width: 1280, height: 720 };
+}
+
 export default defineConfig({
   testDir: './example',
   timeout: 30_000,
@@ -25,6 +39,7 @@ export default defineConfig({
 
   use: {
     baseURL: process.env.PROBA_BASE_URL || 'https://demo.playwright.dev/todomvc',
+    viewport: viewport(),
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
