@@ -9,6 +9,30 @@
        (커버리지를 넓힐수록 코드 스텝이 줄어들 뿐)
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ⚠️ 실패 원인 분류(0단계)를 만들 사람에게 — TimeoutError 를 전부 '로케이터' 로 몰지 말 것.
+
+   실제로 밟은 사례다. TodoMVC 녹화본을 그대로 돌렸더니:
+
+     Error: locator.check: Test timeout of 30000ms exceeded.
+       - waiting for getByRole('checkbox', { name: 'Toggle Todo' })
+         - locator resolved to <input class="toggle" type="checkbox" …/>   ← 찾긴 찾았다
+       - attempting click action
+         - click action done                                              ← 클릭도 됐다
+       - waiting for scheduled navigations to finish
+       (이후 30초 타임아웃)
+
+   'Active'(미완료만) 필터가 켜진 상태에서 항목을 완료하면 그 항목이 목록에서 사라진다.
+   .check() 는 ① 클릭하고 ② 체크된 상태인지 확인하는데, ② 에서 요소가 이미 없어
+   영원히 기다린다. 로케이터도 타이밍도 환경도 아니고 시나리오가 그렇게 생겼을 뿐이다.
+
+   그런데 Playwright 는 이걸 category=pw:api + TimeoutError 로 낸다.
+   "pw:api 이고 타임아웃이면 로케이터" 라는 규칙을 그대로 쓰면 '로케이터' 로 분류되고,
+   자가보정이 붙으면 멀쩡한 로케이터의 대안 후보를 제안한다 — 조용히 틀린 결론이다.
+
+   구분법: 에러 로그에 'locator resolved to' 가 있으면 요소는 찾은 것이다.
+     있음 → 액션은 됐고 그 뒤 상태가 기대와 다름. 시나리오 문제이므로 자가보정 대상이 아니다.
+     없음 → 요소를 못 찾았다. 이쪽이 진짜 로케이터이고 자가보정 대상이다. */
+
 /* ───────── 1. 문장 분해 ─────────
    test(...) 콜백 안의 문장만 뽑는다. 세미콜론으로 끝나지 않으면 다음 줄과 합친다.
 
