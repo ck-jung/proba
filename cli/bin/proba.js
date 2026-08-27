@@ -39,15 +39,18 @@ function args(argv) {
 
 /* 🔑 출력 파일을 쓰기 전에 폴더를 만든다.
    없으면 fs 가 ENOENT 스택 트레이스를 통째로 뱉는다 — 사용자는 "왜 죽었지" 만 남는다.
-   --out 은 현재 폴더 기준이라 다른 위치에서 실행하면 쉽게 밟는다. */
-function writeOut(file, data) {
+
+   🔑 안내는 --out 을 준 경우에만 한다. 기본 경로는 cwd 와 무관한데(gen 은 패키지 기준)
+      "--out 은 지금 폴더 기준" 이라고 하면 주지도 않은 옵션을 탓하며 엉뚱한 폴더를
+      가리킨다. 틀린 안내는 안내가 없는 것보다 나쁘다 — 그쪽으로 찾아 나서게 만든다. */
+function writeOut(file, data, gaveOut) {
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, data, "utf8");
   } catch (e) {
     log(`${C.red}저장하지 못했습니다: ${file}${C.r}`);
-    log(`${C.d}  ${e.message}`);
-    log(`  --out 은 지금 폴더(${process.cwd()}) 기준입니다.${C.r}`);
+    log(`${C.d}  ${e.message}${C.r}`);
+    if (gaveOut) log(`${C.d}  --out 은 지금 폴더(${process.cwd()}) 기준입니다.${C.r}`);
     process.exit(1);
   }
 }
@@ -155,7 +158,7 @@ function runCodegen(o) {
 }
 
 /* ── 결과 출력 ── */
-function report(src, base, outFile, accts) {
+function report(src, base, outFile, accts, gaveOut) {
   const { steps, stats } = parseSpec(src, base, accts);
 
   log(`\n${C.b}── 캡처된 스텝 ──${C.r}`);
@@ -201,7 +204,7 @@ function report(src, base, outFile, accts) {
     log(`${C.d}     (치환은 로케이터에 '비밀번호'·password 같은 힌트가 있을 때만 걸립니다)${C.r}`);
   }
 
-  writeOut(outFile, JSON.stringify({ base, steps, stats: { ...stats, unknown: undefined } }, null, 2));
+  writeOut(outFile, JSON.stringify({ base, steps, stats: { ...stats, unknown: undefined } }, null, 2), gaveOut);
   log(`\n${C.g}✓${C.r} ${outFile} 저장`);
 }
 
@@ -221,11 +224,11 @@ if (cmd === "record") {
   const src = fs.readFileSync(spec, "utf8");
   log(`\n${C.d}── codegen 원본 (${spec}) ──${C.r}`);
   log(C.d + src.trim() + C.r);
-  report(src, base, path.resolve(o.out || "steps.json"), accts);
+  report(src, base, path.resolve(o.out || "steps.json"), accts, !!o.out);
 } else if (cmd === "parse") {
   const file = o._[1];
   if (!file || !fs.existsSync(file)) { log(`${C.red}파일을 찾을 수 없습니다${C.r}\n${HELP}`); process.exit(1); }
-  report(fs.readFileSync(file, "utf8"), o.base || "", path.resolve(o.out || "steps.json"), accts);
+  report(fs.readFileSync(file, "utf8"), o.base || "", path.resolve(o.out || "steps.json"), accts, !!o.out);
 } else if (cmd === "gen") {
   /* 스텝 → .spec.ts.
      🔑 실 제품에서는 이 생성기를 서버가 소유한다 — 여기 있는 것은 참고 구현이고,
@@ -244,7 +247,7 @@ if (cmd === "record") {
      실제로 지금 폴더에 떨어뜨렸다가 'No tests found' 를 밟았다.
      cwd 가 아니라 이 패키지 기준으로 잡는다. 어디서 실행해도 같은 곳에 떨어진다. */
   const out = o.out ? path.resolve(o.out) : path.join(__dirname, "..", "example", "case.spec.ts");
-  writeOut(out, r.code);
+  writeOut(out, r.code, !!o.out);
   log(`\n${C.d}── 생성 결과 (${out}) ──${C.r}`);
   log(r.code.trim());
   log(`\n스텝 ${r.stats.steps} · 변환 ${C.g}${r.stats.emitted}${C.r}` +

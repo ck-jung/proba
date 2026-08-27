@@ -73,6 +73,7 @@ npx playwright test
 | `--no-auth` | 로그인 상태 저장/로드 안 함 |
 | `--viewport <WxH>` | 기본 `1280x720` |
 | `--skip-install` | Chromium 자동 설치 건너뜀 |
+| `--flat` | `gen`: `test.step()` 으로 감싸지 않음 (디버그·왕복 확인용) |
 
 **최초 실행 시** Chromium을 자동으로 내려받습니다 (2~3분).
 **로그인 상태**는 `~/.proba/`에 저장되어 다음 녹화에서 재사용됩니다 (`--save-storage` / `--load-storage`).
