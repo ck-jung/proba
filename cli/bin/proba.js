@@ -62,7 +62,8 @@ ${C.b}PROBA 레코딩 CLI${C.r}  v0.1
 옵션
   --url <URL>          녹화 시작 주소 (record)
   --base <URL>         상대경로 기준 base. 미지정 시 --url 의 origin
-  --out <파일>          스텝 저장 경로 (기본: ./steps.json)
+  --out <파일>          record·parse: 스텝 저장 경로 (기본 ./steps.json)
+                       gen: .spec.ts 저장 경로 (기본 example/case.spec.ts — 러너가 보는 곳)
   --auth <파일>         로그인 상태 재사용/저장 (기본: ~/.proba/<host>.json)
   --no-auth            로그인 상태 저장/로드 안 함
   --viewport <WxH>     기본 1280x720 (실행 해상도와 맞추세요)
@@ -238,14 +239,20 @@ if (cmd === "record") {
   // record/parse 가 내는 형태와 케이스 형태를 둘 다 받는다
   const c = Array.isArray(data) ? { steps: data } : (data.steps ? data : { steps: [] });
   const r = generateSpec(c, { wrap: !o.flat });
-  const out = path.resolve(o.out || "case.spec.ts");
+  /* 🔑 기본 출력은 playwright.config 의 testDir 안이다.
+     기본값으로 냈는데 러너가 못 찾으면 그건 기본값이 틀린 것이다 —
+     실제로 지금 폴더에 떨어뜨렸다가 'No tests found' 를 밟았다.
+     cwd 가 아니라 이 패키지 기준으로 잡는다. 어디서 실행해도 같은 곳에 떨어진다. */
+  const out = o.out ? path.resolve(o.out) : path.join(__dirname, "..", "example", "case.spec.ts");
   writeOut(out, r.code);
   log(`\n${C.d}── 생성 결과 (${out}) ──${C.r}`);
   log(r.code.trim());
   log(`\n스텝 ${r.stats.steps} · 변환 ${C.g}${r.stats.emitted}${C.r}` +
       (r.stats.skipped ? ` · ${C.red}미변환 ${r.stats.skipped}${C.r}` : ""));
   r.stats.notes.forEach((n) => log(`  ${C.red}⚠${C.r} ${n}`));
-  log(`\n실행하려면 playwright.config 의 baseURL 을 대상 환경으로 두고:  npx playwright test ${path.basename(out)}`);
+  /* --out 을 준 경우에만 파일명을 붙인다 — 기본 위치면 그냥 npx playwright test 로 돈다 */
+  const how = o.out ? `npx playwright test ${path.basename(out)}` : "npx playwright test";
+  log(`\n실행하려면 playwright.config 의 baseURL 을 대상 환경으로 두고:  ${C.c}${how}${C.r}`);
 } else {
   log(`${C.red}알 수 없는 명령: ${cmd}${C.r}\n${HELP}`);
   process.exit(1);

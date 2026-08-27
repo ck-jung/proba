@@ -1,8 +1,13 @@
 # 녹화 산출물 · 생성물 — 스텝이 정본이고 .spec.ts 는 매번 다시 만든다
-steps.json
+# 🔑 steps.json 이 아니라 *steps.json 이다. my.steps.json · login.steps.json 처럼
+#    이름을 붙여 저장하면 규칙을 빠져나가고, 그 안에 녹화 원본이 들어 있다.
+*steps.json
 *.spec.ts
 test-results/
 playwright-report/
+
+# 예외 — npm run demo 의 입력이라 커밋해야 한다
+!example/todomvc.steps.json
 
 # 로그인 상태 — 세션 토큰이 평문으로 들어간다. 절대 커밋하지 않는다.
 auth.json

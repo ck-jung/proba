@@ -20,9 +20,15 @@ node bin/proba.js record --url https://demo.playwright.dev/todomvc
 # 2) 이미 있는 codegen 출력만 파싱
 node bin/proba.js parse ./rec.spec.ts --base https://stg.tworld.co.kr
 
-# 3) 스텝 → 실행 가능한 .spec.ts
-node bin/proba.js gen ./steps.json --out case.spec.ts
+# 3) 스텝 → 실행 가능한 .spec.ts  (example/case.spec.ts 에 떨어집니다)
+node bin/proba.js gen ./steps.json
+
+# 4) 그대로 실행
+npx playwright test
 ```
+
+3번의 출력 위치는 `playwright.config` 의 `testDir` 과 같습니다. 그래서 `--out` 없이
+바로 4번이 됩니다 — 다른 곳에 두고 싶을 때만 `--out` 을 쓰세요.
 
 ## 생성물을 실제로 돌려보기
 
@@ -56,7 +62,7 @@ npm run demo
 |---|---|
 | `--url <URL>` | 녹화 시작 주소 |
 | `--base <URL>` | 상대경로 기준. 미지정 시 `--url`의 origin |
-| `--out <파일>` | 스텝 저장 경로 (기본 `./steps.json`) |
+| `--out <파일>` | `record`·`parse`: 스텝 저장 경로 (기본 `./steps.json`)<br>`gen`: `.spec.ts` 저장 경로 (기본 `example/case.spec.ts` — 러너가 보는 곳) |
 | `--auth <파일>` | 로그인 상태 파일 (기본 `~/.proba/<host>.json`) |
 | `--no-auth` | 로그인 상태 저장/로드 안 함 |
 | `--viewport <WxH>` | 기본 `1280x720` |

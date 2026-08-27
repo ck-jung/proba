@@ -22,7 +22,7 @@
   },
   "scripts": {
     "test": "node test/parse.test.js && node test/roundtrip.test.js && node test/exec.test.js",
-    "demo": "node bin/proba.js gen example/todomvc.steps.json --out example/todomvc.spec.ts && playwright test"
+    "demo": "node bin/proba.js gen example/todomvc.steps.json && playwright test"
   },
   "_comment": [
     "playwright 버전은 정확히 고정한다(캐럿 ^ 없이).",
