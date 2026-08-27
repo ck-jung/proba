@@ -84,6 +84,11 @@ bin/proba.js     CLI 진입점 — codegen 실행 · 결과 출력
 src/dsl.js       스텝 ↔ 코드 매핑 · 단일 출처
 src/parse.js     파서     codegen 출력 → 스텝
 src/generate.js  생성기   스텝 → .spec.ts
+
+test/parse       파서 단위 (22)
+test/roundtrip   두 방향이 합의하는가 (14)
+test/exec        생성된 코드가 실제로 실행되는가 (8)
+test/_stub       가짜 Playwright — 호출을 기록한다
 ```
 
 브라우저 제어, **로케이터 생성, 고유성 보장, 검증 툴바는 전부 Playwright가 합니다.**
@@ -111,6 +116,22 @@ codegen 출력 → 파서 → 스텝 → 생성기 → spec' → 파서 → 스�
 
 비교는 **스텝 기준**입니다. 코드는 같지 않아도 됩니다 — `toHaveText` 와 `toContainText` 는
 둘 다 스텝 `text = "..."` 이 되고 생성기는 그중 하나로만 되돌립니다. 스텝이 정본이므로 맞습니다.
+
+### 실행 테스트 — 브라우저 없이 진짜로 돌려본다
+
+`test/exec.test.js` 는 생성된 코드를 **실행합니다.** `test/_stub.js` 가 `page`·`request`·`expect`
+를 대신하고 호출 목록을 기록합니다. 문법 검사로는 못 잡는 것을 잡습니다.
+
+```
+문법 검사   let 이 어디 있든 통과한다
+실행 검사   블록 안에 있으면 다음 스텝에서 ReferenceError 로 죽는다
+```
+
+실제로 개발 중에 이 버그를 냈고, 이 테스트가 있었다면 바로 잡혔을 것입니다.
+지금은 일부러 버그를 되넣으면 이 테스트만 정확히 실패합니다.
+
+브라우저를 띄우는 실행은 이 CLI 의 범위가 아닙니다 —
+생성물을 `npx playwright test` 로 돌리면 됩니다.
 
 ### 놓치기 쉬운 것 두 가지
 
