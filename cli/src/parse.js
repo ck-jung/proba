@@ -176,7 +176,29 @@ function toStep(st, base, accts) {
 
 /* ───────── 4. 진입점 ─────────
    반환: { steps, stats }
-   연속된 미변환 문장은 하나의 '코드 스텝'으로 묶어 원본을 보존한다. */
+   연속된 미변환 문장은 하나의 '코드 스텝'으로 묶어 원본을 보존한다.
+
+   ⚠️ 코드 생성기에게 — 코드 스텝은 test.step() 으로 감싸지 말 것.
+
+   코드 스텝끼리 변수를 주고받는다. 대표적인 것이 새 창(팝업)이다:
+
+     const page1Promise = page.waitForEvent('popup');   ← 코드 스텝 A
+     await page.getByRole('link').click();               ← 클릭 (변환됨)
+     const page1 = await page1Promise;                   ← 코드 스텝 B  A의 변수를 쓴다
+     await page1.getByLabel('카드번호').fill('...');      ← 코드 스텝 C  B의 변수를 쓴다
+
+   변환된 스텝이 사이에 끼면 flush() 때문에 A와 B가 별개의 코드 스텝으로 갈린다.
+   이때 각 스텝을 test.step(async () => { ... }) 으로 감싸면 블록마다 스코프가 닫혀
+   B에서 page1Promise 를 못 찾는다 — ReferenceError 로 죽는다.
+
+   타임라인을 위해 test.step() 으로 감싸고 싶어지지만, 코드 스텝은 예외로 둔다.
+   잃는 것도 없다: 코드 스텝은 뜻을 모르는 구간이라 타임라인에 붙일 이름이 "코드 스텝"
+   말고는 없고, 그건 정보가 아니다.
+
+   파서가 page. 만 보므로(page1. 은 안 본다) 팝업이 열리면 그 이후가 통째로
+   코드 스텝이 된다. 실행은 되지만 스텝 편집과 자가보정은 안 된다.
+   팝업을 스텝으로 다루려면 스텝에 "어느 창인가" 축이 필요하고,
+   그러면 스텝이 서로 독립이라는 성질이 깨진다 — 빈도를 보고 정할 일이다. */
 function parseSpec(src, base, accts) {
   const sts = statements(src);
   const steps = [];
