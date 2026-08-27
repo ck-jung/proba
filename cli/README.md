@@ -30,10 +30,16 @@ node bin/proba.js gen ./steps.json
 
 # 3) 그대로 실행
 npx playwright test
+
+# 4) 결과 보기 — 스텝 타임라인 · 실패 시 trace 와 스크린샷
+npx playwright show-report
 ```
 
 2번의 출력 위치는 `playwright.config` 의 `testDir` 과 같습니다. 그래서 `--out` 없이
 바로 3번이 됩니다 — 다른 곳에 두고 싶을 때만 `--out` 을 쓰세요.
+
+4번의 리포트에는 **`gen` 이 만든 `test.step()` 제목이 그대로 타임라인으로 뜹니다.**
+스텝 하나가 코드 한 덩어리가 되고 그게 실행 결과로 되돌아오는 것을 눈으로 볼 수 있습니다.
 
 이미 있는 codegen 출력이 있으면 1번 대신:
 
