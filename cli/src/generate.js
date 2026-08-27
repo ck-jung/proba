@@ -45,7 +45,10 @@ function stepLines(st, ctx) {
   const loc = st.loc || "";
   const val = st.val == null ? "" : String(st.val);
 
-  if (act === "코드 스텝") return { code: String(st.code || "").split("\n"), raw: true };
+  /* 코드 스텝도 자리표시자는 값으로 바꾼다 — 안 그러면 그 글자를 그대로 입력한다.
+     "원본 보존" 은 우리가 이해 못 한 코드를 버리지 않는다는 뜻이지,
+     실행되지 않는 코드를 내보낸다는 뜻이 아니다. */
+  if (act === "코드 스텝") return { code: D.codePlaceholders(st.code || "").split("\n"), raw: true };
 
   if (act === "이동") return { code: ["await page.goto(" + pathArg(loc) + ");"] };
 

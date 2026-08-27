@@ -78,6 +78,20 @@ await t("계정 변수가 환경변수로 흘러간다", async () => {
   want(r.calls, "getByTestId(pw).fill(s3cret)");
 });
 
+await t("★ 코드 스텝의 비밀번호 자리표시자가 실제 값으로 실행된다", async () => {
+  /* 녹화 때 치환한 ${계정 비밀번호} 는 실행 직전에 값이 되어야 한다.
+     안 바뀌면 그 글자를 그대로 입력해 로그인이 조용히 실패한다.
+     팝업 로그인이 코드 스텝으로 떨어지므로 이 경로가 실제로 쓰인다. */
+  process.env.PROBA_ACCT_PW = "real-pw-9";
+  const r = await runSpec({ id: "TC-PW", name: "팝업 로그인", steps: [
+    { act: "코드 스텝", loc: "", val: "",
+      code: "await page.getByLabel('비밀번호').fill('${계정 비밀번호}');" },
+  ]});
+  want(r.calls, "getByLabel(비밀번호).fill(real-pw-9)");
+  if (JSON.stringify(r.calls).indexOf("계정 비밀번호") >= 0)
+    throw new Error("자리표시자가 그대로 입력됐다 — 로그인이 깨진다");
+});
+
 await t("★ 저장 변수가 스텝 경계를 넘는다 (블록 스코프)", async () => {
   const r = await runSpec({ id: "TC-3", name: "결제", steps: [
     { act: "요청", loc: "POST /v1/orders/checkout", val: "-", body: '{ "payment": "card" }', save: "orderId = $.orderId" },

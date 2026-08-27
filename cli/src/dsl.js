@@ -125,4 +125,21 @@ function valArg(v) {
   return q(stripQuotes(s));
 }
 
-module.exports = { STR, unq, q, LOCATORS, codeToDsl, dslToCode, ACTS, assertToCode, valArg, stripQuotes };
+/* ───────── 5. 코드 스텝 안의 자리표시자 ─────────
+   변환된 스텝은 valArg 가 ACCT.pw 로 바꾸지만, 코드 스텝은 원본이 그대로 나간다.
+   그대로 두면 '${계정 비밀번호}' 라는 **글자를** 입력해 로그인이 실패한다
+   (작은따옴표 문자열이라 JS 가 보간하지 않는다. 백틱이면 없는 변수를 찾다 죽는다).
+
+   즉 저장은 참조로 하되 실행 직전에는 반드시 값으로 바뀌어야 한다.
+   파서가 심는 자리표시자와 여기가 짝이다 — 한쪽만 고치면 조용히 로그인이 깨진다. */
+const PLACEHOLDERS = [
+  [/(['"`])\$\{계정 비밀번호\}\1/g, "ACCT.pw"],
+  [/(['"`])\$\{계정 ID\}\1/g, "ACCT.id"],
+];
+function codePlaceholders(src) {
+  let s = String(src == null ? "" : src);
+  PLACEHOLDERS.forEach(function (p) { s = s.replace(p[0], p[1]); });
+  return s;
+}
+
+module.exports = { STR, unq, q, LOCATORS, codeToDsl, dslToCode, ACTS, assertToCode, valArg, stripQuotes, codePlaceholders };
