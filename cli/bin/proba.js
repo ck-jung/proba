@@ -37,6 +37,21 @@ function args(argv) {
   return o;
 }
 
+/* 🔑 출력 파일을 쓰기 전에 폴더를 만든다.
+   없으면 fs 가 ENOENT 스택 트레이스를 통째로 뱉는다 — 사용자는 "왜 죽었지" 만 남는다.
+   --out 은 현재 폴더 기준이라 다른 위치에서 실행하면 쉽게 밟는다. */
+function writeOut(file, data) {
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, data, "utf8");
+  } catch (e) {
+    log(`${C.red}저장하지 못했습니다: ${file}${C.r}`);
+    log(`${C.d}  ${e.message}`);
+    log(`  --out 은 지금 폴더(${process.cwd()}) 기준입니다.${C.r}`);
+    process.exit(1);
+  }
+}
+
 const HELP = `
 ${C.b}PROBA 레코딩 CLI${C.r}  v0.1
 
@@ -185,7 +200,7 @@ function report(src, base, outFile, accts) {
     log(`${C.d}     (치환은 로케이터에 '비밀번호'·password 같은 힌트가 있을 때만 걸립니다)${C.r}`);
   }
 
-  fs.writeFileSync(outFile, JSON.stringify({ base, steps, stats: { ...stats, unknown: undefined } }, null, 2), "utf8");
+  writeOut(outFile, JSON.stringify({ base, steps, stats: { ...stats, unknown: undefined } }, null, 2));
   log(`\n${C.g}✓${C.r} ${outFile} 저장`);
 }
 
@@ -224,7 +239,7 @@ if (cmd === "record") {
   const c = Array.isArray(data) ? { steps: data } : (data.steps ? data : { steps: [] });
   const r = generateSpec(c, { wrap: !o.flat });
   const out = path.resolve(o.out || "case.spec.ts");
-  fs.writeFileSync(out, r.code, "utf8");
+  writeOut(out, r.code);
   log(`\n${C.d}── 생성 결과 (${out}) ──${C.r}`);
   log(r.code.trim());
   log(`\n스텝 ${r.stats.steps} · 변환 ${C.g}${r.stats.emitted}${C.r}` +
