@@ -20,13 +20,7 @@ const path = require("path");
 const { generateSpec } = require("../src/generate");
 const stub = require("./_stub");
 
-let pass = 0, fail = 0;
-function t(name, fn) {
-  return fn().then(
-    () => { pass++; console.log("  \x1b[32m✓\x1b[0m " + name); },
-    (e) => { fail++; console.log("  \x1b[31m✗\x1b[0m " + name + "\n    " + (e && e.message)); }
-  );
-}
+const { t, done } = require("./_run.js").suite();
 
 /* 생성물을 실행 가능한 형태로 바꾼다.
    TS 요소는 import 한 줄뿐이라 require 로 갈아끼우면 그대로 돈다 — 트랜스파일러가 필요 없다. */
@@ -209,6 +203,5 @@ await t("체크·해제·선택·키 누르기", async () => {
 });
 
 try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) {}
-console.log("\n" + (fail ? "\x1b[31m" : "\x1b[32m") + pass + " passed, " + fail + " failed\x1b[0m\n");
-process.exit(fail ? 1 : 0);
+done();
 })();

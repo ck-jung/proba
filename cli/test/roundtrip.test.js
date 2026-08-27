@@ -19,12 +19,8 @@
 const { parseSpec } = require("../src/parse");
 const { generateSpec } = require("../src/generate");
 
-let pass = 0, fail = 0;
+const { t, done } = require("./_run.js").suite();
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-function t(name, fn) {
-  try { fn(); pass++; console.log("  \x1b[32m✓\x1b[0m " + name); }
-  catch (e) { fail++; console.log("  \x1b[31m✗\x1b[0m " + name + "\n    " + e.message); }
-}
 
 /* 스텝 비교용 — 코드 스텝의 원본 문자열은 공백이 달라질 수 있어 정규화한다 */
 const norm = (steps) => steps.map((s) => ({
@@ -193,5 +189,4 @@ t("모르는 스텝은 버리지 않고 주석으로 남긴다", () => {
   if (g.code.indexOf("미지원 스텝: 두들기기") < 0) throw new Error("주석이 없음");
 });
 
-console.log("\n" + (fail ? "\x1b[31m" : "\x1b[32m") + pass + " passed, " + fail + " failed\x1b[0m\n");
-process.exit(fail ? 1 : 0);
+done();

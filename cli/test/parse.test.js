@@ -16,11 +16,7 @@
 const assert = require("assert");
 const { parseSpec, toDsl } = require("../src/parse.js");
 
-let pass = 0, fail = 0;
-const t = (name, fn) => {
-  try { fn(); pass++; console.log("  \x1b[32m✓\x1b[0m " + name); }
-  catch (e) { fail++; console.log("  \x1b[31m✗\x1b[0m " + name + "\n    " + e.message); }
-};
+const { t, done } = require("./_run.js").suite();
 
 /* ───────── 로케이터 DSL 변환 ───────── */
 console.log("\n로케이터 → DSL");
@@ -134,5 +130,4 @@ test('t', async ({ page }) => {
   if (/hong\.gildong/.test(JSON.stringify(b.steps))) throw new Error("--acct 를 줬는데 아이디가 남음");
 });
 
-console.log(`\n${fail ? "\x1b[31m" : "\x1b[32m"}${pass} passed, ${fail} failed\x1b[0m  (커버리지 ${stats.coverage}%)\n`);
-process.exit(fail ? 1 : 0);
+done(`커버리지 ${stats.coverage}%`);

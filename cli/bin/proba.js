@@ -157,10 +157,10 @@ function runCodegen(o) {
   return outSpec;
 }
 
-/* ── 결과 출력 ── */
-function report(src, base, outFile, accts, gaveOut) {
-  const { steps, stats } = parseSpec(src, base, accts);
-
+/* ── 결과 출력 ──
+   화면에 찍기만 한다. 저장은 하지 않는다 — 아래 parseAndSave 가 순서를 잡는다.
+   outFile 을 받는 이유는 쓰기 위해서가 아니라 "그 파일을 열어 확인하라"고 말하기 위해서다. */
+function printReport(steps, stats, outFile) {
   log(`\n${C.b}── 캡처된 스텝 ──${C.r}`);
   steps.forEach((s, i) => {
     const n = String(i + 1).padStart(2, " ");
@@ -204,6 +204,14 @@ function report(src, base, outFile, accts, gaveOut) {
     log(`${C.d}     (치환은 로케이터에 '비밀번호'·password 같은 힌트가 있을 때만 걸립니다)${C.r}`);
   }
 
+}
+
+/* 파싱 → 출력 → 저장. record 와 parse 가 공유하는 순서다.
+   🔑 unknown 은 저장하지 않는다 — 화면에서 파서 개선 후보를 보여주려고 모은 것이지
+      케이스의 일부가 아니다. 남기면 녹화 원본이 파일에 한 벌 더 생긴다. */
+function parseAndSave(src, base, outFile, accts, gaveOut) {
+  const { steps, stats } = parseSpec(src, base, accts);
+  printReport(steps, stats, outFile);
   writeOut(outFile, JSON.stringify({ base, steps, stats: { ...stats, unknown: undefined } }, null, 2), gaveOut);
   log(`\n${C.g}✓${C.r} ${outFile} 저장`);
 }
@@ -224,11 +232,11 @@ if (cmd === "record") {
   const src = fs.readFileSync(spec, "utf8");
   log(`\n${C.d}── codegen 원본 (${spec}) ──${C.r}`);
   log(C.d + src.trim() + C.r);
-  report(src, base, path.resolve(o.out || "steps.json"), accts, !!o.out);
+  parseAndSave(src, base, path.resolve(o.out || "steps.json"), accts, !!o.out);
 } else if (cmd === "parse") {
   const file = o._[1];
   if (!file || !fs.existsSync(file)) { log(`${C.red}파일을 찾을 수 없습니다${C.r}\n${HELP}`); process.exit(1); }
-  report(fs.readFileSync(file, "utf8"), o.base || "", path.resolve(o.out || "steps.json"), accts, !!o.out);
+  parseAndSave(fs.readFileSync(file, "utf8"), o.base || "", path.resolve(o.out || "steps.json"), accts, !!o.out);
 } else if (cmd === "gen") {
   /* 스텝 → .spec.ts.
      🔑 실 제품에서는 이 생성기를 서버가 소유한다 — 여기 있는 것은 참고 구현이고,
