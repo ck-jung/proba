@@ -19,6 +19,9 @@ node bin/proba.js record --url https://demo.playwright.dev/todomvc
 
 # 2) 이미 있는 codegen 출력만 파싱
 node bin/proba.js parse ./rec.spec.ts --base https://stg.tworld.co.kr
+
+# 3) 스텝 → 실행 가능한 .spec.ts
+node bin/proba.js gen ./steps.json --out case.spec.ts
 ```
 
 `npm link` 하면 `proba record …` 로도 실행됩니다.
@@ -77,9 +80,47 @@ node bin/proba.js parse ./rec.spec.ts --base https://stg.tworld.co.kr
 ## 구조
 
 ```
-bin/proba.js   CLI 진입점 — codegen 실행 · 결과 출력
-src/parse.js   파서 (유일한 실질 작업)
+bin/proba.js     CLI 진입점 — codegen 실행 · 결과 출력
+src/dsl.js       스텝 ↔ 코드 매핑 · 단일 출처
+src/parse.js     파서     codegen 출력 → 스텝
+src/generate.js  생성기   스텝 → .spec.ts
 ```
 
 브라우저 제어, **로케이터 생성, 고유성 보장, 검증 툴바는 전부 Playwright가 합니다.**
-우리가 만든 건 **codegen 출력 → 스텝 변환**뿐입니다.
+우리가 만든 건 **양방향 변환**뿐입니다.
+
+## 생성기에 대해
+
+`src/generate.js` 는 **참고 구현**입니다. 실 제품에서는 생성기를 **서버가 소유합니다** —
+프론트·서버에 이중 구현하면 반드시 어긋납니다. 여기 둔 이유는 두 가지입니다.
+
+1. **스텝 모델이 실제로 실행 가능한지 증명한다.** 스텝만 있으면 `.spec.ts` 를 뽑아
+   `npx playwright test` 로 바로 돌려볼 수 있습니다.
+2. **앞으로 서버 생성기를 만들 사람의 출발점.** 매핑 표(`src/dsl.js`)와
+   놓치기 쉬운 함정이 코드와 주석에 남아 있습니다.
+
+### 왕복 테스트가 두 방향을 묶습니다
+
+```
+codegen 출력 → 파서 → 스텝 → 생성기 → spec' → 파서 → 스텝'
+                        └────── 같아야 한다 ──────┘
+```
+
+`test/roundtrip.test.js` 가 이걸 검사합니다. **한쪽만 고치면 깨집니다** —
+사람이 지키는 규칙이 아니라 테스트가 강제하는 규칙입니다.
+
+비교는 **스텝 기준**입니다. 코드는 같지 않아도 됩니다 — `toHaveText` 와 `toContainText` 는
+둘 다 스텝 `text = "..."` 이 되고 생성기는 그중 하나로만 되돌립니다. 스텝이 정본이므로 맞습니다.
+
+### 놓치기 쉬운 것 두 가지
+
+**코드 스텝은 `test.step()` 으로 감싸지 않습니다.** 코드 스텝끼리 변수를 주고받기 때문입니다
+(새 창/팝업이 대표적). 감싸면 블록마다 스코프가 닫혀 `ReferenceError` 로 죽습니다.
+
+**요청 스텝이 저장한 값도 블록 밖에서 선언합니다.** 같은 이유입니다 —
+`let orderId;` 를 `test()` 위에 두고 블록 안에서는 대입만 합니다.
+
+### 아직 안 다루는 것
+
+- 데이터 구동(행별 `test()`)과 전제조건(`preCase`) — 서버가 케이스를 조립하는 단계의 일입니다
+- 팝업을 스텝으로 다루기 — 지금은 코드 스텝으로 보존됩니다(`src/parse.js` 주석 참고)

@@ -42,6 +42,7 @@ ${C.b}PROBA 레코딩 CLI${C.r}  v0.1
 
   ${C.c}proba record${C.r} --url <URL> [옵션]      브라우저를 띄워 녹화 → 스텝 추출
   ${C.c}proba parse${C.r}   <파일.spec.ts> [옵션]   이미 있는 codegen 출력을 파싱만
+  ${C.c}proba gen${C.r}     <steps.json> [옵션]     스텝 → 실행 가능한 .spec.ts
 
 옵션
   --url <URL>          녹화 시작 주소 (record)
@@ -52,6 +53,7 @@ ${C.b}PROBA 레코딩 CLI${C.r}  v0.1
   --viewport <WxH>     기본 1280x720 (실행 해상도와 맞추세요)
   --acct <id,id>       계정 풀 — 입력값이 일치하면 \${계정 ID}로 치환
   --skip-install       Chromium 자동 설치 건너뜀
+  --flat               gen: test.step() 으로 감싸지 않음 (디버그·왕복 확인용)
 
 시크릿
   비밀번호 필드(로케이터에 password 힌트)의 입력값은 \${계정 비밀번호}로 치환되고
@@ -188,6 +190,27 @@ if (cmd === "record") {
   const file = o._[1];
   if (!file || !fs.existsSync(file)) { log(`${C.red}파일을 찾을 수 없습니다${C.r}\n${HELP}`); process.exit(1); }
   report(fs.readFileSync(file, "utf8"), o.base || "", path.resolve(o.out || "steps.json"), accts);
+} else if (cmd === "gen") {
+  /* 스텝 → .spec.ts.
+     🔑 실 제품에서는 이 생성기를 서버가 소유한다 — 여기 있는 것은 참고 구현이고,
+        서버 없이 스텝만으로 결과를 눈으로 확인하려는 용도다. */
+  const file = o._[1];
+  if (!file || !fs.existsSync(file)) { log(`${C.red}파일을 찾을 수 없습니다${C.r}\n${HELP}`); process.exit(1); }
+  const { generateSpec } = require("../src/generate");
+  let data;
+  try { data = JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch (e) { log(`${C.red}JSON 을 읽지 못했습니다: ${e.message}${C.r}`); process.exit(1); }
+  // record/parse 가 내는 형태와 케이스 형태를 둘 다 받는다
+  const c = Array.isArray(data) ? { steps: data } : (data.steps ? data : { steps: [] });
+  const r = generateSpec(c, { wrap: !o.flat });
+  const out = path.resolve(o.out || "case.spec.ts");
+  fs.writeFileSync(out, r.code, "utf8");
+  log(`\n${C.d}── 생성 결과 (${out}) ──${C.r}`);
+  log(r.code.trim());
+  log(`\n스텝 ${r.stats.steps} · 변환 ${C.g}${r.stats.emitted}${C.r}` +
+      (r.stats.skipped ? ` · ${C.red}미변환 ${r.stats.skipped}${C.r}` : ""));
+  r.stats.notes.forEach((n) => log(`  ${C.red}⚠${C.r} ${n}`));
+  log(`\n실행하려면 playwright.config 의 baseURL 을 대상 환경으로 두고:  npx playwright test ${path.basename(out)}`);
 } else {
   log(`${C.red}알 수 없는 명령: ${cmd}${C.r}\n${HELP}`);
   process.exit(1);

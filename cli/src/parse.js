@@ -63,41 +63,10 @@ function balanced(s) {
 }
 
 /* ───────── 2. 로케이터 체인 → PROBA DSL ─────────
-   단일 getter 호출만 DSL로 표현한다.
-   .first() / .nth(2) / .filter() / frameLocator() 처럼 체인이 붙으면 표현 불가 → null (코드 스텝行) */
-const STR = "(?:'((?:[^'\\\\]|\\\\.)*)'|\"((?:[^\"\\\\]|\\\\.)*)\"|`((?:[^`\\\\]|\\\\.)*)`)";
-function unq(m1, m2, m3) {
-  const v = m1 !== undefined ? m1 : m2 !== undefined ? m2 : m3;
-  return v === undefined ? null : String(v).replace(/\\(['"`\\])/g, "$1");
-}
-
-function toDsl(chain) {
-  const c = String(chain || "").trim();
-
-  // getByRole('button', { name: '로그인', exact: true })
-  let m = c.match(new RegExp("^getByRole\\(\\s*" + STR + "\\s*(?:,\\s*\\{([\\s\\S]*)\\})?\\s*\\)$"));
-  if (m) {
-    const role = unq(m[1], m[2], m[3]);
-    const opts = m[4] || "";
-    const nm = opts.match(new RegExp("name\\s*:\\s*" + STR));
-    const name = nm ? unq(nm[1], nm[2], nm[3]) : null;
-    return name ? "role=" + role + "[" + name + "]" : "role=" + role;
-  }
-  const simple = [
-    ["getByTestId", (v) => "[data-testid=" + v + "]"],
-    ["getByText", (v) => "text=" + v],
-    ["getByLabel", (v) => "label=" + v],
-    ["getByPlaceholder", (v) => "placeholder=" + v],
-    ["getByAltText", (v) => "alt=" + v],
-    ["getByTitle", (v) => "title=" + v],
-    ["locator", (v) => v],
-  ];
-  for (const [fn, fmt] of simple) {
-    m = c.match(new RegExp("^" + fn + "\\(\\s*" + STR + "\\s*(?:,[\\s\\S]*)?\\)$"));
-    if (m) return fmt(unq(m[1], m[2], m[3]));
-  }
-  return null;   // 표현 불가 → 코드 스텝
-}
+   🔑 매핑 표는 src/dsl.js 단일 출처다. 생성기(generate.js)가 같은 표의 역방향을 쓴다.
+      여기에 따로 적으면 두 방향이 어긋나고, roundtrip 테스트가 그걸 잡는다. */
+const { STR, unq, codeToDsl } = require("./dsl");
+const toDsl = codeToDsl;
 
 /* ───────── 3. 문장 → 스텝 ───────── */
 const ACTIONS = "click|fill|press|check|uncheck|dblclick|hover|selectOption|setInputFiles|type|clear|focus|tap";
