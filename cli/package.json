@@ -21,8 +21,7 @@
     "playwright": "1.60.0"
   },
   "scripts": {
-    "test": "node test/parse.test.js && node test/roundtrip.test.js && node test/exec.test.js",
-    "demo": "node bin/proba.js gen example/todomvc.steps.json && playwright test"
+    "test": "node test/parse.test.js && node test/roundtrip.test.js && node test/exec.test.js"
   },
   "_comment": [
     "playwright 버전은 정확히 고정한다(캐럿 ^ 없이).",

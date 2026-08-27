@@ -12,47 +12,47 @@ Playwright `codegen`으로 브라우저를 녹화하고, 그 출력을 **PROBA �
 Node.js 18 이상이 필요합니다.
 
 ```powershell
-cd "proba-cli"
-
-# 1) 녹화 — 브라우저가 열립니다. 조작 후 브라우저 창을 닫으세요.
-node bin/proba.js record --url https://demo.playwright.dev/todomvc
-
-# 2) 이미 있는 codegen 출력만 파싱
-node bin/proba.js parse ./rec.spec.ts --base https://stg.tworld.co.kr
-
-# 3) 스텝 → 실행 가능한 .spec.ts  (example/case.spec.ts 에 떨어집니다)
-node bin/proba.js gen ./steps.json
-
-# 4) 그대로 실행
-npx playwright test
-```
-
-3번의 출력 위치는 `playwright.config` 의 `testDir` 과 같습니다. 그래서 `--out` 없이
-바로 4번이 됩니다 — 다른 곳에 두고 싶을 때만 `--out` 을 쓰세요.
-
-## 생성물을 실제로 돌려보기
-
-```powershell
 cd cli
 npm install                      # @playwright/test 포함
 npx playwright install chromium  # 브라우저 (최초 1회)
-
-npm run demo                     # 예제 스텝 → 생성 → 실행
 ```
 
-`example/todomvc.steps.json` 을 Playwright 공식 데모(TodoMVC)에 대고 돌립니다.
-다른 대상은 환경변수로 바꿉니다.
+### 녹화 → 생성 → 실행
+
+```powershell
+# 1) 녹화 — 브라우저가 열립니다. 조작 후 브라우저 창을 닫으세요.
+node bin/proba.js record --url https://demo.playwright.dev/todomvc
+#    → ./steps.json
+
+# 2) 스텝 → 실행 가능한 .spec.ts
+node bin/proba.js gen ./steps.json
+#    → ./example/case.spec.ts
+
+# 3) 그대로 실행
+npx playwright test
+```
+
+2번의 출력 위치는 `playwright.config` 의 `testDir` 과 같습니다. 그래서 `--out` 없이
+바로 3번이 됩니다 — 다른 곳에 두고 싶을 때만 `--out` 을 쓰세요.
+
+이미 있는 codegen 출력이 있으면 1번 대신:
+
+```powershell
+node bin/proba.js parse ./rec.spec.ts --base https://stg.example.com
+```
+
+### 대상 환경 바꾸기
 
 ```powershell
 $env:PROBA_BASE_URL = "https://stg.example.com"
-npm run demo
+npx playwright test
 ```
+
+스텝의 경로는 상대경로이고 `baseURL` 이 받습니다 — 그래야 **같은 케이스를 그대로**
+스테이징·운영에 돌릴 수 있습니다.
 
 **목업 저장소 루트(`C:\Data\proba`)에서는 돌지 않습니다.** 거기는 Vite/React 앱이라
 `playwright.config` 도 `@playwright/test` 도 없습니다. 반드시 `cli/` 에서 실행하세요.
-
-경로는 상대경로이고 `baseURL` 이 받습니다 — 그래야 같은 케이스를 스테이징·운영에
-그대로 돌릴 수 있습니다.
 
 `npm link` 하면 `proba record …` 로도 실행됩니다.
 
@@ -105,6 +105,33 @@ npm run demo
 
 `steps.json`에 스텝이 저장되고, 하단의 **"변환하지 못한 문장"** 목록이 곧 파서 개선 후보입니다.
 
+### 저장되는 형태
+
+`gen` 이 받는 것도 이 형태입니다. 스텝이 정본이고 `.spec.ts` 는 여기서 매번 다시 만듭니다.
+
+```json
+{
+  "id": "TC-DEMO",
+  "name": "할 일 추가",
+  "steps": [
+    { "act": "이동",      "loc": "/",                                 "val": "-" },
+    { "act": "입력",      "loc": "placeholder=What needs to be done?", "val": "\"우유 사기\"" },
+    { "act": "키 누르기",  "loc": "placeholder=What needs to be done?", "val": "Enter" },
+    { "act": "화면 검증",  "loc": "[data-testid=todo-title]",           "val": "text = \"우유 사기\"" }
+  ]
+}
+```
+
+| 필드 | 뜻 |
+|---|---|
+| `act` | 무엇을 하는가 — `이동`·`입력`·`클릭`·`체크`·`선택`·`키 누르기`·`화면 검증`·`요청`·`응답 검증`·`코드 스텝` |
+| `loc` | 어디에 — PROBA DSL (`role=button[로그인]`, `[data-testid=x]`, `text=…`, CSS 셀렉터) |
+| `val` | 값·기대치. 없으면 `-` |
+
+`act`·`loc`·`val` 과 코드의 대응표는 `src/dsl.js` 한 곳에 있습니다.
+위 JSON 을 파일로 저장하면 녹화 없이 `gen` 부터 바로 시험해 볼 수 있습니다
+(TodoMVC 가 기본 `baseURL` 이라 그대로 돕니다).
+
 ---
 
 ## 구조
@@ -116,7 +143,7 @@ src/parse.js     파서     codegen 출력 → 스텝
 src/generate.js  생성기   스텝 → .spec.ts
 
 playwright.config.ts  생성물 실행용 최소 설정 (baseURL·브라우저)
-example/              예제 스텝 — npm run demo 가 쓴다
+example/              gen 의 기본 출력 위치 = testDir. 생성물만 들어간다(커밋 안 함)
 
 test/parse       파서 단위 (22)
 test/roundtrip   두 방향이 합의하는가 (14)
