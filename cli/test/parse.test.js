@@ -118,5 +118,21 @@ test('t', async ({ page }) => {
   if (r.stats.redacted !== 0) throw new Error("헛치환");
 });
 
+t("로그인을 녹화했는데 --acct 가 없으면 stats 가 알린다", () => {
+  const src = `
+test('t', async ({ page }) => {
+  await page.getByLabel('아이디').fill('hong.gildong');
+  await page.getByLabel('비밀번호').fill('pw');
+});`;
+  const a = parseSpec(src, "", []);
+  if (!a.stats.sawPw) throw new Error("비밀번호 필드를 못 알아봄");
+  if (a.stats.acctGiven) throw new Error("--acct 를 안 줬는데 줬다고 함");
+  if (!/hong\.gildong/.test(JSON.stringify(a))) throw new Error("아이디가 사라짐(치환 조건이 아님)");
+
+  const b = parseSpec(src, "", [{ acct: "hong.gildong" }]);
+  if (!b.stats.acctGiven) throw new Error("--acct 를 줬는데 안 줬다고 함");
+  if (/hong\.gildong/.test(JSON.stringify(b.steps))) throw new Error("--acct 를 줬는데 아이디가 남음");
+});
+
 console.log(`\n${fail ? "\x1b[31m" : "\x1b[32m"}${pass} passed, ${fail} failed\x1b[0m  (커버리지 ${stats.coverage}%)\n`);
 process.exit(fail ? 1 : 0);

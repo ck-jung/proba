@@ -34,10 +34,14 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "proba-exec-"));
 let seq = 0;
 async function runSpec(c, opt) {
   const g = generateSpec(c, opt);
-  const js = g.code.replace(
-    /^import \{ test, expect \} from '@playwright\/test';$/m,
-    "const { test, expect } = require(" + JSON.stringify(path.resolve(__dirname, "_stub.js")) + ");"
-  );
+  /* 생성물의 import 를 CJS 로 갈아끼운다. 늘어나면 여기도 늘려야 한다 —
+     안 그러면 .cjs 파일에 ESM 문법이 남아 SyntaxError 로 전부 깨진다. */
+  const js = g.code
+    .replace(
+      /^import \{ test, expect \} from '@playwright\/test';$/m,
+      "const { test, expect } = require(" + JSON.stringify(path.resolve(__dirname, "_stub.js")) + ");"
+    )
+    .replace(/^import fs from 'fs';$/m, "const fs = require('fs');");
   const file = path.join(TMP, "case" + ++seq + ".cjs");
   fs.writeFileSync(file, js, "utf8");
   require(file);                 // test(...) 가 등록된다
@@ -90,6 +94,51 @@ await t("★ 코드 스텝의 비밀번호 자리표시자가 실제 값으로 �
   want(r.calls, "getByLabel(비밀번호).fill(real-pw-9)");
   if (JSON.stringify(r.calls).indexOf("계정 비밀번호") >= 0)
     throw new Error("자리표시자가 그대로 입력됐다 — 로그인이 깨진다");
+});
+
+await t("★ 워커 슬롯마다 다른 계정을 쓴다 (F4)", async () => {
+  /* 환경변수 하나로는 워커가 여럿일 때 전부 같은 계정을 쓴다 — 세션이 서로를 밀어낸다.
+     TEST_PARALLEL_INDEX 로 계정 풀에서 자기 몫을 고른다. */
+  const pool = path.join(TMP, "pool.json");
+  fs.writeFileSync(pool, JSON.stringify([
+    { id: "qa_user01", pw: "pw-0" }, { id: "qa_user02", pw: "pw-1" },
+  ]), "utf8");
+  process.env.PROBA_ACCT_POOL = pool;
+  const steps = [{ act: "입력", loc: "[data-testid=id]", val: "${계정 ID}" }];
+
+  process.env.TEST_PARALLEL_INDEX = "0";
+  want((await runSpec({ id: "W0", name: "슬롯0", steps })).calls, "fill(qa_user01)");
+  process.env.TEST_PARALLEL_INDEX = "1";
+  want((await runSpec({ id: "W1", name: "슬롯1", steps })).calls, "fill(qa_user02)");
+
+  delete process.env.PROBA_ACCT_POOL; delete process.env.TEST_PARALLEL_INDEX;
+});
+
+await t("계정 풀이 없으면 환경변수로 떨어진다 (로그인 없는 케이스)", async () => {
+  delete process.env.PROBA_ACCT_POOL;
+  process.env.PROBA_ACCT_ID = "fallback-id";
+  const r = await runSpec({ id: "NP", name: "폴백", steps: [
+    { act: "입력", loc: "[data-testid=id]", val: "${계정 ID}" },
+  ]});
+  want(r.calls, "fill(fallback-id)");
+});
+
+await t("잘못된 요청 본문은 스텝을 건너뛰고 나머지는 실행된다", async () => {
+  const r = await runSpec({ id: "BJ", name: "본문오류", steps: [
+    { act: "클릭", loc: "role=button[a]", val: "-" },
+    { act: "요청", loc: "POST /x", val: "-", body: "} 문법오류" },
+    { act: "클릭", loc: "role=button[b]", val: "-" },
+  ]});
+  want(r.calls, "getByRole(button, a).click()");
+  want(r.calls, "getByRole(button, b).click()");
+  if (r.stats.skipped !== 1) throw new Error("skipped 가 1이 아님");
+  if (String(r.stats.notes).indexOf("JSON") < 0) throw new Error("이유가 안 남음");
+});
+
+await t("제목에 후행 공백이 없다", async () => {
+  const g = generateSpec({ id: "TC-1", name: "", steps: [] });
+  if (g.code.indexOf("test('TC-1'") < 0)
+    throw new Error("제목이 다름: " + g.code.split("\n").find((l) => l.startsWith("test(")));
 });
 
 await t("★ 저장 변수가 스텝 경계를 넘는다 (블록 스코프)", async () => {

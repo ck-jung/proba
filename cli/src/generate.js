@@ -69,9 +69,20 @@ function stepLines(st, ctx) {
     const m = loc.match(/^([A-Z]+)\s+(\S+)$/);
     if (!m) return { skip: "요청 형태를 모릅니다: " + loc };
     ctx.api = true;
+    /* 🔑 본문·헤더는 코드에 그대로 박힌다. 검증하지 않으면 생성물이 파싱조차 안 된다
+       (예: body 가 "}" 이면 파일 전체가 깨진다). 모르는 스텝을 다루는 방식과 같게
+       — 버리지 않고 주석으로 남기고 나머지는 실행되게 한다. */
     const opt = [];
-    if (st.body && String(st.body).trim()) opt.push("data: " + String(st.body).trim());
-    if (st.headers && String(st.headers).trim()) opt.push("headers: " + String(st.headers).trim());
+    const bad = [];
+    const jsonOpt = (key, raw) => {
+      const t = String(raw == null ? "" : raw).trim();
+      if (!t) return;
+      try { JSON.parse(t); opt.push(key + ": " + t); }
+      catch (e) { bad.push(key + " 가 올바른 JSON 이 아닙니다: " + e.message); }
+    };
+    jsonOpt("data", st.body);
+    jsonOpt("headers", st.headers);
+    if (bad.length) return { skip: bad.join(" · ") };
     const out = [
       "res = await request." + m[1].toLowerCase() + "(" + pathArg(m[2]) +
         (opt.length ? ", { " + opt.join(", ") + " }" : "") + ");",
@@ -133,17 +144,30 @@ function generateSpec(c, opt) {
   const fixtures = ["page"].concat(ctx.api ? ["request"] : []).join(", ");
   const head = [
     "import { test, expect } from '@playwright/test';",
+    "import fs from 'fs';",
     "",
     "/* 자동 생성 — PROBA 스텝에서 만들었습니다. 직접 고치지 마세요.",
     "   스텝이 정본이고 이 파일은 실행할 때마다 다시 만들어집니다.",
     "   경로는 상대경로이며 playwright.config 의 baseURL 이 받습니다. */",
     "",
-    "const ACCT = { id: process.env.PROBA_ACCT_ID || '', pw: process.env.PROBA_ACCT_PW || '' };",
+    /* 🔑 워커 슬롯이 곧 계정이다(F4) — 대여하지 않는다.
+       TEST_PARALLEL_INDEX 는 동시에 도는 워커끼리 반드시 다르고, 워커가 실패로
+       재시작돼도 같은 값을 유지한다(TEST_WORKER_INDEX 는 새 번호를 받으므로 쓰면 안 된다).
+       그래서 계정이 워커 사이를 옮겨다니지 않는다.
+
+       값은 파일에서 읽는다. 환경변수에 비밀번호를 담으면 브라우저 자식 프로세스까지
+       상속되고 /proc/<pid>/environ 으로 읽힌다. env 에는 경로만 둔다.
+       PROBA_ACCT_POOL 이 없으면 로그인 없는 케이스이므로 빈 계정으로 둔다. */
+    "const SLOT = Number(process.env.TEST_PARALLEL_INDEX || 0);",
+    "const POOL = process.env.PROBA_ACCT_POOL",
+    "  ? JSON.parse(fs.readFileSync(process.env.PROBA_ACCT_POOL, 'utf8'))",
+    "  : [];",
+    "const ACCT = POOL[SLOT] || { id: process.env.PROBA_ACCT_ID || '', pw: process.env.PROBA_ACCT_PW || '' };",
   ];
   if (ctx.api) head.push("let res, body;");
   const saved = Object.keys(ctx.saved);
   if (saved.length) head.push("let " + saved.join(", ") + ";   // 요청 스텝이 저장한 값 — 블록 밖에서 선언해야 뒤 스텝이 본다");
-  head.push("", "test(" + D.q(((c && c.id) || "TC") + " " + ((c && c.name) || "")) .trim() + ", async ({ " + fixtures + " }) => {");
+  head.push("", "test(" + D.q((((c && c.id) || "TC") + " " + ((c && c.name) || "")).trim()) + ", async ({ " + fixtures + " }) => {");
 
   return {
     code: head.concat(body, ["});", ""]).join("\n"),

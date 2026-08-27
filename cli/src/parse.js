@@ -208,16 +208,23 @@ function parseSpec(src, base, accts) {
   const unknown = [];
 
   let redacted = 0;
+  /* 🔑 비밀번호 필드를 본 적이 있는가 — 로그인이 포함된 녹화인지 판단하는 근거다.
+     ID 는 생김새로 알 수 없어(qa_user01 인지 hong.gildong 인지 문자열일 뿐) --acct 로
+     미리 알려줘야만 치환된다. 안 알려주면 녹화한 사람의 계정이 케이스에 박히고,
+     실행 시 그 계정으로 로그인을 시도해 계정이 잠길 수 있다. CLI 가 이 값을 보고 알린다. */
+  let sawPw = false;
   const flush = () => {
     if (!pending.length) return;
     const r = redactCode(pending.join("\n"));
     redacted += r.hits;
+    if (r.hits) sawPw = true;
     steps.push({ act: "코드 스텝", loc: "", val: "", code: r.code });
     pending = [];
   };
 
   for (const st of sts) {
     const s = toStep(st, base, accts);
+    if (s && s.val === "${계정 비밀번호}") sawPw = true;
     if (s) { flush(); steps.push(s); }
     /* 🔑 unknown 은 화면에 그대로 찍힌다 — 여기도 치환해야 한다.
        스텝만 가리고 통계에 원문을 남기면 아무것도 안 가린 것과 같다. */
@@ -235,6 +242,8 @@ function parseSpec(src, base, accts) {
       unmapped: unknown.length,
       codeSteps,
       redacted,          // 코드 스텝 안에서 비밀번호로 판단해 치환한 줄 수
+      sawPw,             // 로그인이 포함된 녹화인가 (비밀번호 필드를 봤는가)
+      acctGiven: (accts || []).length > 0,
 
       coverage: sts.length ? Math.round((mapped / sts.length) * 100) : 100,
       unknown,

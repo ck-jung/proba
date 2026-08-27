@@ -180,9 +180,27 @@ codegen 출력 → 파서 → 스텝 → 생성기 → spec' → 파서 → 스�
 변수 메뉴      stg_test_pw = "…"            secret · 화면에서 마스킹
 계정 풀        { acct: "qa_user01", secretRef: "${stg_test_pw}" }
 케이스 스텝    { act: "입력", val: "${계정 비밀번호}" }
-실행 시        워커 슬롯 → 계정 → secretRef → 변수 값 → 환경변수
-생성 코드      .fill(ACCT.pw)               ACCT.pw = process.env.PROBA_ACCT_PW
+실행 시        러너가 계정 풀을 파일로 내려주고 PROBA_ACCT_POOL 에 경로만 넣는다
+생성 코드      .fill(ACCT.pw)
 ```
+
+**워커 슬롯이 곧 계정입니다(F4).** 생성물이 이렇게 시작합니다.
+
+```ts
+const SLOT = Number(process.env.TEST_PARALLEL_INDEX || 0);
+const POOL = JSON.parse(fs.readFileSync(process.env.PROBA_ACCT_POOL, 'utf8'));
+const ACCT = POOL[SLOT];
+```
+
+`TEST_PARALLEL_INDEX` 는 동시에 도는 워커끼리 반드시 다르고, **워커가 실패로 재시작돼도
+같은 값을 유지**합니다. `TEST_WORKER_INDEX` 는 새 번호를 받으므로 쓰면 안 됩니다 —
+계정이 워커 사이를 옮겨다니게 됩니다.
+
+비밀번호를 **환경변수에 담지 않는 이유**: 브라우저 자식 프로세스까지 상속되고
+`/proc/<pid>/environ` 으로 읽힙니다. CI 로그에 `env` 를 찍으면 그대로 남습니다.
+env 에는 **경로만** 둡니다(K8s Secret → tmpfs).
+
+계정 풀이 없으면 `PROBA_ACCT_ID`·`PROBA_ACCT_PW` 로 떨어집니다 — 로그인 없는 케이스용입니다.
 
 케이스에는 **참조만** 남고 값은 실행 직전에 들어갑니다. 그래서
 
@@ -198,6 +216,19 @@ codegen 출력 → 파서 → 스텝 → 생성기 → spec' → 파서 → 스�
 그리고 대개는 매번 로그인하지도 않습니다 — `--auth` 로 로그인 상태(storageState)를
 저장해 재사용합니다. 실제로 로그인하는 것은 **로그인 자체를 검증하는 케이스**뿐이고,
 그래서 계정 풀에 `로그인 전용` 역할이 따로 있습니다.
+
+### 아이디는 `--acct` 로 알려줘야 합니다
+
+비밀번호는 로케이터 힌트로 잡히지만 **아이디는 생김새로 판단할 수 없습니다** —
+`qa_user01` 인지 `hong.gildong` 인지 그냥 문자열입니다.
+
+```powershell
+proba record --url … --acct qa_user01
+```
+
+안 주고 로그인을 녹화하면 **그 아이디가 케이스에 그대로 남고**, 실행 시 계정 풀이 아니라
+그 계정으로 로그인을 시도합니다. 반복되면 **그 사람 계정이 잠깁니다.**
+CLI 가 이 상황을 감지해 경고합니다(비밀번호 필드를 봤는데 `--acct` 가 없을 때).
 
 그래서 **힌트가 없는 화면은 못 잡습니다.** 로그인이 포함된 녹화라면 `steps.json` 을
 한 번 열어 보세요 — CLI 도 그렇게 안내합니다.
