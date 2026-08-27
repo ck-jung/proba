@@ -21,7 +21,8 @@
     "playwright": "1.60.0"
   },
   "scripts": {
-    "test": "node test/parse.test.js && node test/roundtrip.test.js && node test/exec.test.js"
+    "test": "node test/parse.test.js && node test/roundtrip.test.js && node test/exec.test.js",
+    "demo": "node bin/proba.js gen example/todomvc.steps.json --out example/todomvc.spec.ts && playwright test"
   },
   "_comment": [
     "playwright 버전은 정확히 고정한다(캐럿 ^ 없이).",
@@ -35,5 +36,8 @@
     "0.x 로 두는 이유: --session 토큰 흐름이 아직 없고 플랫폼 API 도 고정되지 않았다.",
     "1.0 은 '이 인터페이스로 써도 된다'는 약속이므로, 그 약속이 가능해질 때 올린다.",
     "목업이 화면에 내는 npx proba-cli@<VER> 의 VER 은 이 버전과 항상 일치해야 한다."
-  ]
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
 }

@@ -24,6 +24,30 @@ node bin/proba.js parse ./rec.spec.ts --base https://stg.tworld.co.kr
 node bin/proba.js gen ./steps.json --out case.spec.ts
 ```
 
+## 생성물을 실제로 돌려보기
+
+```powershell
+cd cli
+npm install                      # @playwright/test 포함
+npx playwright install chromium  # 브라우저 (최초 1회)
+
+npm run demo                     # 예제 스텝 → 생성 → 실행
+```
+
+`example/todomvc.steps.json` 을 Playwright 공식 데모(TodoMVC)에 대고 돌립니다.
+다른 대상은 환경변수로 바꿉니다.
+
+```powershell
+$env:PROBA_BASE_URL = "https://stg.example.com"
+npm run demo
+```
+
+**목업 저장소 루트(`C:\Data\proba`)에서는 돌지 않습니다.** 거기는 Vite/React 앱이라
+`playwright.config` 도 `@playwright/test` 도 없습니다. 반드시 `cli/` 에서 실행하세요.
+
+경로는 상대경로이고 `baseURL` 이 받습니다 — 그래야 같은 케이스를 스테이징·운영에
+그대로 돌릴 수 있습니다.
+
 `npm link` 하면 `proba record …` 로도 실행됩니다.
 
 ### 옵션
@@ -84,6 +108,9 @@ bin/proba.js     CLI 진입점 — codegen 실행 · 결과 출력
 src/dsl.js       스텝 ↔ 코드 매핑 · 단일 출처
 src/parse.js     파서     codegen 출력 → 스텝
 src/generate.js  생성기   스텝 → .spec.ts
+
+playwright.config.ts  생성물 실행용 최소 설정 (baseURL·브라우저)
+example/              예제 스텝 — npm run demo 가 쓴다
 
 test/parse       파서 단위 (22)
 test/roundtrip   두 방향이 합의하는가 (14)
