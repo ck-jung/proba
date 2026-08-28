@@ -1,4 +1,33 @@
 import { defineConfig } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+
+/* 🔑 .env 를 읽는다 — 셸을 새로 열 때마다 환경변수를 다시 넣지 않아도 되게.
+
+   Node 내장 process.loadEnvFile() 을 쓰지 않는다. 그건 Node 20.12+ 에만 있고
+   package.json 은 Node 18 을 허용한다. 없는 버전에서는 아무 일도 일어나지 않고
+   기본값(TodoMVC)으로 조용히 돈다 — "설정했는데 안 먹는다" 가 제일 나쁜 실패다.
+   그래서 8줄 직접 읽는다. 의존성도 늘지 않는다.
+
+   🔑 이미 있는 환경변수는 덮지 않는다. 셸에서 준 값이 이긴다 —
+      .env 는 평소 값이고, 한 번만 다른 대상에 돌려보는 일이 더 잦다. */
+function loadEnv(file: string) {
+  let txt: string;
+  try { txt = fs.readFileSync(file, 'utf8'); } catch { return; }
+  for (const line of txt.split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (!m) continue;                                   // 주석·빈 줄
+    /* 🔑 따옴표를 먼저 본다. 주석부터 떼면 PROBA_VIEWPORT="1920x1080"  # 메모 처럼
+       따옴표 뒤에 주석이 붙은 줄에서 따옴표가 값에 남고, 그러면 형식이 안 맞아
+       조용히 기본값으로 떨어진다. 실제로 그렇게 틀렸다.
+       #는 앞에 공백이 있을 때만 주석으로 본다 — URL 의 #프래그먼트를 지키기 위해서다. */
+    let v = m[2].trim();
+    const q = v.match(/^(['"])([\s\S]*?)\1/);           // 따옴표로 시작하면 닫는 따옴표까지가 값
+    v = q ? q[2] : v.replace(/\s+#.*$/, '').trim();
+    if (process.env[m[1]] === undefined) process.env[m[1]] = v;
+  }
+}
+loadEnv(path.join(__dirname, '.env'));
 
 /* 생성물을 바로 돌려보기 위한 최소 설정.
    실 제품에서는 러너가 이 설정을 실행 요청(대상 환경·브라우저·해상도)에서 만들어 낸다 —

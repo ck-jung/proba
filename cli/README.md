@@ -67,6 +67,21 @@ npx playwright test
 > `PROBA_VIEWPORT="1920x1080"` 이어야 합니다. 반응형 사이트는 해상도가 달라지면
 > 메뉴가 접혀 녹화한 요소가 안 보이고, 로케이터 문제처럼 보이는 실패가 납니다.
 
+#### 매번 넣기 싫으면 `.env`
+
+PowerShell 의 `$env:…` 는 **그 창에서만** 삽니다. 창을 닫으면 사라집니다.
+`cli/.env.example` 을 `cli/.env` 로 복사해 값을 적어두면 계속 유지됩니다.
+
+```powershell
+copy .env.example .env
+```
+
+**셸에서 준 값이 `.env` 보다 우선합니다.** 평소 값은 `.env` 에 두고, 한 번만 다른
+대상에 돌릴 때 `$env:PROBA_BASE_URL = "…"` 로 덮으면 됩니다.
+
+`.env` 는 커밋되지 않습니다. **계정 정보는 넣지 마세요** — 워커별 계정은
+`PROBA_ACCT_POOL` 이 가리키는 별도 파일로 넘깁니다.
+
 **목업 저장소 루트(`C:\Data\proba`)에서는 돌지 않습니다.** 거기는 Vite/React 앱이라
 `playwright.config` 도 `@playwright/test` 도 없습니다. 반드시 `cli/` 에서 실행하세요.
 
