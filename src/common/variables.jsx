@@ -118,7 +118,7 @@ export function VariablesScreen() {
                 {v.secret && <button onClick={() => setReveal((r) => ({ ...r, [v.id]: !r[v.id] }))} className="shrink-0 text-slate-500 hover:text-slate-700" title="표시/숨김">{reveal[v.id] ? <EyeOff size={13} /> : <Eye size={13} />}</button>}
                 <button onClick={() => copyRef(v.key)} className="shrink-0 text-slate-500 hover:text-sky-600" title="참조 복사 (${키})"><Copy size={12} /></button>
               </div>
-              <div className="col-span-1 text-center" title="이 변수를 참조하는 대상/계정 수"><Badge kind={n > 0 ? "teal" : "draft"}>{n}</Badge></div>
+              <div className="col-span-1 text-center" title="이 변수를 참조하는 대상/계정 수"><Badge kind={n > 0 ? "active" : "draft"}>{n}</Badge></div>
               <div className="col-span-2 truncate text-xs text-slate-500">{v.createdAt || "—"}</div>
               <div className="col-span-2 truncate text-xs text-slate-500">{v.updatedAt || "—"}</div>
               <div className="col-span-1 flex items-center justify-end gap-2">

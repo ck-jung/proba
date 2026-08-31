@@ -73,7 +73,7 @@ export function DatasetsScreen() {
             <div className="col-span-3 min-w-0"><div className="flex items-center gap-1.5 min-w-0"><Database size={12} className="shrink-0 text-sky-600" /><span className="truncate font-mono text-slate-800">{d.name}</span></div>{d.desc && <div className="truncate pl-5 text-xs text-slate-500">{d.desc}</div>}</div>
             <div className="col-span-4 flex flex-wrap gap-1">{(d.columns || []).map((c) => <span key={c} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-500">{c}</span>)}</div>
             <div className="col-span-1 text-center text-xs text-slate-500">{rowN(d).toLocaleString()}</div>
-            <div className="col-span-1 text-center">{n > 0 ? <button onClick={() => setRefModal({ name: d.name, refs: refsOf(d.name) })} title="참조 목록 보기"><Badge kind="teal">{n}</Badge></button> : <Badge kind="draft">0</Badge>}</div>
+            <div className="col-span-1 text-center">{n > 0 ? <button onClick={() => setRefModal({ name: d.name, refs: refsOf(d.name) })} title="참조 목록 보기"><Badge kind="active">{n}</Badge></button> : <Badge kind="draft">0</Badge>}</div>
             <div className="col-span-2 text-xs leading-tight text-slate-500"><div>{d.createdAt || "—"}</div><div className="text-slate-500">변경 {d.updatedAt || "—"}</div></div>
             <div className="col-span-1 flex items-center justify-end gap-2"><button onClick={() => openEdit(d)} className="text-slate-500 hover:text-slate-800" title="편집"><Pencil size={13} /></button><button onClick={() => del(d)} className="text-slate-500 hover:text-red-600" title="삭제"><X size={14} /></button></div>
           </div>

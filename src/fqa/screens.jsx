@@ -41,7 +41,7 @@ const taCls = "w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 
 const Hdr = ({ icon: Icon, title, desc, badge }) => (
   <div className="mb-1 flex items-center gap-2">
     <Icon size={16} className="text-sky-600" /><span className="text-sm font-semibold text-slate-900">{title}</span>
-    {badge && <Badge kind="teal">{badge}</Badge>}{desc && <span className="text-xs text-slate-500">{desc}</span>}
+    {badge && <Badge kind="active">{badge}</Badge>}{desc && <span className="text-xs text-slate-500">{desc}</span>}
   </div>
 );
 const FQA_MEMBERS = ["QA Lead", "김QA", "이QA", "박QA", "미지정"];
@@ -88,7 +88,7 @@ const histOf = (runs, id) => runsFor(runs, id).slice(0, 4).map((r) => ((r.tcs ||
 /* 실패 원인(0단계) — 러너가 에러 문장 규칙으로 붙인 딱지. 색은 "누가 고칠 일인가" 로 나눈다.
    로케이터·타이밍은 우리(QA)가, 검증은 개발이, 환경은 인프라가 고친다. */
 const CAUSE_ORDER = ["로케이터", "검증", "타이밍", "환경", "기타"];
-const CAUSE_K = { "로케이터": "teal", "검증": "fail", "타이밍": "warn", "환경": "info", "기타": "draft" };
+const CAUSE_K = { "로케이터": "active", "검증": "fail", "타이밍": "warn", "환경": "info", "기타": "draft" };
 const CAUSE_BG = { "로케이터": "bg-sky-500", "검증": "bg-red-500", "타이밍": "bg-amber-500", "환경": "bg-slate-400", "기타": "bg-slate-300" };
 const CAUSE_TX = { "로케이터": "text-sky-700", "검증": "text-red-700", "타이밍": "text-amber-700", "환경": "text-slate-600", "기타": "text-slate-500" };
 /* 케이스의 최근 실패 원인 — heal 과 같은 이유로 실행에서 파생한다 */
@@ -122,7 +122,7 @@ const surfacesOf = (c) => {
   }
   return web && api ? "웹+API" : api ? "API" : web ? "웹" : "-";
 };
-const SURF_K = { "웹+API": "teal", "API": "warn", "웹": "info" };
+const SURF_K = { "웹+API": "active", "API": "warn", "웹": "info" };
 
 const envCovers = (env, surf) => {
   const w = !!(env && env.webUrl), a = !!(env && env.apiUrl);
@@ -1167,7 +1167,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
             </div>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="TC 이름" className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-2 py-1 text-sm text-slate-800 outline-none hover:border-slate-300 focus:border-sky-500 focus:bg-slate-100" />
             {/* 관리 수준은 현재 committed 기준 — entry(진입 시점)로 표시하면 변환 후에도 옛 값이 남는다 */}
-            <div className="flex shrink-0 items-center gap-2"><span className="font-mono text-xs text-slate-500">rev {curRev}</span><Badge kind={isFull ? "warn" : "teal"}>{LV[committed]} 관리</Badge><Badge kind={stEK[status] || "warn"}>{status}</Badge></div>
+            <div className="flex shrink-0 items-center gap-2"><span className="font-mono text-xs text-slate-500">rev {curRev}</span><Badge kind={isFull ? "warn" : "active"}>{LV[committed]} 관리</Badge><Badge kind={stEK[status] || "warn"}>{status}</Badge></div>
           </Card>
 
           {/* 왼쪽: 관리 수준(Low-Code → Full-Code · 단방향) / 오른쪽: 디버그 실행.
@@ -1342,7 +1342,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
             {usedAsPre.length > 0 && view === "Low-Code" && (
               <div className="border-t border-slate-200 p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                  <Badge kind="teal">전제조건으로 사용 {usedAsPre.length}건</Badge>
+                  <Badge kind="active">전제조건으로 사용 {usedAsPre.length}건</Badge>
                   <span className="font-mono text-slate-500">{usedAsPre.slice(0, 4).map((c) => c.id).join(", ")}{usedAsPre.length > 4 && " 외 " + (usedAsPre.length - 4) + "건"}</span>
                 </div>
                 <div className="mb-1.5 text-slate-500" style={{ fontSize: 11 }}>같은 스텝이 <span className="text-slate-500">케이스용 <span className="font-mono">test(...)</span></span> 와 <span className="text-slate-500">전제조건용 <span className="font-mono">async 함수</span></span> 두 형태로 생성됩니다. 실행 시작 시 이 함수로 세션을 만들어 위 케이스들이 재사용합니다.</div>
@@ -1380,7 +1380,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                   <div className="w-52 shrink-0 space-y-1.5 overflow-y-auto">
                     {versions.map((v, i) => (
                       <button key={v.rev} onClick={() => setVerSel(v.rev)} className={"w-full rounded-lg border px-2.5 py-2 text-left " + (verSel === v.rev ? SEL_CARD : "border-slate-200 bg-slate-50 hover:bg-white")}>
-                        <div className="flex items-center gap-1.5 text-xs"><span className="font-mono text-sky-600">rev {v.rev}</span><Badge kind={v.level === "Full-Code" ? "warn" : "teal"}>{v.level}</Badge>{v.rev === curRev && <span className="ml-auto text-xs text-slate-500">현재</span>}{i === versions.length - 1 && v.rev !== curRev && <span className="ml-auto text-xs text-slate-500">최초</span>}</div>
+                        <div className="flex items-center gap-1.5 text-xs"><span className="font-mono text-sky-600">rev {v.rev}</span><Badge kind={v.level === "Full-Code" ? "warn" : "active"}>{v.level}</Badge>{v.rev === curRev && <span className="ml-auto text-xs text-slate-500">현재</span>}{i === versions.length - 1 && v.rev !== curRev && <span className="ml-auto text-xs text-slate-500">최초</span>}</div>
                         <div className="mt-0.5 text-xs text-slate-500">{v.at}</div>
                         <div className="text-xs text-slate-500">{v.by}</div>
                       </button>
@@ -1514,7 +1514,7 @@ export function FqaSuiteScreen() {
     if (tcOf(s.name) > 0) { flash("사용 중인 스위트는 삭제 불가 (" + tcOf(s.name) + "건)"); return; }
     removeFqaSuite(s.id); setDraft({}); flash("삭제됨");
   };
-  const mixK = { "웹+API": "teal", "API": "warn", "웹": "info" };
+  const mixK = { "웹+API": "active", "API": "warn", "웹": "info" };
   return (
     <div className="space-y-4">
       <PageToolbar desc="업무 흐름 묶음" />
@@ -2054,7 +2054,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
     });
   };
   const toggleQuar = (r) => { updateFqaCase(r.id, { quarantined: !r.quarantined }); flash(r.id + (r.quarantined ? " 격리 해제 — 실행 대상에 복귀" : " 격리(quarantine) — 실행 대상에서 제외")); };
-  const vK = { PASS: "pass", FAIL: "fail", HEAL: "teal", WARN: "warn" };
+  const vK = { PASS: "pass", FAIL: "fail", HEAL: "active", WARN: "warn" };
   /* 데이터 구동 케이스의 행 요약 — 판정·집계는 케이스 단위(1건)이고 행은 보조 표기다.
      rows가 없는 케이스는 기존 동작 그대로다(빈 문자열 반환). */
   const rowSum = (t) => { const rs = t && t.rows; if (!Array.isArray(rs) || !rs.length) return ""; const p = rs.filter((r) => r.v === "PASS").length; const s = rs.filter((r) => r.v === "SKIP").length; return rs.length + "행 중 " + p + "행 통과" + (s ? " · " + s + "행 미실행" : ""); };
@@ -2124,14 +2124,14 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                 {shown.map((t) => (
                   <div key={t.id} onClick={() => setSelId(t.id)} className={"flex items-center justify-between border-b border-slate-200 px-4 py-2.5 cursor-pointer hover:bg-slate-100 " + (cur && cur.id === t.id ? SEL_ROW : "")}>
                     <div><span className="font-mono text-xs text-sky-600">{t.id}</span>{t.rev != null && <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {t.rev}</span>}<div className="text-xs text-slate-700">{t.name}</div>{(t.cause || rowSum(t)) && <div className="flex items-center gap-1.5" style={{ fontSize: 11 }}>{t.cause && <span className={CAUSE_TX[t.cause] || "text-slate-500"}>원인 · {t.cause}</span>}{t.cause && rowSum(t) && <span className="text-slate-300">·</span>}{rowSum(t) && <span className="text-slate-500">{rowSum(t)}</span>}</div>}</div>
-                    <div className="flex items-center gap-2">{t.v === "FAIL" && openDefectOf(t.id) && <Bug size={12} className="text-red-600" />}<span className="text-xs text-slate-500">{t.dur}</span>{healUsable(fqaCases, t) && <Badge kind="teal">보정</Badge>}<Badge kind={vK[t.v]}>{t.v}</Badge></div>
+                    <div className="flex items-center gap-2">{t.v === "FAIL" && openDefectOf(t.id) && <Bug size={12} className="text-red-600" />}<span className="text-xs text-slate-500">{t.dur}</span>{healUsable(fqaCases, t) && <Badge kind="active">보정</Badge>}<Badge kind={vK[t.v]}>{t.v}</Badge></div>
                   </div>
                 ))}
               </div>
             </Card>
             {cur && (
             <Card className="col-span-3 p-4">
-              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-sky-600">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{healUsable(fqaCases, cur) && <Badge kind="teal">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && openDefectOf(cur.id) && <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); goto("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>}
+              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-sky-600">{cur.id}</span><div className="flex items-center gap-2"><Badge kind={vK[cur.v]}>{cur.v}</Badge>{healUsable(fqaCases, cur) && <Badge kind="active">보정</Badge>}<Btn icon={RefreshCw} onClick={() => flash(cur.id + " 재실행")}>재실행</Btn>{cur.v === "FAIL" && openDefectOf(cur.id) && <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(cur.id).key }); goto("defects"); }}>결함 보기 · {openDefectOf(cur.id).key}</Btn>}
                 {/* 행이 있는 케이스는 열린 결함이 있어도 다른 행에 대해 추가 등록할 수 있다 */}
                 {canRegister(cur) && <Btn kind="danger" icon={Bug} onClick={() => regDefect(cur)}>{isRegression(cur.id) ? "재발 결함 등록" : "결함 등록"}</Btn>}</div></div>
               <div className="mb-3 text-sm text-slate-700">{cur.name}</div>
@@ -2289,7 +2289,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   <tr key={r.id} className="border-b border-slate-200 text-slate-700 hover:bg-slate-100">
                     <td className="px-4 py-3"><div className="font-mono text-xs text-sky-600">{r.id}</div><div className="flex items-center gap-1.5 text-slate-800">{r.name}{r.quarantined && <Badge kind="draft">격리됨</Badge>}</div><div className="text-xs text-slate-500">{r.suite}</div></td>
                     <td className="pr-4" style={{ minWidth: 150 }}><div className="mb-0.5 text-xs text-slate-500">{r.unstable}/{r.runs}회 · {r.urate}%</div><div className="h-1.5 rounded bg-slate-100" style={{ width: 130 }}><div className="h-1.5 rounded" style={{ width: r.urate + "%", background: r.flaky ? C.warn : C.err }} /></div></td>
-                    <td><div className="flex flex-wrap items-center gap-1">{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}{r.cause && <Badge kind={CAUSE_K[r.cause] || "draft"}>{r.cause}</Badge>}{r.heal && <Badge kind="teal">보정</Badge>}</div></td>
+                    <td><div className="flex flex-wrap items-center gap-1">{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}{r.cause && <Badge kind={CAUSE_K[r.cause] || "draft"}>{r.cause}</Badge>}{r.heal && <Badge kind="active">보정</Badge>}</div></td>
                     <td className="text-xs text-slate-500">{r.streak}</td>
                     <td className="pr-4 text-right whitespace-nowrap">{/* 🔑 격리 여부를 먼저 본다. flaky 로만 분기하면 격리된 케이스가 지속 실패로
                         재분류되는 순간 해제 버튼이 사라져 되돌릴 방법이 없어진다(앱에 다른 해제 경로가 없다). */}
@@ -2513,7 +2513,7 @@ export function FqaCasesScreen() {
   const [open, setOpen] = useState(null);
   const [picked, setPicked] = useState(new Set());
   const stK = { "승인": "pass", "검토중": "warn", "초안": "draft" };
-  const lvK2 = { "Low-Code": "teal", "Full-Code": "warn" };
+  const lvK2 = { "Low-Code": "active", "Full-Code": "warn" };
   const lvLabel = (c) => c.level;
   // 수정 최신순 — 방금 만들거나 고친 케이스가 위로. (updatedAt 없는 시드는 뒤로)
   const list = fqaCases.filter((c) => (stf === "전체" || c.status === stf) && (suiteF === "전체" || c.suite === suiteF) && (tagF === "전체" || tagList(c.tags).includes(tagF)) && (platF === "전체" || surfacesOf(c) === platF) && (c.id + c.name + c.suite + c.tags).toLowerCase().includes(q.toLowerCase()))
@@ -2768,7 +2768,7 @@ const EndpointGroup = ({ webUrl, apiUrl, set }) => {
         <Globe size={13} className="text-sky-600" />
         <span className="text-xs font-semibold text-slate-700">접점 (Base URL)</span>
         <span className="text-xs text-slate-500">· 둘 중 하나 이상</span>
-        {both && <Badge kind="teal">혼합 케이스 가능</Badge>}
+        {both && <Badge kind="active">혼합 케이스 가능</Badge>}
       </div>
       <div className="space-y-2.5">
         <Field label="웹"><Input value={webUrl} onChange={(e) => set({ webUrl: e.target.value })} placeholder="https://stg.onmarket.io" className="font-mono text-xs" /></Field>
@@ -2952,7 +2952,7 @@ export function FqaTargetScreen() {
           {/* 헤더 — 이름·상태 / 저장·연결 테스트 (LQA 챗봇 연결과 동일한 배치) */}
           <Card className="space-y-2.5 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-1 items-center gap-2"><div className="w-56 shrink-0"><Input value={nameDraft ?? sys.name} onChange={(e) => setNameDraft(e.target.value)} className="text-base font-semibold" /></div><span className="shrink-0"><Badge kind={stK[env.status]}>{env.status}</Badge></span>{hasWeb && hasApi && <span className="shrink-0"><Badge kind="teal">웹+API</Badge></span>}</div>
+              <div className="flex min-w-0 flex-1 items-center gap-2"><div className="w-56 shrink-0"><Input value={nameDraft ?? sys.name} onChange={(e) => setNameDraft(e.target.value)} className="text-base font-semibold" /></div><span className="shrink-0"><Badge kind={stK[env.status]}>{env.status}</Badge></span>{hasWeb && hasApi && <span className="shrink-0"><Badge kind="active">웹+API</Badge></span>}</div>
               <div className="flex shrink-0 items-center gap-2">{dirty && <span className="text-xs text-amber-700">미저장 변경</span>}<Btn icon={RefreshCw} onClick={runTest}>{test && test.s === "run" ? "테스트 중…" : "연결 테스트"}</Btn><Btn kind="primary" icon={Save} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-200 pt-2.5">

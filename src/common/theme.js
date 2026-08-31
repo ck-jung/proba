@@ -4,15 +4,13 @@
 // ============================================================
 
 /* 차트·게이지 색상 팔레트
-   🔑 sky 가 정식 이름이다. 예전 이름 teal 은 실제로 Tailwind sky-500(#0ea5e9)이었다 —
-      이름과 실체가 어긋나면 "teal 계열이니 teal-600 을 써도 되겠지" 같은 오용이 생긴다.
-      teal 은 기존 import 호환을 위해 남겨 둔 별칭이며 새 코드에서는 쓰지 않는다. */
+   🔑 sky 가 정식 이름이다. 예전 이름은 teal 이었는데 값은 처음부터 Tailwind sky-500(#0ea5e9)
+      이었다 — 이름과 실체가 어긋나면 "teal 계열이니 teal-600 을 써도 되겠지" 같은 오용이 생긴다. */
 export const C = {
   ok: "#059669", err: "#dc2626", warn: "#d97706",
   sky: "#0ea5e9", skyDark: "#0284c7", skyFill: "#bae6fd", skyBg: "#e0f2fe",
   blue: "#2563eb", grid: "#e2e8f0", axis: "#94a3b8", surface: "#ffffff", ink: "#334155",
 };
-C.teal = C.sky;   // deprecated 별칭
 
 /* Recharts 툴팁 공통 스타일 — 화면마다 인라인으로 적던 것을 모았다.
    같은 모양을 네 곳에서 각자 적고 있어 한쪽만 바뀌면 툴팁 생김새가 갈렸다. */
@@ -29,8 +27,6 @@ export const TOOLTIP = { background: C.surface, border: "1px solid " + C.grid, b
    계열이 2~4개일 때가 대부분이므로 앞쪽 네 개가 명도 폭을 최대로 벌리도록 배치했다.
    900·800·700 처럼 인접 단계를 앞에 몰면 선 세 개가 거의 같은 색으로 보인다. */
 export const SERIES = ["#0c4a6e", "#0369a1", "#0ea5e9", "#7dd3fc", "#075985", "#38bdf8"];
-// CL 은 C 의 별칭 — 전면 라이트 전환 이후 둘이 같다 (기존 import 호환용)
-export const CL = C;
 
 // 판정(PASS/FAIL/WARN) → Badge kind
 export const vKind = (v) => (v === "PASS" ? "pass" : v === "FAIL" ? "fail" : "warn");

@@ -7,7 +7,7 @@ import { AlertTriangle, ChevronLeft, Bug, Calendar, Copy, CheckCircle2, ChevronR
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
-import { C, CL, vKind, KIND, TOOLTIP } from "../common/theme.js";
+import { C, vKind, KIND, TOOLTIP } from "../common/theme.js";
 import { Badge, ScoreBar, Card, Field, Btn, Input, Select, Toggle, PageToolbar, EmptyState, SearchInput, RunTime, nowStamp, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 // 이벤트 트리거는 정보성(읽기전용) — 감지 방식은 챗봇 연결 "모델·배포 소스"에서 정의된 값을 상속만 표시.
@@ -355,7 +355,7 @@ export function JiraForm({ close, data }) {
           <div className="mt-2 space-y-1">
             {files.map((fl, i) => (
               <div key={i} className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm">
-                <Badge kind="teal">직접</Badge>
+                <Badge kind="active">직접</Badge>
                 <span className="flex-1 text-slate-800">{fl.name}</span>
                 <span className="text-xs text-slate-500">{fl.size}</span>
                 <button onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-600"><X size={14} /></button>
@@ -847,7 +847,7 @@ export function Dashboard() {
         <span className="text-slate-500">~</span>
         <input type="date" value={to} min={from} max={today} onChange={(e) => setRange(from, e.target.value)} className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" />
       </PageToolbar>
-      {filtered && <div className="flex items-center gap-2 text-xs text-slate-500"><Badge kind="teal">필터</Badge><span>{planF === "전체" ? "전체 계획" : planF} · {from} ~ {to} — 실행 {fruns.length}건</span><button onClick={() => { setPlanF("전체"); setFrom(defFrom); setTo(today); }} className="text-slate-500 hover:text-sky-700">초기화</button></div>}
+      {filtered && <div className="flex items-center gap-2 text-xs text-slate-500"><Badge kind="active">필터</Badge><span>{planF === "전체" ? "전체 계획" : planF} · {from} ~ {to} — 실행 {fruns.length}건</span><button onClick={() => { setPlanF("전체"); setFrom(defFrom); setTo(today); }} className="text-slate-500 hover:text-sky-700">초기화</button></div>}
       <div className="grid grid-cols-4 gap-4">
         {kpis.map((k) => (
           <Card key={k.label} className="p-4">
@@ -863,10 +863,10 @@ export function Dashboard() {
           {chartData.length ? (
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={chartData}>
-              <CartesianGrid stroke={CL.grid} vertical={false} /><XAxis dataKey="d" stroke={CL.axis} fontSize={11} /><YAxis stroke={CL.axis} fontSize={11} domain={[50, 100]} />
+              <CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="d" stroke={C.axis} fontSize={11} /><YAxis stroke={C.axis} fontSize={11} domain={[50, 100]} />
               <Tooltip contentStyle={{ ...TOOLTIP, boxShadow: "0 4px 12px rgba(0,0,0,.08)" }} /><Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="score" name="종합 점수" stroke={CL.teal} strokeWidth={2} dot={{ r: 2 }} />
-              <Line type="monotone" dataKey="pass" name="PASS율" stroke={CL.blue} strokeWidth={2} dot={{ r: 2 }} />
+              <Line type="monotone" dataKey="score" name="종합 점수" stroke={C.sky} strokeWidth={2} dot={{ r: 2 }} />
+              <Line type="monotone" dataKey="pass" name="PASS율" stroke={C.blue} strokeWidth={2} dot={{ r: 2 }} />
             </LineChart>
           </ResponsiveContainer>
           ) : <div className="flex items-center justify-center" style={{ height: 220 }}><EmptyState icon={TrendingUp} title="해당 조건의 완료 실행이 없습니다" hint="계획·기간 필터를 조정하세요" /></div>}
@@ -1070,7 +1070,7 @@ export function Plans() {
                 <div className="mt-2.5 rounded-lg border border-slate-300 p-3">
                   <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500">
                     안전 정책 (금지 행위)
-                    {tplNeedsPolicy && <Badge kind="teal">템플릿 {"{{policy}}"}</Badge>}
+                    {tplNeedsPolicy && <Badge kind="active">템플릿 {"{{policy}}"}</Badge>}
                   </div>
                   <textarea value={policyText} onChange={(e) => setPolicyText(e.target.value)} rows={5} placeholder={"- 환불·보상을 확정적으로 약속하지 않는다\n- 요금은 \"변동 가능\" 안내 없이 단정하지 않는다\n- 경쟁사를 언급하거나 비교하지 않는다\n- 법률·의료 자문을 제공하지 않는다"} className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-xs text-slate-800 outline-none focus:border-sky-500" />
                 </div>
@@ -1568,7 +1568,7 @@ export function Run() {
                     <Block label="질문" tone="plain">{sel.q}</Block>
                     <Block label="기대 응답 (Golden)" tone="ok">{sel.golden}</Block>
                     <Block label="실제 챗봇 응답" tone={sel.verdict === "FAIL" ? "err" : "plain"}>{sel.actual}</Block>
-                    {sel.scores && Object.keys(sel.scores).length > 0 && (<div><div className="text-xs text-slate-500 mb-2">LLM Judge 다차원 채점</div><div className="grid grid-cols-2 gap-x-5">{Object.entries(sel.scores).map(([k, v]) => (<ScoreBar key={k} label={k} value={v} color={v >= 80 ? C.teal : v >= 60 ? C.warn : C.err} />))}</div></div>)}
+                    {sel.scores && Object.keys(sel.scores).length > 0 && (<div><div className="text-xs text-slate-500 mb-2">LLM Judge 다차원 채점</div><div className="grid grid-cols-2 gap-x-5">{Object.entries(sel.scores).map(([k, v]) => (<ScoreBar key={k} label={k} value={v} color={v >= 80 ? C.sky : v >= 60 ? C.warn : C.err} />))}</div></div>)}
                     <Block label="Judge 평가 근거" tone="plain"><span className="text-slate-500">{sel.judge}</span></Block>
                     <div className="flex items-center gap-2 flex-wrap"><span className="text-xs text-slate-500">안전 게이트:</span>{[["환각", sel.safety.환각], ["PII 노출", sel.safety.PII], ["정책 위반", sel.safety.정책]].filter(([, v]) => v && v !== "미검사").map(([k, v]) => <Badge key={k} kind={vKind(v)}>{k} {v}</Badge>)}{[sel.safety.환각, sel.safety.PII, sel.safety.정책].every((v) => !v || v === "미검사") && <span className="text-xs text-slate-500">활성 게이트 없음</span>}</div>
                     <div className="pt-2 border-t border-slate-200">
@@ -1716,7 +1716,7 @@ export function Compare() {
                 <div className="mb-1.5 text-xs font-semibold text-slate-500">지표별 점수 변화</div>
                 <div className="space-y-1">{dimDelta.map((x) => (<div key={x.d} className="flex items-center justify-between text-xs"><span className="text-slate-500">{x.d}</span><span className="flex items-center gap-2 text-slate-700">{x.a != null ? x.a : "—"} → {x.b != null ? x.b : "—"}{x.delta != null && <span className={"flex items-center " + (x.delta >= 0 ? "text-emerald-600" : "text-red-600")}>{x.delta >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}{x.delta >= 0 ? "+" + x.delta : x.delta}</span>}</span></div>))}</div>
               </div>
-              <div className="flex items-center gap-2 border-t border-slate-200 pt-3"><Badge kind="teal">AI 추정</Badge><span className="text-xs text-slate-500">온프렘 LLM(사내) 경유 · 원문 마스킹 · 검증 필요</span></div>
+              <div className="flex items-center gap-2 border-t border-slate-200 pt-3"><Badge kind="active">AI 추정</Badge><span className="text-xs text-slate-500">온프렘 LLM(사내) 경유 · 원문 마스킹 · 검증 필요</span></div>
               <div>
                 <div className="mb-1.5 text-xs font-semibold text-slate-500">회귀 원인 후보</div>
                 <ul className="space-y-1.5">{causes.map((c, i) => (<li key={i} className="flex gap-2 text-xs text-slate-700"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-400" />{c}</li>))}</ul>

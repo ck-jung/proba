@@ -642,7 +642,7 @@ export function PqaRunScreen() {
   const estSec = (r) => { const per = (j) => (String(j).includes("Startup") ? 4 : 8); const byDev = {}; (r.subjobs || []).forEach((s) => { byDev[s.did] = (byDev[s.did] || 0) + (s.iters || 10) * per(s.journey); }); const v = Object.values(byDev); return v.length ? Math.max(...v) : 0; };
   const mstr = (s) => Object.entries(s.metrics || {}).map(([k, v]) => { const m = PERF_METRICS.find((x) => x.id === k) || { label: k, unit: "" }; return m.label + " " + v + (m.unit || ""); }).join(" · ");
   const sK = { "대기": "info", "실행중": "warn", "완료": "pass" };
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "active" };
   const mtxDevs = selRun ? [...new Map((selRun.subjobs || []).map((s) => [s.did, { did: s.did, model: s.model, slot: s.slot }])).values()] : [];
   const mtxScns = selRun ? [...new Map((selRun.subjobs || []).map((s) => [s.sid, { sid: s.sid, scn: s.scn, journey: s.journey }])).values()] : [];
   const cellOf = (did, sid) => (selRun.subjobs || []).find((s) => s.did === did && s.sid === sid);
@@ -749,7 +749,7 @@ export function PqaHistoryScreen() {
   const [fVerdict, setFVerdict] = useState("all");
   const planName = (id) => ((perfPlans || []).find((p) => p.id === id) || {}).name || "-";
   const tK = { "수동": "info", "스케줄": "pass", "이벤트": "warn" };
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "active" };
   const shown = runs.filter((r) => (fPlan === "all" || String(r.planId) === fPlan) && (fVerdict === "all" || r.verdict === fVerdict)).slice().sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""));
   if (detail) return <PqaResultView run={detail} back={() => setDetail(null)} />;
   return (
@@ -810,7 +810,7 @@ function PqaResultView({ run, back, backLabel = "실행 이력" }) {
       artifacts: [{ k: "bench", label: "benchmarkData", file: "benchmarkData.json", size: "24 KB" }, { k: "summary", label: "판정 요약", file: "verdict_summary.csv", size: "4 KB" }],
     });
   };
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "active" };
   const thr = (sid, mid) => { const b = (plan.budget || {})[String(sid)]; return b ? b[mid] : undefined; };
   const metricsOf = (sid) => PERF_METRICS.filter((m) => subs.some((s) => s.sid === sid && s.metrics && s.metrics[m.id] != null));
   const cell = (did, sid) => subs.find((s) => s.did === did && s.sid === sid);
@@ -942,7 +942,7 @@ export function PqaDashboardScreen() {
   regItems.sort((a, b) => { if (stRank[a.status] !== stRank[b.status]) return stRank[a.status] - stRank[b.status]; if (a.status === "현재 초과") return (b.slaOver || 0) - (a.slaOver || 0); if (a.status === "회귀") return (b.reg || 0) - (a.reg || 0); return (b.recentWorst || 0) - (a.recentWorst || 0); });
   const regNowCount = regItems.filter((x) => x.status !== "해소").length;
   const planName = (id) => (plans.find((p) => p.id === id) || {}).name || "-";
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "active" };
   if (detail) return <PqaResultView run={detail} back={() => setDetail(null)} backLabel="대시보드" />;
   return (
     <div className="space-y-4">
@@ -1022,7 +1022,7 @@ export function PqaTrendScreen() {
   const yDomain = vals.length ? [Math.max(0, Math.floor(lo - pad)), Math.ceil(hi + pad)] : [0, 1];
   const dlt = (cur, prv) => (prv == null || cur == null || prv === 0) ? null : Math.round((cur - prv) / prv * 1000) / 10;
   const rows = [...data].reverse();
-  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "teal" };
+  const vK = { "합격": "pass", "불합격": "fail", "미판정": "info", "기준선": "active" };
   if (detail) return <PqaResultView run={detail} back={() => setDetail(null)} backLabel="성능 추이" />;
   return (
     <div className="space-y-4">
