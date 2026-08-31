@@ -10,6 +10,7 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianG
 import { Card, Badge, Btn, Seg, Field, Input, Select, Modal, Toast, useToast, PageToolbar, backTo, RunTime, nowStamp, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 import { useApp } from "../common/context.js";
+import { C, TOOLTIP } from "../common/theme.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { DatasetPicker } from "../common/DatasetPicker.jsx";
 import { STEP_ACTS, surfaceOf } from "./data.js";
@@ -88,8 +89,8 @@ const histOf = (runs, id) => runsFor(runs, id).slice(0, 4).map((r) => ((r.tcs ||
    로케이터·타이밍은 우리(QA)가, 검증은 개발이, 환경은 인프라가 고친다. */
 const CAUSE_ORDER = ["로케이터", "검증", "타이밍", "환경", "기타"];
 const CAUSE_K = { "로케이터": "teal", "검증": "fail", "타이밍": "warn", "환경": "info", "기타": "draft" };
-const CAUSE_BG = { "로케이터": "bg-teal-500", "검증": "bg-red-500", "타이밍": "bg-amber-500", "환경": "bg-slate-400", "기타": "bg-slate-300" };
-const CAUSE_TX = { "로케이터": "text-teal-700", "검증": "text-red-700", "타이밍": "text-amber-700", "환경": "text-slate-600", "기타": "text-slate-500" };
+const CAUSE_BG = { "로케이터": "bg-sky-500", "검증": "bg-red-500", "타이밍": "bg-amber-500", "환경": "bg-slate-400", "기타": "bg-slate-300" };
+const CAUSE_TX = { "로케이터": "text-sky-700", "검증": "text-red-700", "타이밍": "text-amber-700", "환경": "text-slate-600", "기타": "text-slate-500" };
 /* 케이스의 최근 실패 원인 — heal 과 같은 이유로 실행에서 파생한다 */
 const causeOf = (runs, id) => { const rs = runsFor(runs, id); for (let i = 0; i < rs.length; i++) { const t = (rs[i].tcs || []).find((x) => x.id === id); if (t && t.cause) return t.cause; } return null; };
 const healKey = (t) => t.id + "|" + ((t && t.heal && t.heal.from) || "");
@@ -346,13 +347,13 @@ export function FqaRecordScreen({ onDone, onEdit }) {
                 {phase === "waiting" ? (
                   <>
                     <div className="mb-1 flex items-center justify-center gap-2 text-slate-500"><RefreshCw size={14} className="animate-spin text-sky-600" />CLI 연결을 기다리는 중…</div>
-                    <div className="text-xs text-slate-400">터미널에서 위 명령어를 실행하세요.</div>
+                    <div className="text-xs text-slate-500">터미널에서 위 명령어를 실행하세요.</div>
                   </>
                 ) : phase === "recording" ? (
                   <>
                     <div className="mb-1 flex items-center justify-center gap-2 text-red-700"><span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />브라우저에서 녹화 중…</div>
-                    <div className="text-xs text-slate-400">조작을 마치고 <span className="text-slate-500">브라우저 창을 닫으면</span> 스텝이 여기에 도착합니다.</div>
-                    <button onClick={simulate} className="mt-4 text-xs text-slate-400 underline decoration-dotted hover:text-slate-500">＊ 데모 — 캡처 결과 수신 시뮬레이션</button>
+                    <div className="text-xs text-slate-500">조작을 마치고 <span className="text-slate-500">브라우저 창을 닫으면</span> 스텝이 여기에 도착합니다.</div>
+                    <button onClick={simulate} className="mt-4 text-xs text-slate-500 underline decoration-dotted hover:text-slate-500">＊ 데모 — 캡처 결과 수신 시뮬레이션</button>
                   </>
                 ) : "녹화 세션을 시작하세요."}
               </div>
@@ -1141,7 +1142,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
             )}
             {/* 승인된 케이스만 후보다 — 초안을 전제로 쓰면 실행이 불안정해진다.
                 전제조건 케이스를 수정하면 승인이 풀리므로 이 케이스도 실행이 막힌다(F9). 그게 의도다. */}
-            <div className="mt-1.5 text-xs text-slate-400">승인된 Low-Code 케이스만 고를 수 있습니다.</div>
+            <div className="mt-1.5 text-xs text-slate-500">승인된 Low-Code 케이스만 고를 수 있습니다.</div>
             {preOpts.length === 0 && <div className="mt-1 text-xs text-amber-600">해당하는 케이스가 없습니다.</div>}
           </Card>
           {/* 케이스가 행마다 반복 실행된다 — 부하용 대량 데이터셋(NQA 몫)은 고를 수 없다 */}
@@ -1179,7 +1180,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
               const off = i > committed || (i === 0 && committed === 1 && steps.length === 0);
               return (
               <Fragment key={l}>
-                <button disabled={off} onClick={() => !off && setView(l)} className={"rounded-lg border px-3 py-1.5 text-xs " + (view === l ? "border-sky-500 bg-sky-100 text-sky-700" : !off ? "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200" : "border-slate-200 bg-white text-slate-400 cursor-not-allowed")}>
+                <button disabled={off} onClick={() => !off && setView(l)} className={"rounded-lg border px-3 py-1.5 text-xs " + (view === l ? "border-sky-500 bg-sky-100 text-sky-700" : !off ? "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200" : "border-slate-200 bg-white text-slate-500 cursor-not-allowed")}>
                   {l}
                 </button>
                 {i < LV.length - 1 && <ArrowRight size={14} className={i < committed ? "text-sky-600" : "text-slate-700"} />}
@@ -1210,7 +1211,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                   <span className="ml-auto text-xs text-slate-500">경로는 <span className="font-mono text-slate-500">상대경로</span> — base URL은 실행 계획의 환경에서 주입</span>
                 </div>
                 <div>
-                  {steps.length === 0 && <div className="px-3 py-10 text-center text-sm text-slate-400">스텝이 없습니다. 아래 <span className="text-sky-600">+ 스텝 추가</span>로 시작하세요.</div>}
+                  {steps.length === 0 && <div className="px-3 py-10 text-center text-sm text-slate-500">스텝이 없습니다. 아래 <span className="text-sky-600">+ 스텝 추가</span>로 시작하세요.</div>}
                   {steps.map((s, i) => {
                     const setStep = (patch) => setSteps(steps.map((x, j) => (j === i ? { ...x, ...patch } : x)));
                     const isCode = s.act === "코드 스텝";
@@ -1309,12 +1310,12 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                           <div>
                             <div className="mb-1 text-xs text-slate-500">추가 헤더 (선택 · 한 줄에 하나)</div>
                             <textarea value={s.headers || ""} onChange={(e) => setStep({ headers: e.target.value })} readOnly={!editable} rows={2} placeholder="Idempotency-Key: ${주문키}" className="w-full rounded border border-slate-300 bg-slate-50 px-2.5 py-1.5 font-mono text-xs text-slate-700 outline-none focus:border-sky-500" />
-                            <div className="mt-1 text-xs text-slate-400">인증 헤더는 환경에서 주입 — 여기 적지 않습니다.</div>
+                            <div className="mt-1 text-xs text-slate-500">인증 헤더는 환경에서 주입 — 여기 적지 않습니다.</div>
                           </div>
                           <div>
                             <div className="mb-1 text-xs text-slate-500">응답 저장 (스텝 간 전달)</div>
                             <input value={s.save || ""} onChange={(e) => setStep({ save: e.target.value })} readOnly={!editable} placeholder="orderId = $.orderId" className="w-full rounded border border-slate-300 bg-slate-50 px-2.5 py-1.5 font-mono text-xs text-slate-700 outline-none focus:border-sky-500" />
-                            <div className="mt-1 text-xs text-slate-400">이후 스텝에서 <span className="font-mono text-sky-600">{"${orderId}"}</span>로 사용 · 쉼표로 여러 개 · 이름은 영문·숫자·_</div>
+                            <div className="mt-1 text-xs text-slate-500">이후 스텝에서 <span className="font-mono text-sky-600">{"${orderId}"}</span>로 사용 · 쉼표로 여러 개 · 이름은 영문·숫자·_</div>
                           </div>
                         </div>
                       )}
@@ -1325,7 +1326,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                 {editable && (
                   <div className="flex items-center gap-3 border-t border-slate-200 px-3 py-2">
                     <button onClick={() => setSteps([...steps, steps.length === 0 ? { act: "이동", loc: "/", val: "-" } : { act: "클릭", loc: "", val: "-" }])} className="shrink-0 text-xs text-sky-600">+ 스텝 추가</button>
-                    <span className="truncate text-xs text-slate-400">로케이터 {LOC_HINT}</span>
+                    <span className="truncate text-xs text-slate-500">로케이터 {LOC_HINT}</span>
                   </div>
                 )}
               </div>
@@ -1379,7 +1380,7 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                   <div className="w-52 shrink-0 space-y-1.5 overflow-y-auto">
                     {versions.map((v, i) => (
                       <button key={v.rev} onClick={() => setVerSel(v.rev)} className={"w-full rounded-lg border px-2.5 py-2 text-left " + (verSel === v.rev ? SEL_CARD : "border-slate-200 bg-slate-50 hover:bg-white")}>
-                        <div className="flex items-center gap-1.5 text-xs"><span className="font-mono text-sky-600">rev {v.rev}</span><Badge kind={v.level === "Full-Code" ? "warn" : "teal"}>{v.level}</Badge>{v.rev === curRev && <span className="ml-auto text-xs text-slate-500">현재</span>}{i === versions.length - 1 && v.rev !== curRev && <span className="ml-auto text-xs text-slate-400">최초</span>}</div>
+                        <div className="flex items-center gap-1.5 text-xs"><span className="font-mono text-sky-600">rev {v.rev}</span><Badge kind={v.level === "Full-Code" ? "warn" : "teal"}>{v.level}</Badge>{v.rev === curRev && <span className="ml-auto text-xs text-slate-500">현재</span>}{i === versions.length - 1 && v.rev !== curRev && <span className="ml-auto text-xs text-slate-500">최초</span>}</div>
                         <div className="mt-0.5 text-xs text-slate-500">{v.at}</div>
                         <div className="text-xs text-slate-500">{v.by}</div>
                       </button>
@@ -1387,8 +1388,8 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                   </div>
                   {/* 현재본과의 차이 */}
                   <div className="min-w-0 flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    {!verObj || !headObj ? <div className="py-16 text-center text-xs text-slate-400">리비전을 선택하세요.</div> : verObj.rev === curRev ? (
-                      <div className="py-16 text-center text-xs text-slate-400">현재 리비전입니다. 이전 리비전을 선택하면 차이가 표시됩니다.</div>
+                    {!verObj || !headObj ? <div className="py-16 text-center text-xs text-slate-500">리비전을 선택하세요.</div> : verObj.rev === curRev ? (
+                      <div className="py-16 text-center text-xs text-slate-500">현재 리비전입니다. 이전 리비전을 선택하면 차이가 표시됩니다.</div>
                     ) : (() => {
                       const fd = fieldDiff(verObj, headObj);
                       const sd = lcsDiff(verObj.steps || [], headObj.steps || [], stepKey).filter((d) => d.t !== "same");
@@ -1397,8 +1398,8 @@ export function FqaEditorScreen({ entry = "Low-Code", tc, onDirty, onOpen }) {
                       const none = fd.length === 0 && sd.length === 0 && !cdChanged;
                       return (
                         <div className="space-y-3">
-                          <div className="text-xs text-slate-500">rev {verObj.rev} <ArrowRight size={11} className="inline text-slate-400" /> rev {curRev} <span className="text-slate-400">(현재)</span></div>
-                          {none && <div className="py-12 text-center text-xs text-slate-400">이 리비전과 현재 내용이 같습니다.</div>}
+                          <div className="text-xs text-slate-500">rev {verObj.rev} <ArrowRight size={11} className="inline text-slate-400" /> rev {curRev} <span className="text-slate-500">(현재)</span></div>
+                          {none && <div className="py-12 text-center text-xs text-slate-500">이 리비전과 현재 내용이 같습니다.</div>}
                           {fd.length > 0 && (
                             <div>
                               <div className="mb-1 text-xs font-semibold text-slate-500">속성</div>
@@ -1531,7 +1532,7 @@ export function FqaSuiteScreen() {
               </div>
             </Card>
           ))}
-          {suites.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">스위트가 없습니다.</div>}
+          {suites.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-500">스위트가 없습니다.</div>}
         </div>
         <div className="col-span-9 space-y-4">
           {selSuite ? (
@@ -1570,7 +1571,7 @@ export function FqaSuiteScreen() {
                       <button onClick={() => { setFqaEditTc(c.id); goto("fqa-cases"); }} className="shrink-0 pt-0.5 text-slate-500 hover:text-sky-600">편집</button>
                     </div>
                   ))}
-                  {rows.length === 0 && <div className="py-10 text-center text-xs text-slate-400">{casesOf(selSuite.name).length === 0 ? "이 스위트에 포함된 테스트케이스가 없습니다." : "검색 결과가 없습니다."}</div>}
+                  {rows.length === 0 && <div className="py-10 text-center text-xs text-slate-500">{casesOf(selSuite.name).length === 0 ? "이 스위트에 포함된 테스트케이스가 없습니다." : "검색 결과가 없습니다."}</div>}
                 </div>
               </Card>
             </>
@@ -1580,7 +1581,7 @@ export function FqaSuiteScreen() {
                 <Layers size={26} className="text-slate-400" />
                 <div className="mt-3 text-sm font-medium text-slate-700">테스트 스위트를 먼저 만드세요</div>
                 <div className="mt-1.5 max-w-md text-xs text-slate-500">스위트는 업무 흐름 단위로 케이스를 묶습니다. 실행 계획이 스위트를 골라 실행하므로, 케이스는 스위트에 속해야 실행됩니다.</div>
-              </>) : <div className="text-xs text-slate-400">왼쪽에서 스위트를 선택하세요.</div>}
+              </>) : <div className="text-xs text-slate-500">왼쪽에서 스위트를 선택하세요.</div>}
             </Card>
           )}
         </div>
@@ -1854,12 +1855,12 @@ export function FqaHistoryScreen({ nav }) {
               <tr key={r.id} onClick={() => openRun(r)} className="cursor-pointer border-b border-slate-200 text-slate-700 hover:bg-slate-100">
                 <td className="px-4 py-3 font-mono text-xs text-sky-600">{r.id}</td>
                 <td className="text-slate-800">{planLabel(r)}{planNow(r) && r.plan && planNow(r) !== r.plan && <span className="ml-1.5 text-xs text-slate-500">· 당시 “{r.plan}”</span>}</td>
-                <td className="font-mono text-xs text-slate-500">{r.ver && r.ver !== "-" ? r.ver : <span className="text-slate-400">-</span>}</td>
+                <td className="font-mono text-xs text-slate-500">{r.ver && r.ver !== "-" ? r.ver : <span className="text-slate-500">-</span>}</td>
                 <td className="text-xs text-slate-500">{r.target || "-"}</td>
                 <td><Badge kind={tK[r.trig]}>{r.trig}</Badge></td>
                 <td><RunTime start={r.startedAt} end={r.endedAt} /></td>
                 <td><Badge kind={hK[r.status]}>{r.status}</Badge></td>
-                <td>{verdict(r) === "-" ? <span className="text-xs text-slate-400">-</span> : <Badge kind={vK[verdict(r)]}>{verdict(r)}</Badge>}</td>
+                <td>{verdict(r) === "-" ? <span className="text-xs text-slate-500">-</span> : <Badge kind={vK[verdict(r)]}>{verdict(r)}</Badge>}</td>
                 <td className="pr-4 text-xs text-slate-500">{r.status === "완료" ? r.pass + "/" + r.total : "-"}</td>
               </tr>
             ))}
@@ -2070,7 +2071,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   const runB = fqaRuns.find((r) => r.id === bId);
   const rate = (r) => (r && r.total ? Math.round((r.pass / r.total) * 1000) / 10 : 0);
   const rank = { FAIL: 0, WARN: 1, HEAL: 1, PASS: 2 };
-  const cls = (a, b) => (!a || !b ? { k: "-", c: "text-slate-400" } : a === b ? { k: "유지", c: "text-slate-500" } : ((rank[b] == null ? 2 : rank[b]) > (rank[a] == null ? 2 : rank[a]) ? { k: "개선", c: "text-emerald-600" } : { k: "퇴행", c: "text-red-600" }));
+  const cls = (a, b) => (!a || !b ? { k: "-", c: "text-slate-500" } : a === b ? { k: "유지", c: "text-slate-500" } : ((rank[b] == null ? 2 : rank[b]) > (rank[a] == null ? 2 : rank[a]) ? { k: "개선", c: "text-emerald-600" } : { k: "퇴행", c: "text-red-600" }));
   const _nameOf = (id) => { const t = [...((runB && runB.tcs) || []), ...((runA && runA.tcs) || [])].find((x) => x.id === id); return t ? t.name : id; };
   const mapA = Object.fromEntries(((runA && runA.tcs) || []).map((t) => [t.id, t.v]));
   const mapB = Object.fromEntries(((runB && runB.tcs) || []).map((t) => [t.id, t.v]));
@@ -2091,7 +2092,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   return (
     <div className="space-y-4">
       {mode === "상세" ? (
-        <PageToolbar desc={back ? <span><button onClick={back} className="text-sky-600 hover:underline">{backLabel || "실행 이력"}</button> <span className="text-slate-400">›</span> <span className="text-slate-700 font-medium">{run.id} 결과</span></span> : "결과 상세"}>
+        <PageToolbar desc={back ? <span><button onClick={back} className="text-sky-600 hover:underline">{backLabel || "실행 이력"}</button> <span className="text-slate-500">›</span> <span className="text-slate-700 font-medium">{run.id} 결과</span></span> : "결과 상세"}>
           {back && <Btn icon={ChevronLeft} onClick={back}>{backTo(backLabel || "실행 이력")}</Btn>}
         </PageToolbar>
       ) : (
@@ -2103,14 +2104,14 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
             <div className="flex items-center gap-2 flex-wrap"><span className="font-mono text-sm text-sky-600">{run.id}</span><span className="text-sm font-medium text-slate-800">{(fqaPlans.find((p) => p.id === run.planId) || {}).name || run.plan}</span>{run.fail > 0 ? <Badge kind="fail">실패 {run.fail}건</Badge> : <Badge kind="pass">전체 통과</Badge>}<span className="text-xs text-slate-500">{!run.brow ? "API" : (run.brow || "Chromium")} · {run.suite}</span>{run.ver && run.ver !== "-" && <Badge kind="info">빌드 {run.ver}</Badge>}
               {/* 🔑 러너 버전 스탬프 — 없으면 "제품이 깨진 건가 브라우저가 올라간 건가"를 구분할 수 없다.
                   케이스 rev와 같은 목적이다. 브라우저 버전은 Playwright 버전에 종속이지만 매핑표를 외우게 하지 않는다. */}
-              {run.pw && <span className="font-mono text-slate-400" style={{ fontSize: 11 }} title={"Playwright " + run.pw + " · Chromium " + (run.brVer || "-")}>pw {run.pw}</span>}</div>
+              {run.pw && <span className="font-mono text-slate-500" style={{ fontSize: 11 }} title={"Playwright " + run.pw + " · Chromium " + (run.brVer || "-")}>pw {run.pw}</span>}</div>
             <div className="flex gap-2"><Btn icon={Download} onClick={() => flash("Excel")}>Excel</Btn><Btn icon={Download} onClick={() => flash("PDF")}>PDF</Btn></div>
           </Card>
           <div className={"grid gap-3 " + (!run.brow ? "grid-cols-5" : "grid-cols-6")}>
             {SUM.map((k) => (<Card key={k[0]} className="p-3 text-center"><div className={"text-2xl font-bold " + k[2]}>{k[1]}</div><div className="mt-0.5 text-xs text-slate-500">{k[0]}</div></Card>))}
             <Card className="p-3 text-center"><div className="text-2xl font-bold text-slate-900">{run.dur}</div><div className="mt-0.5 text-xs text-slate-500">소요</div></Card>
           </div>
-          <Card className="flex flex-wrap items-center gap-3 p-3 text-sm"><span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>품질 게이트: {gate}</span><span className="text-slate-500">기준 {gval}% · 실제 <span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>{passRate}%</span></span>{run.brow && (<><span className="text-slate-400">·</span><span className="text-slate-500">보정 제안 {tcs.filter((t) => healUsable(fqaCases, t)).length}건</span></>)}</Card>
+          <Card className="flex flex-wrap items-center gap-3 p-3 text-sm"><span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>품질 게이트: {gate}</span><span className="text-slate-500">기준 {gval}% · 실제 <span className={"font-semibold " + (gate === "FAIL" ? "text-red-700" : "text-emerald-700")}>{passRate}%</span></span>{run.brow && (<><span className="text-slate-500">·</span><span className="text-slate-500">보정 제안 {tcs.filter((t) => healUsable(fqaCases, t)).length}건</span></>)}</Card>
           {tcs.length === 0 ? (
             <Card className="p-8 text-center text-sm text-slate-500">{run.status === "실행 중" || run.status === "대기 중" ? "실행이 진행 중입니다 — 완료 후 케이스 결과가 표시됩니다." : "이 실행에는 케이스 상세 결과가 없습니다."}</Card>
           ) : (
@@ -2174,7 +2175,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                       </div>
                     ))}
                   </div>
-                  <div className="mt-2 text-slate-400" style={{ fontSize: 11 }}>판정은 케이스 단위 1건이다 — 한 행이라도 실패하면 FAIL. 행 데이터는 실행 시점 스냅샷이다. 행을 클릭하면 아래 스텝·증적이 그 행으로 바뀐다.</div>
+                  <div className="mt-2 text-slate-500" style={{ fontSize: 11 }}>판정은 케이스 단위 1건이다 — 한 행이라도 실패하면 FAIL. 행 데이터는 실행 시점 스냅샷이다. 행을 클릭하면 아래 스텝·증적이 그 행으로 바뀐다.</div>
                 </div>
               )}
               <div className="mb-2 text-xs font-semibold text-slate-500">{fullCode ? "실행 결과" : "스텝 실행 타임라인"}{curRow && <span className="ml-1.5 font-normal text-sky-600">· {curRow.i}행</span>}</div>
@@ -2227,7 +2228,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                   return nm + " · console/network 로그"; })()}</div>
                 )}
                 {/* 언제 사라지는지 알려준다 — 결함에 걸린 증적은 기간과 무관하게 남는다(참조 기준, 기간 기준이 아님) */}
-                <div className="mt-1.5 text-slate-400" style={{ fontSize: 11 }}>증적 보존 30일{defectsOfTc(cur.id).length > 0 && <span className="text-slate-500"> · 결함에 연결되어 결함 종료 시까지 유지됩니다</span>}</div>
+                <div className="mt-1.5 text-slate-500" style={{ fontSize: 11 }}>증적 보존 30일{defectsOfTc(cur.id).length > 0 && <span className="text-slate-500"> · 결함에 연결되어 결함 종료 시까지 유지됩니다</span>}</div>
               </div>
             </Card>
             )}
@@ -2252,14 +2253,14 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
             <Card className="p-4 text-center"><div className="text-2xl font-bold text-slate-700">{summ["유지"] || 0}</div><div className="mt-0.5 text-xs text-slate-500">유지</div></Card>
           </div>
           <Card className="overflow-hidden">
-            <div className="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800">케이스 회귀 분석 <span className="font-normal text-slate-500">· {aId} → {bId}</span>{runDiff && <span className="ml-2 font-normal text-amber-600" style={{ fontSize: 12 }}>· {runDiff} — 판정 차이를 제품 회귀로 단정할 수 없습니다</span>}<span className="ml-2 font-normal text-slate-400" style={{ fontSize: 11 }}>행을 클릭하면 {bId} 결과 상세로 이동합니다</span></div>
+            <div className="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800">케이스 회귀 분석 <span className="font-normal text-slate-500">· {aId} → {bId}</span>{runDiff && <span className="ml-2 font-normal text-amber-600" style={{ fontSize: 12 }}>· {runDiff} — 판정 차이를 제품 회귀로 단정할 수 없습니다</span>}<span className="ml-2 font-normal text-slate-500" style={{ fontSize: 11 }}>행을 클릭하면 {bId} 결과 상세로 이동합니다</span></div>
             <table className="w-full text-sm">
               <thead><tr className="border-b border-slate-200 text-left text-slate-500"><th className="px-4 py-2.5 font-medium">ID</th><th className="font-medium">TC</th><th className="font-medium">A</th><th></th><th className="font-medium">B</th><th className="font-medium">변화</th></tr></thead>
               <tbody>
                 {regRows.length === 0 && (<tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">두 실행 모두 케이스 단위 결과가 없습니다.</td></tr>)}
                 {regRows.map((r) => { const v = cls(r.a, r.b); const revd = r.ra != null && r.rb != null && r.ra !== r.rb; const rv = (n) => (n == null ? null : <span className="ml-1.5 font-mono text-slate-500" style={{ fontSize: 10 }}>rev {n}</span>); return (
                   <tr key={r.id} onClick={() => nav && nav("fqa-result-detail", bId)} title={bId + " 결과 상세로 이동"} className={"cursor-pointer border-b border-slate-200 text-slate-700 hover:brightness-125 " + (v.k === "퇴행" ? "bg-red-50" : "")}>
-                    <td className="px-4 py-2.5 font-mono text-sky-600">{r.id}</td><td className="text-slate-700">{r.name}</td><td className="whitespace-nowrap">{r.a ? <Badge kind={vK[r.a]}>{r.a}</Badge> : <span className="text-xs text-slate-400">없음</span>}{rv(r.ra)}</td><td className="text-slate-400">→</td><td className="whitespace-nowrap">{r.b ? <Badge kind={vK[r.b]}>{r.b}</Badge> : <span className="text-xs text-slate-400">없음</span>}{rv(r.rb)}</td>
+                    <td className="px-4 py-2.5 font-mono text-sky-600">{r.id}</td><td className="text-slate-700">{r.name}</td><td className="whitespace-nowrap">{r.a ? <Badge kind={vK[r.a]}>{r.a}</Badge> : <span className="text-xs text-slate-500">없음</span>}{rv(r.ra)}</td><td className="text-slate-500">→</td><td className="whitespace-nowrap">{r.b ? <Badge kind={vK[r.b]}>{r.b}</Badge> : <span className="text-xs text-slate-500">없음</span>}{rv(r.rb)}</td>
                     {/* rev가 다르면 판정 변화의 원인을 제품으로 단정할 수 없다 — 그 사실만 덧붙이고 결론은 내리지 않는다 */}
                     <td className={"font-semibold whitespace-nowrap " + v.c}>{v.k}{revd && <span className="ml-1.5 font-normal text-amber-600" style={{ fontSize: 11 }}>· 케이스 변경</span>}</td>
                   </tr>
@@ -2275,7 +2276,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
         <>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="text-slate-500">최근 실행 이력 기준(TC별 누적)</span>
-            <span className="text-slate-400">·</span>
+            <span className="text-slate-500">·</span>
             <span className="text-amber-700">Flaky {flakyN}건</span>
             <span className="text-red-700">지속 실패 {persistN}건</span>
           </div>
@@ -2287,7 +2288,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
                 {FLAKY.map((r) => (
                   <tr key={r.id} className="border-b border-slate-200 text-slate-700 hover:bg-slate-100">
                     <td className="px-4 py-3"><div className="font-mono text-xs text-sky-600">{r.id}</div><div className="flex items-center gap-1.5 text-slate-800">{r.name}{r.quarantined && <Badge kind="draft">격리됨</Badge>}</div><div className="text-xs text-slate-500">{r.suite}</div></td>
-                    <td className="pr-4" style={{ minWidth: 150 }}><div className="mb-0.5 text-xs text-slate-500">{r.unstable}/{r.runs}회 · {r.urate}%</div><div className="h-1.5 rounded bg-slate-100" style={{ width: 130 }}><div className="h-1.5 rounded" style={{ width: r.urate + "%", background: r.flaky ? "#d97706" : "#dc2626" }} /></div></td>
+                    <td className="pr-4" style={{ minWidth: 150 }}><div className="mb-0.5 text-xs text-slate-500">{r.unstable}/{r.runs}회 · {r.urate}%</div><div className="h-1.5 rounded bg-slate-100" style={{ width: 130 }}><div className="h-1.5 rounded" style={{ width: r.urate + "%", background: r.flaky ? C.warn : C.err }} /></div></td>
                     <td><div className="flex flex-wrap items-center gap-1">{r.flaky ? <Badge kind="warn">Flaky</Badge> : <Badge kind="fail">지속 실패</Badge>}{r.cause && <Badge kind={CAUSE_K[r.cause] || "draft"}>{r.cause}</Badge>}{r.heal && <Badge kind="teal">보정</Badge>}</div></td>
                     <td className="text-xs text-slate-500">{r.streak}</td>
                     <td className="pr-4 text-right whitespace-nowrap">{/* 🔑 격리 여부를 먼저 본다. flaky 로만 분기하면 격리된 케이스가 지속 실패로
@@ -2302,7 +2303,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
               </tbody>
             </table>
           </Card>
-          <div className="text-xs text-slate-500">판정 기준: <span className="text-slate-500">최근 실행 4회</span>를 TC별 누적 · 결과 교차(PASS/FAIL 혼재)=<span className="text-amber-700">Flaky→격리</span>, 연속 실패=<span className="text-red-700">지속 실패→결함</span>. 격리된 TC는 <span className="text-slate-700">실행 대상에서 빠지며</span>, 그동안 이력이 쌓이지 않으므로 복귀는 사람이 판단해 해제해야 합니다. <span className="text-slate-400">※ 3회 이상 실행된 TC만 분류합니다.</span></div>
+          <div className="text-xs text-slate-500">판정 기준: <span className="text-slate-500">최근 실행 4회</span>를 TC별 누적 · 결과 교차(PASS/FAIL 혼재)=<span className="text-amber-700">Flaky→격리</span>, 연속 실패=<span className="text-red-700">지속 실패→결함</span>. 격리된 TC는 <span className="text-slate-700">실행 대상에서 빠지며</span>, 그동안 이력이 쌓이지 않으므로 복귀는 사람이 판단해 해제해야 합니다. <span className="text-slate-500">※ 3회 이상 실행된 TC만 분류합니다.</span></div>
         </>
       )}
       <Toast msg={msg} />
@@ -2310,7 +2311,7 @@ export function FqaResultScreen({ runId, mode = "상세", back, nav, backLabel }
   );
 }
 /* ═══════════ 8. FQA 대시보드 ═══════════ */
-const barColor = (p) => (p >= 90 ? "#0ea5e9" : p >= 80 ? "#d97706" : "#dc2626");
+const barColor = (p) => (p >= 90 ? C.sky : p >= 80 ? C.warn : C.err);
 export function FqaDashboardScreen({ nav }) {
   const { fqaRuns, fqaCases, fqaSuites, fqaPlans, defects, healState } = useApp();
   const [msg, flash] = useToast();
@@ -2379,7 +2380,7 @@ export function FqaDashboardScreen({ nav }) {
     ["승인 TC", approved + "/" + totalTc, "text-sky-600", "승인/전체"],
     ["불안정 TC", unstableN, "text-amber-600", "Flaky+지속 실패"],
     ["미해결 결함", openDef, "text-red-600", "기능 · Open"],
-    ["보정 제안", healPend, "text-teal-600", healIds.length ? "미검토 · 승인 " + healOk + "/" + healIds.length : "제안 없음"],
+    ["보정 제안", healPend, "text-sky-600", healIds.length ? "미검토 · 승인 " + healOk + "/" + healIds.length : "제안 없음"],
   ];
   return (
     <div className="space-y-4">
@@ -2424,14 +2425,14 @@ export function FqaDashboardScreen({ nav }) {
         ) : (
         <ResponsiveContainer width="100%" height={220}>
           <ComposedChart data={trend}>
-            <CartesianGrid stroke="#e2e8f0" vertical={false} />
-            <XAxis dataKey="d" stroke="#94a3b8" fontSize={11} />
-            <YAxis yAxisId="l" stroke="#94a3b8" fontSize={11} allowDecimals={false} />
-            <YAxis yAxisId="r" orientation="right" domain={[0, 100]} stroke="#94a3b8" fontSize={11} />
-            <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, color: "#334155" }} />
+            <CartesianGrid stroke={C.grid} vertical={false} />
+            <XAxis dataKey="d" stroke={C.axis} fontSize={11} />
+            <YAxis yAxisId="l" stroke={C.axis} fontSize={11} allowDecimals={false} />
+            <YAxis yAxisId="r" orientation="right" domain={[0, 100]} stroke={C.axis} fontSize={11} />
+            <Tooltip contentStyle={TOOLTIP} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar yAxisId="l" dataKey="runs" name="실행 수" fill="#bae6fd" radius={[3, 3, 0, 0]} barSize={22} />
-            <Line yAxisId="r" type="monotone" dataKey="pass" name="PASS율(%)" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2 }} />
+            <Bar yAxisId="l" dataKey="runs" name="실행 수" fill={C.skyFill} radius={[3, 3, 0, 0]} barSize={22} />
+            <Line yAxisId="r" type="monotone" dataKey="pass" name="PASS율(%)" stroke={C.sky} strokeWidth={2} dot={{ r: 2 }} />
           </ComposedChart>
         </ResponsiveContainer>
         )}
@@ -2442,7 +2443,7 @@ export function FqaDashboardScreen({ nav }) {
           <div className="space-y-2.5">
             {suiteHealth.map((s) => (
               <div key={s.name}>
-                <div className="mb-1 flex justify-between text-xs"><span className="text-slate-700">{s.name} <span className="text-slate-500">· {s.tc} TC</span></span>{s.pass == null ? <span className="text-slate-400">미실행</span> : <span className="font-semibold" style={{ color: barColor(s.pass) }}>{s.pass}%</span>}</div>
+                <div className="mb-1 flex justify-between text-xs"><span className="text-slate-700">{s.name} <span className="text-slate-500">· {s.tc} TC</span></span>{s.pass == null ? <span className="text-slate-500">미실행</span> : <span className="font-semibold" style={{ color: barColor(s.pass) }}>{s.pass}%</span>}</div>
                 <div className="h-2 rounded bg-slate-100">{s.pass != null && <div className="h-2 rounded" style={{ width: s.pass + "%", background: barColor(s.pass) }} />}</div>
               </div>
             ))}
@@ -2583,7 +2584,7 @@ export function FqaCasesScreen() {
             <div className="absolute right-0 z-20 mt-1 w-60 rounded-lg border border-slate-300 bg-white py-1 shadow-xl">
               {/* 모든 경로는 '실행 가능한 스텝'을 만든다 — 스텝 없는 TC는 만들지 않는다 */}
               {[["직접 작성", Pencil, "빈 케이스", true], ["레코딩 (웹)", Video, "레코딩", true], ["API 임포트", FileText, "api-import", true]].map(([l, Ic, m, ok]) => (
-                <button key={l} disabled={!ok} onClick={() => { if (!ok) return; setAddOpen(false); if (m === "빈 케이스") { setBlank({ name: "", suite: (fqaSuites[0] || {}).name || "", level: "Low-Code" }); return; } setMode(m); }} className={"flex w-full items-center gap-2 px-3 py-2 text-sm " + (ok ? "text-slate-800 hover:bg-slate-100" : "cursor-not-allowed text-slate-400")}><Ic size={14} className={ok ? "text-sky-600" : "text-slate-400"} />{l}{!ok && <span className="ml-auto text-slate-500" style={{ fontSize: 10 }}>준비 중</span>}</button>
+                <button key={l} disabled={!ok} onClick={() => { if (!ok) return; setAddOpen(false); if (m === "빈 케이스") { setBlank({ name: "", suite: (fqaSuites[0] || {}).name || "", level: "Low-Code" }); return; } setMode(m); }} className={"flex w-full items-center gap-2 px-3 py-2 text-sm " + (ok ? "text-slate-800 hover:bg-slate-100" : "cursor-not-allowed text-slate-500")}><Ic size={14} className={ok ? "text-sky-600" : "text-slate-400"} />{l}{!ok && <span className="ml-auto text-slate-500" style={{ fontSize: 10 }}>준비 중</span>}</button>
               ))}
             </div>
           )}
@@ -2608,7 +2609,7 @@ export function FqaCasesScreen() {
               <div className="mb-1.5 text-xs font-semibold text-slate-600">현재 스위트</div>
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(pickedCases().reduce((a, c) => { a[c.suite || "—"] = (a[c.suite || "—"] || 0) + 1; return a; }, {})).map(([k, v]) => (
-                  <span key={k} className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-600">{k} <span className="text-slate-400">{v}</span></span>
+                  <span key={k} className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-600">{k} <span className="text-slate-500">{v}</span></span>
                 ))}
               </div>
             </div>
@@ -2639,7 +2640,7 @@ export function FqaCasesScreen() {
                 <tbody>
                   {pickedCases().map((c) => (
                     <tr key={c.id} className="border-b border-slate-200">
-                      <td className="py-1.5 pl-3 pr-2"><span className="font-mono text-xs text-slate-500">{c.id}</span> <span className="text-slate-700">{c.name}</span> <span className="text-xs text-slate-400">· {c.suite}</span></td>
+                      <td className="py-1.5 pl-3 pr-2"><span className="font-mono text-xs text-slate-500">{c.id}</span> <span className="text-slate-700">{c.name}</span> <span className="text-xs text-slate-500">· {c.suite}</span></td>
                       {TAGS.map((t) => (
                         <td key={t} className="px-2 py-1.5 text-center">
                           <button onClick={() => togTag(c.id, t)} className={"rounded-full border px-2.5 py-0.5 text-xs " + (tagOn(c.id, t) ? "border-sky-600 bg-sky-100 text-sky-700" : "border-slate-200 bg-white text-slate-300 hover:bg-slate-100")}>{tagOn(c.id, t) ? t : "—"}</button>
@@ -2685,8 +2686,8 @@ export function FqaCasesScreen() {
                 <td className="py-3 pr-4 font-mono text-sky-600">{c.id}</td>
                 <td className="text-slate-800">{c.name}</td>
                 <td className="text-slate-500">{c.suite}</td>
-                <td>{tagList(c.tags).length ? <div className="flex gap-1">{tagList(c.tags).map((t) => <span key={t} className="rounded-full border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">{t}</span>)}</div> : <span className="text-xs text-slate-400">-</span>}</td>
-                <td className="whitespace-nowrap">{surfacesOf(c) === "-" ? <span className="text-xs text-slate-400">-</span> : <Badge kind={SURF_K[surfacesOf(c)] || "info"}>{surfacesOf(c)}</Badge>}{c.preCase && <button onClick={(e) => { e.stopPropagation(); const t = list.find((x) => x.id === c.preCase) || fqaCases.find((x) => x.id === c.preCase); if (t) setOpen(t); }} className="ml-1 font-mono text-slate-500 hover:text-sky-600" style={{ fontSize: 10 }} title={"전제조건 " + c.preCase + " — 클릭하면 그 케이스를 봅니다"}>← {c.preCase}</button>}{c.dataset && c.dataset !== "-" && <span className="ml-1 font-mono text-sky-600" style={{ fontSize: 10 }} title={"데이터셋 " + c.dataset}>⛁ {c.dataset}</span>}</td>
+                <td>{tagList(c.tags).length ? <div className="flex gap-1">{tagList(c.tags).map((t) => <span key={t} className="rounded-full border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">{t}</span>)}</div> : <span className="text-xs text-slate-500">-</span>}</td>
+                <td className="whitespace-nowrap">{surfacesOf(c) === "-" ? <span className="text-xs text-slate-500">-</span> : <Badge kind={SURF_K[surfacesOf(c)] || "info"}>{surfacesOf(c)}</Badge>}{c.preCase && <button onClick={(e) => { e.stopPropagation(); const t = list.find((x) => x.id === c.preCase) || fqaCases.find((x) => x.id === c.preCase); if (t) setOpen(t); }} className="ml-1 font-mono text-slate-500 hover:text-sky-600" style={{ fontSize: 10 }} title={"전제조건 " + c.preCase + " — 클릭하면 그 케이스를 봅니다"}>← {c.preCase}</button>}{c.dataset && c.dataset !== "-" && <span className="ml-1 font-mono text-sky-600" style={{ fontSize: 10 }} title={"데이터셋 " + c.dataset}>⛁ {c.dataset}</span>}</td>
                 <td><Badge kind={lvK2[c.level] || "info"}>{lvLabel(c)}</Badge></td>
                 <td><Badge kind={stK[c.status]}>{c.status}</Badge></td>
                 <td className="pr-2 text-xs text-slate-500 whitespace-nowrap">{c.updatedBy || "—"} · {c.updatedAt || "—"}</td>
@@ -2906,7 +2907,7 @@ export function FqaTargetScreen() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-3">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setTf({ name: "", env: "스테이징", webUrl: "", apiUrl: "" }); setModal("target"); }}>대상 추가</Btn>
-          <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 대상이 없습니다.</div>
+          <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-500">등록된 대상이 없습니다.</div>
         </div>
         <div className="col-span-9">
           <Card className="flex flex-col items-center justify-center py-16 text-center">
@@ -2992,7 +2993,7 @@ export function FqaTargetScreen() {
                   <button onClick={() => delAcct(i)} className="shrink-0 text-slate-500 hover:text-red-600" title="계정 삭제"><X size={12} /></button>
                 </div>
               ))}
-              {(!cfg.accts || cfg.accts.length === 0) && <div className="px-1 py-2 text-xs text-slate-400">이 환경의 계정이 없습니다 — + 계정으로 추가</div>}
+              {(!cfg.accts || cfg.accts.length === 0) && <div className="px-1 py-2 text-xs text-slate-500">이 환경의 계정이 없습니다 — + 계정으로 추가</div>}
             </div>
             <div className="text-xs text-slate-500">케이스의 <span className="text-slate-500">실행 계정 역할</span>과 같은 역할의 계정이 <span className="font-mono text-sky-600">{"${계정 ID}"}</span>·<span className="font-mono text-sky-600">{"${계정 비밀번호}"}</span>로 주입됩니다.</div>
           </Card>
@@ -3067,7 +3068,7 @@ export function FqaTargetScreen() {
               <div className="space-y-2.5 rounded-lg border border-slate-200 p-3">
                 <Field label="수신 웹훅 URL"><div className="flex items-center gap-2"><div className="flex-1 truncate rounded-lg border border-slate-300 bg-white px-2.5 py-2 font-mono text-xs text-slate-700">{hookUrl}</div><Btn icon={Copy} onClick={() => flash("웹훅 URL을 복사했습니다")}>복사</Btn></div></Field>
                 <Field label="서명 시크릿"><div className="flex items-center gap-2"><div className="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-2 font-mono text-xs text-slate-500">whsec_••••••••••••</div><Btn icon={Copy} onClick={() => flash("서명 시크릿을 복사했습니다")}>복사</Btn><Btn onClick={() => flash("서명 시크릿이 재발급되었습니다")}>재발급</Btn></div></Field>
-                <div className="text-xs text-slate-500">CD가 <span className="font-mono text-slate-500">{'{ "version": "…" }'}</span>를 이 URL로 전송 <span className="text-slate-400">· 마지막 수신 {cfg.ver && cfg.ver !== "-" ? "2시간 전" : "없음"}</span></div>
+                <div className="text-xs text-slate-500">CD가 <span className="font-mono text-slate-500">{'{ "version": "…" }'}</span>를 이 URL로 전송 <span className="text-slate-500">· 마지막 수신 {cfg.ver && cfg.ver !== "-" ? "2시간 전" : "없음"}</span></div>
               </div>
             )}
 
@@ -3211,7 +3212,7 @@ export function FqaPlanScreen() {
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-3 space-y-3">
             <Btn kind="primary" icon={Plus} className="w-full" onClick={() => setAddOpen(true)} disabled={!okTarget}>새 실행 계획</Btn>
-            <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 계획이 없습니다.</div>
+            <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-500">등록된 계획이 없습니다.</div>
           </div>
           <div className="col-span-9">
             <Card className="flex flex-col items-center justify-center py-16 text-center">
@@ -3223,7 +3224,7 @@ export function FqaPlanScreen() {
                   <div key={label} className="flex items-center gap-2 text-xs">
                     {ok ? <CheckCircle2 size={13} className="text-emerald-600" /> : <AlertTriangle size={13} className="text-amber-600" />}
                     <span className={ok ? "text-slate-500" : "text-amber-700"}>{label}</span>
-                    <span className="ml-auto text-slate-400">{ok ? "완료" : "필요"}</span>
+                    <span className="ml-auto text-slate-500">{ok ? "완료" : "필요"}</span>
                   </div>
                 ))}
               </div>
@@ -3248,7 +3249,7 @@ export function FqaPlanScreen() {
                 <div className="flex items-center justify-between"><div className="text-sm font-semibold text-slate-900">{p.name}</div><div className="flex items-center gap-1.5"><Badge kind={p.status === "활성" ? "pass" : "draft"}>{p.status}</Badge><button onClick={(e) => { e.stopPropagation(); delPlan(p); }} className="text-slate-500 hover:text-red-600" title="계획 삭제"><X size={13} /></button></div></div>
                 <div className="mt-1 text-xs text-slate-500">{labelOf(p.targetRef)}</div>
                 <div className="mt-1 text-xs text-slate-500">{(p.suites || []).join(" · ") || "스위트 없음"} · {p.sched}</div>
-                <div className="mt-0.5 text-xs text-slate-400">수정 {p.updatedBy || "—"} · {p.updatedAt || "—"}</div>
+                <div className="mt-0.5 text-xs text-slate-500">수정 {p.updatedBy || "—"} · {p.updatedAt || "—"}</div>
               </div>
             </Card>
           ))}
@@ -3258,7 +3259,7 @@ export function FqaPlanScreen() {
             <div className="min-w-0 max-w-sm flex-1"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="계획 이름" /></div>
             <div className="flex shrink-0 items-center gap-3"><div className="flex items-center gap-2 text-sm text-slate-700"><span>{planStatus === "활성" ? "활성" : "초안"}</span><TG on={planStatus === "활성"} onClick={() => setPlanStatus(planStatus === "활성" ? "초안" : "활성")} /></div>{dirty && <span className="text-xs text-amber-700">미저장 변경</span>}<Btn kind="primary" icon={RefreshCw} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
           </div>
-          <div className="mb-4 flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-500">{sel.createdBy || "—"}</span> · {sel.createdAt || "—"}</span><span className="text-slate-400">·</span><span>수정 <span className="text-slate-500">{sel.updatedBy || "—"}</span> · {sel.updatedAt || "—"}</span></div>
+          <div className="mb-4 flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-500">{sel.createdBy || "—"}</span> · {sel.createdAt || "—"}</span><span className="text-slate-500">·</span><span>수정 <span className="text-slate-500">{sel.updatedBy || "—"}</span> · {sel.updatedAt || "—"}</span></div>
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-3.5">
               <Field label="대상·환경" hint={"접점: " + ([surf.web ? "웹" : null, surf.api ? "API" : null].filter(Boolean).join("+") || "없음")}>
@@ -3279,7 +3280,7 @@ export function FqaPlanScreen() {
               </Field>
               {/* 스위트 ∩ 태그 ∩ 승인 — 실제로 몇 건이 돌지 여기서 확인된다 */}
               <div className={"rounded-lg border px-2.5 py-1.5 text-xs " + (planTargets === 0 ? "border-amber-200 bg-amber-50 text-amber-700" : "border-slate-200 bg-slate-50 text-slate-500")}>
-                {planTargets === 0 ? "⚠ 조건에 맞는 승인 케이스가 없습니다 — 실행해도 0건입니다." : <>대상 케이스 <span className="font-semibold text-sky-600">{planTargets}건</span> <span className="text-slate-400">(승인 · 격리 제외)</span></>}
+                {planTargets === 0 ? "⚠ 조건에 맞는 승인 케이스가 없습니다 — 실행해도 0건입니다." : <>대상 케이스 <span className="font-semibold text-sky-600">{planTargets}건</span> <span className="text-slate-500">(승인 · 격리 제외)</span></>}
               </div>
               {/* 케이스의 접점 ↔ 환경의 접점 — 여기가 어긋나면 실행은 반드시 실패한다 */}
               {uncovered.length > 0 && (
@@ -3317,7 +3318,7 @@ export function FqaPlanScreen() {
                   </Field>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="해상도"><Select value={res} onChange={(e) => setRes(e.target.value)}><option>1920×1080</option><option>1440×900</option><option>1280×720</option><option>375×812 (모바일)</option></Select></Field>
-                    <Field label="영상 녹화"><Select value={video} onChange={(e) => setVideo(e.target.value)}><option>녹화 안 함</option><option>실패 시만</option><option>전체 녹화</option></Select><div className="mt-1 text-slate-400" style={{ fontSize: 11 }}>trace는 항상 기록되어 실패 시 보관됩니다 — 영상은 trace와 겹치므로 필요할 때만 켜세요.</div></Field>
+                    <Field label="영상 녹화"><Select value={video} onChange={(e) => setVideo(e.target.value)}><option>녹화 안 함</option><option>실패 시만</option><option>전체 녹화</option></Select><div className="mt-1 text-slate-500" style={{ fontSize: 11 }}>trace는 항상 기록되어 실패 시 보관됩니다 — 영상은 trace와 겹치므로 필요할 때만 켜세요.</div></Field>
                   </div>
                 </>
               )}
@@ -3349,7 +3350,7 @@ export function FqaPlanScreen() {
               <div className="flex items-center gap-2 text-xs text-slate-500">이 계획 재정의 <TG on={!!jira.override} onClick={() => enableJira(!jira.override)} /></div>
             </div>
             {!jira.override ? (
-              <div className="mt-2 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">전역 Jira 설정 사용 · 프로젝트 <span className="text-slate-700">{jgc.project || "—"}</span> · 이슈유형 {jgc.issueType || "—"} <span className="text-slate-400">(결함 화면의 Jira 연동에서 관리)</span></div>
+              <div className="mt-2 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">전역 Jira 설정 사용 · 프로젝트 <span className="text-slate-700">{jgc.project || "—"}</span> · 이슈유형 {jgc.issueType || "—"} <span className="text-slate-500">(결함 화면의 Jira 연동에서 관리)</span></div>
             ) : (
               <div className="mt-3 space-y-3">
                 <div className="text-xs text-slate-500">연결(URL·인증)은 전역, 이 계획의 결함 라우팅만 재정의합니다.</div>

@@ -92,7 +92,7 @@ export function ScheduleConfig({ title = "실행 스케줄", subtitle = "백그�
           {freq === "weekly" && (<div><div className="text-xs font-semibold text-slate-500 mb-1.5">요일</div><div className="flex gap-1.5">{dowK.map((d, i) => (<button key={i} onClick={() => setDow(i)} className={"w-9 h-9 rounded-lg text-sm " + (dow === i ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{d}</button>))}</div></div>)}
           {freq === "cron" && <Field label="Cron 표현식"><Input value={cron} onChange={(e) => setCron(e.target.value)} placeholder="0 9 * * 1" /></Field>}
           <div className="flex items-center justify-between rounded-lg bg-slate-100 p-3">
-            <div className="text-sm"><span className="text-slate-500">다음 실행 </span><span className="text-sky-600 font-medium">{nextRun()}</span> <span className="text-slate-400">·</span> <span className="font-mono text-xs text-slate-500">{cronExpr()}</span></div>
+            <div className="text-sm"><span className="text-slate-500">다음 실행 </span><span className="text-sky-600 font-medium">{nextRun()}</span> <span className="text-slate-500">·</span> <span className="font-mono text-xs text-slate-500">{cronExpr()}</span></div>
             {!controlled && <Btn kind="primary" icon={RefreshCw} onClick={saveSchedule}>저장</Btn>}
           </div>
         </div>

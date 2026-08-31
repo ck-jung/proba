@@ -136,7 +136,7 @@ export function Modal({ title, children, onClose, wide }) {
       <div className={"w-full rounded-xl border shadow-xl " + box + " " + (wide ? "max-w-5xl" : "max-w-xl")} onClick={(e) => e.stopPropagation()}>
         <div className={"flex items-center justify-between px-5 py-3.5 border-b " + (L(t) ? "border-slate-200" : "border-slate-800")}>
           <h3 className={"font-semibold " + (L(t) ? "text-slate-900" : "text-slate-100")}>{title}</h3>
-          <button onClick={onClose} className={L(t) ? "text-slate-400 hover:text-slate-700" : "text-slate-500 hover:text-slate-200"}><X size={18} /></button>
+          <button onClick={onClose} className={L(t) ? "text-slate-500 hover:text-slate-700" : "text-slate-500 hover:text-slate-200"}><X size={18} /></button>
         </div>
         <div className="px-5 py-4 overflow-y-auto" style={{ maxHeight: "84vh" }}>{children}</div>
       </div>
@@ -197,7 +197,7 @@ export const stampPlus = (sec) => fmtTs(new Date(Date.now() + (sec || 0) * 1000)
 // 실행 이력 "시각" 셀 — 시작(전체 일시) / 종료(같은 날이면 시간만) 2줄 표시 (전 도메인 공통)
 export function RunTime({ start, end }) {
   const t = useTheme();
-  if (!start || start === "-") return <span className={L(t) ? "text-slate-400" : "text-slate-600"}>-</span>;
+  if (!start || start === "-") return <span className={L(t) ? "text-slate-500" : "text-slate-600"}>-</span>;
   let endTxt = "";
   if (end && end !== "-") endTxt = end.slice(0, 10) === start.slice(0, 10) ? end.slice(11) : end;
   return (

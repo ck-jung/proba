@@ -251,17 +251,17 @@ export default function App() {
         {space === "product" && (
       <div className="flex flex-col flex-1 min-w-0">
         {/* ── 상단 앱바 (로고 · 검증 영역 · 전역 컨트롤) ── */}
-        <div className="flex items-center justify-between gap-4 px-5 h-14 shrink-0 border-b border-zinc-400/40 bg-zinc-300">
+        <div className="flex items-center justify-between gap-4 px-5 h-14 shrink-0 border-b border-slate-400/40 bg-slate-300">
           <div className="flex items-center gap-2 shrink-0"><div className="w-7 h-7 rounded-lg bg-sky-700 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 48 48" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M24 8 V24" /><path d="M8 24 H40" /><path d="M24 24 L14 40 H34 Z" /></svg></div><span className="font-bold text-slate-800">PROBA</span><span className="text-slate-500" style={{ fontSize: 10 }}>Prove every release</span></div>
           <div className="flex items-center gap-3 text-sm shrink-0">
-              <div className="flex items-center gap-1 border-r border-zinc-400/40 pr-3">
+              <div className="flex items-center gap-1 border-r border-slate-400/40 pr-3">
                 {DOMAINS.map((d) => d.id === "NQA" ? (
                   <div key={d.id} className="relative shrink-0">
-                    <button onClick={() => setNqaMenu((v) => !v)} className={"rounded-lg px-3 py-1.5 text-sm font-semibold " + (domain === "NQA" ? "bg-white text-sky-700 shadow-sm" : nqaMenu ? "bg-zinc-200 text-slate-800" : "text-slate-600 hover:bg-zinc-200")}>{d.label}</button>
+                    <button onClick={() => setNqaMenu((v) => !v)} className={"rounded-lg px-3 py-1.5 text-sm font-semibold " + (domain === "NQA" ? "bg-white text-sky-700 shadow-sm" : nqaMenu ? "bg-slate-200 text-slate-800" : "text-slate-600 hover:bg-slate-200")}>{d.label}</button>
                     {nqaMenu && (
-                      <div className="absolute left-0 top-full z-30 mt-1 w-24 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+                      <div className="absolute left-0 top-full z-30 mt-1 w-24 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
                         {NQA_SUBTYPES.map((s) => { const on = domain === "NQA" && nqaWs === s.id; return s.ready ? (
-                          <button key={s.id} onClick={() => { if (!goTo(s.id === "load" ? "nqa-dashboard" : "perf-dashboard")) return; setDomain("NQA"); setNqaWs(s.id); setNqaMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (on ? "bg-sky-50 text-sky-700 font-semibold" : "text-slate-600 hover:bg-zinc-100")}>{s.label}</button>
+                          <button key={s.id} onClick={() => { if (!goTo(s.id === "load" ? "nqa-dashboard" : "perf-dashboard")) return; setDomain("NQA"); setNqaWs(s.id); setNqaMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (on ? "bg-sky-50 text-sky-700 font-semibold" : "text-slate-600 hover:bg-slate-100")}>{s.label}</button>
                         ) : (
                           <button key={s.id} disabled title="향후 확장 예정" className="flex w-full cursor-not-allowed items-center px-3 py-1.5 text-sm text-slate-300">{s.label}</button>
                         ); })}
@@ -269,12 +269,12 @@ export default function App() {
                     )}
                   </div>
                 ) : (
-                  <button key={d.id} onClick={() => { if (!d.ready) { toast(d.label + "는 준비 중입니다 (확장 예정)", "info"); return; } if (!goTo(d.id === "FQA" ? "fqa-dashboard" : "dashboard")) return; setDomain(d.id); setNqaMenu(false); }} className={"shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold " + (domain === d.id ? "bg-white text-sky-700 shadow-sm" : d.ready ? "text-slate-600 hover:bg-zinc-200" : "text-slate-400")}>
+                  <button key={d.id} onClick={() => { if (!d.ready) { toast(d.label + "는 준비 중입니다 (확장 예정)", "info"); return; } if (!goTo(d.id === "FQA" ? "fqa-dashboard" : "dashboard")) return; setDomain(d.id); setNqaMenu(false); }} className={"shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold " + (domain === d.id ? "bg-white text-sky-700 shadow-sm" : d.ready ? "text-slate-600 hover:bg-slate-200" : "text-slate-500")}>
                     {d.label}
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1.5" title="테넌트(조직)"><Building2 size={13} className="text-slate-500" />{role === "admin" ? <select value={tenantId} onChange={(e) => { setTenantId(e.target.value); toast("테넌트 전환: " + ((tenants.find((t) => t.id === e.target.value) || {}).name), "info"); }} className="bg-white border border-zinc-400 rounded-lg px-2.5 py-1.5 text-slate-700 text-xs">{tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select> : /* 🔑 Super Admin 만 조직을 전환한다. 나머지는 자기 조직 하나뿐이라 고를 게 없다.
+              <div className="flex items-center gap-1.5" title="테넌트(조직)"><Building2 size={13} className="text-slate-500" />{role === "admin" ? <select value={tenantId} onChange={(e) => { setTenantId(e.target.value); toast("테넌트 전환: " + ((tenants.find((t) => t.id === e.target.value) || {}).name), "info"); }} className="bg-white border border-slate-400 rounded-lg px-2.5 py-1.5 text-slate-700 text-xs">{tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select> : /* 🔑 Super Admin 만 조직을 전환한다. 나머지는 자기 조직 하나뿐이라 고를 게 없다.
                        전환 상자와 같은 테두리를 두면 누를 수 있는 것처럼 보인다 — 글자만 남긴다. */
                   <span className="py-1.5 text-xs font-medium text-slate-700">{tenantName}</span>}</div>
               <div className="relative">
@@ -282,25 +282,25 @@ export default function App() {
                                        "새 알림이 있다" 만 알리면 되고, 무엇인지는 열어서 본다. */}
                   {notifs.length > 0 && <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-red-500" />}</button>
                 {bellOpen && (
-                  <div className="absolute right-0 mt-2 w-80 rounded-xl border border-zinc-200 bg-white shadow-xl z-30">
-                    <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between"><span className="text-sm font-semibold text-slate-800">알림</span><button onClick={() => { setNotifs([]); }} className="text-xs text-slate-400 hover:text-slate-600">모두 지우기</button></div>
+                  <div className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl z-30">
+                    <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between"><span className="text-sm font-semibold text-slate-800">알림</span><button onClick={() => { setNotifs([]); }} className="text-xs text-slate-500 hover:text-slate-600">모두 지우기</button></div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifs.length === 0 && <div className="px-4 py-6 text-center text-sm text-slate-500">알림이 없습니다.</div>}
                       {notifs.map((n, i) => { const NI = nIcon[n.icon] || Bell; return (
-                        <div key={i} onClick={() => openNotif(n)} className="px-4 py-2.5 border-b border-zinc-100 flex items-start gap-3 cursor-pointer hover:bg-zinc-50"><NI size={15} className="text-sky-500 mt-0.5" /><div className="flex-1"><div className="text-sm text-slate-700">{n.text}</div><div className="text-xs text-slate-500">{n.t}</div></div></div>
+                        <div key={i} onClick={() => openNotif(n)} className="px-4 py-2.5 border-b border-slate-100 flex items-start gap-3 cursor-pointer hover:bg-slate-50"><NI size={15} className="text-sky-500 mt-0.5" /><div className="flex-1"><div className="text-sm text-slate-700">{n.text}</div><div className="text-xs text-slate-500">{n.t}</div></div></div>
                       ); })}
                     </div>
-                    <button onClick={() => { setBellOpen(false); setView("report"); }} className="w-full text-center text-xs font-semibold text-sky-600 py-2.5 hover:bg-zinc-50">리포트 · 알림 설정 →</button>
+                    <button onClick={() => { setBellOpen(false); setView("report"); }} className="w-full text-center text-xs font-semibold text-sky-600 py-2.5 hover:bg-slate-50">리포트 · 알림 설정 →</button>
                   </div>
                 )}
               </div>
               <div className="relative">
-                <button onClick={() => { setRoleMenu((v) => !v); setBellOpen(false); }} title={"역할 전환 (데모) · 현재 " + ((ROLE_OPTS.find((r) => r.id === role) || {}).label)} className={"flex items-center gap-0.5 rounded-lg px-2 py-1.5 " + (roleMenu ? "bg-zinc-200 text-slate-800" : "text-slate-500 hover:bg-zinc-200 hover:text-slate-800")}><UserCog size={16} /><ChevronDown size={12} /></button>
+                <button onClick={() => { setRoleMenu((v) => !v); setBellOpen(false); }} title={"역할 전환 (데모) · 현재 " + ((ROLE_OPTS.find((r) => r.id === role) || {}).label)} className={"flex items-center gap-0.5 rounded-lg px-2 py-1.5 " + (roleMenu ? "bg-slate-200 text-slate-800" : "text-slate-500 hover:bg-slate-200 hover:text-slate-800")}><UserCog size={16} /><ChevronDown size={12} /></button>
                 {roleMenu && (
-                  <div className="absolute right-0 top-full z-30 mt-1 w-36 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
-                    <div className="px-3 pb-1 pt-0.5 text-slate-400" style={{ fontSize: 10 }}>역할 전환 (데모)</div>
+                  <div className="absolute right-0 top-full z-30 mt-1 w-36 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                    <div className="px-3 pb-1 pt-0.5 text-slate-500" style={{ fontSize: 10 }}>역할 전환 (데모)</div>
                     {ROLE_OPTS.map((r) => (
-                      <button key={r.id} onClick={() => { setRole(r.id); setRoleMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (role === r.id ? "bg-sky-50 text-sky-700 font-semibold" : "text-slate-600 hover:bg-zinc-100")}>{r.label}</button>
+                      <button key={r.id} onClick={() => { setRole(r.id); setRoleMenu(false); }} className={"flex w-full items-center px-3 py-1.5 text-sm " + (role === r.id ? "bg-sky-50 text-sky-700 font-semibold" : "text-slate-600 hover:bg-slate-100")}>{r.label}</button>
                     ))}
                   </div>
                 )}
@@ -309,35 +309,35 @@ export default function App() {
         </div>
         {/* ── 사이드바(메뉴) + 본문 ── */}
         <div className="flex flex-1 min-h-0">
-          <aside className="w-60 shrink-0 border-r border-zinc-400/40 bg-zinc-300 flex flex-col">
+          <aside className="w-60 shrink-0 border-r border-slate-400/40 bg-slate-300 flex flex-col">
             <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
               {[...(domain === "FQA" ? FQA_SECTIONS : domain === "NQA" ? (nqaWs === "load" ? NQA_SECTIONS : PQA_SECTIONS) : SECTIONS), ...COMMON_SECTIONS].map((sec) => (
                 <div key={sec.group}>
-                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-600">{sec.group}</div>
+                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{sec.group}</div>
                   <div className="space-y-1">
                     {sec.items.map((n) => { const Icon = n.icon; const on = view === n.id; return (
-                      <button key={n.id} onClick={() => goTo(n.id)} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (on ? "bg-white text-sky-700 font-semibold shadow-sm" : "text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900")}><Icon size={16} />{n.label}</button>
+                      <button key={n.id} onClick={() => goTo(n.id)} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (on ? "bg-white text-sky-700 font-semibold shadow-sm" : "text-slate-700 hover:bg-slate-200 hover:text-slate-900")}><Icon size={16} />{n.label}</button>
                     ); })}
                   </div>
                 </div>
               ))}
               {role === "tadmin" && (
                 <div>
-                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-600">관리</div>
+                  <div className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">관리</div>
                   <div className="space-y-1">
-                    <button onClick={() => setView("members")} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (view === "members" ? "bg-white text-sky-700 font-semibold shadow-sm" : "text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900")}><UserCog size={16} />조직 관리</button>
+                    <button onClick={() => setView("members")} className={"w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm " + (view === "members" ? "bg-white text-sky-700 font-semibold shadow-sm" : "text-slate-700 hover:bg-slate-200 hover:text-slate-900")}><UserCog size={16} />조직 관리</button>
                   </div>
                 </div>
               )}
             </nav>
             {role === "admin" && (
-              <div className="px-3 pb-2"><button onClick={() => setSpace("console")} className="w-full flex items-center gap-2 rounded-lg border border-zinc-400 bg-white px-3 py-2.5 text-sm text-amber-700 hover:bg-amber-50"><Shield size={16} />관리자 콘솔</button></div>
+              <div className="px-3 pb-2"><button onClick={() => setSpace("console")} className="w-full flex items-center gap-2 rounded-lg border border-slate-400 bg-white px-3 py-2.5 text-sm text-amber-700 hover:bg-amber-50"><Shield size={16} />관리자 콘솔</button></div>
             )}
           </aside>
           <main className="flex-1 flex flex-col overflow-hidden">
-            <header className="flex items-center px-6 py-3.5 border-b border-zinc-200/60 bg-white">
+            <header className="flex items-center px-6 py-3.5 border-b border-slate-200/60 bg-white">
               <div>
-                <div className="text-xs font-semibold text-slate-400 mb-0.5">{curSection}</div>
+                <div className="text-xs font-semibold text-slate-500 mb-0.5">{curSection}</div>
                 <div className="flex items-center gap-2"><cur.icon size={18} className="text-sky-500" /><h1 className="text-lg font-bold text-slate-800">{cur.label}</h1></div>
               </div>
             </header>

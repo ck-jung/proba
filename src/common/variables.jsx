@@ -155,7 +155,7 @@ export function VariablesScreen() {
             <div className="flex items-center justify-between"><div className="text-base font-semibold text-slate-900">엑셀 대량 업로드</div><Btn icon={Download} onClick={tmpl}>양식 다운로드</Btn></div>
             <label className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-100 px-3 py-6 text-sm text-slate-500 hover:border-slate-400">
               <Upload size={20} className="text-slate-500" />파일을 클릭해서 선택
-              <span className="text-xs text-slate-400">열: 키 · 값 · 시크릿(Y/N) · 설명 · (.csv)</span>
+              <span className="text-xs text-slate-500">열: 키 · 값 · 시크릿(Y/N) · 설명 · (.csv)</span>
               <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={onXlFile} />
             </label>
             {xlName && <div className="text-xs text-sky-600">{xlName} · {xlRows.length}행 인식</div>}

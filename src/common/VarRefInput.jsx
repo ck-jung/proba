@@ -31,7 +31,7 @@ export function VarRefInput({ value, onChange, placeholder, secretOnly = true })
               </button>
             ))}
           </div>
-          <div className="border-t border-slate-200 px-2.5 py-1 text-right text-xs text-slate-400">{list.length}개 중 {matches.length} 표시 · 클릭 시 {"${키}"} 삽입</div>
+          <div className="border-t border-slate-200 px-2.5 py-1 text-right text-xs text-slate-500">{list.length}개 중 {matches.length} 표시 · 클릭 시 {"${키}"} 삽입</div>
         </div>
       </>)}
     </div>

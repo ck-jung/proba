@@ -40,7 +40,7 @@ export function DatasetPicker({ value, onChange, allowNone = true, noneLabel = "
               );
             })}
           </div>
-          <div className="flex items-center justify-between border-t border-slate-200 px-2.5 py-1 text-xs text-slate-400">
+          <div className="flex items-center justify-between border-t border-slate-200 px-2.5 py-1 text-xs text-slate-500">
             {maxRows > 0 ? <span>최대 {maxRows.toLocaleString()}행</span> : <span />}
             <span>{list.length}개 중 {matches.length} 표시</span>
           </div>

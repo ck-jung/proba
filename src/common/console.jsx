@@ -7,7 +7,7 @@ import { useState } from "react";
 import { ArrowLeft, Building2, Cpu, CreditCard, Plus, ScrollText, Search, Shield, UserCog, Users } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useApp } from "./context.js";
-import { C, KIND } from "./theme.js";
+import { C, KIND, TOOLTIP } from "./theme.js";
 import { Badge, Card, Btn, Field, Input, Select, PageToolbar, EmptyState, SearchInput } from "./ui.jsx";
 
 // 도메인별 사용량 (월별) — LQA(평가·토큰), FQA(기능 실행·러너 시간), NQA(측정 실행·부하생성기 워커 시간)
@@ -92,7 +92,7 @@ function UsersConsole() {
   /* 조직 사용자에게 삭제를 두지 않는다 — 남의 조직 멤버를 플랫폼 운영자가 지우는 일이다.
      그건 Owner 의 몫이고, 여기서는 차단까지만 한다. */
   const actions = (u) => {
-    if (isMe(u)) return <span className="text-xs text-slate-400">—</span>;
+    if (isMe(u)) return <span className="text-xs text-slate-500">—</span>;
     if (u.status === "대기") return <button onClick={() => cancelInvite(u)} className={btnD}>초대 취소</button>;
     return (
       <div className="flex gap-1.5">
@@ -123,7 +123,7 @@ function UsersConsole() {
             {rows.length === 0 && <tr><td colSpan={6}><EmptyState icon={Users} title="해당하는 사용자가 없습니다" /></td></tr>}
             {rows.map((u) => (
               <tr key={u.id} className="border-b border-slate-200 hover:bg-slate-100">
-                <td className="py-3 px-4"><div className="text-slate-900 font-medium">{u.name}{isMe(u) && <span className="ml-1 text-xs text-slate-400">(본인)</span>}</div><div className="text-xs text-slate-500">{u.email}</div></td>
+                <td className="py-3 px-4"><div className="text-slate-900 font-medium">{u.name}{isMe(u) && <span className="ml-1 text-xs text-slate-500">(본인)</span>}</div><div className="text-xs text-slate-500">{u.email}</div></td>
                 <td>{isPlat(u) ? <Badge kind="warn">PROBA</Badge> : <span className="text-slate-700">{tName(u.tenant)}</span>}</td>
                 <td className="text-slate-500">{u.role}</td>
                 <td><Badge kind={stK[u.status]}>{u.status}</Badge></td>
@@ -175,7 +175,7 @@ function UsageConsole() {
       <Card className="p-4">
         <div className="text-sm font-semibold text-slate-800 mb-3">조직별 비용 (만원)</div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData}><CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" stroke={C.axis} fontSize={11} /><YAxis stroke={C.axis} fontSize={11} /><Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8 }} /><Bar dataKey="cost" name="비용(만원)" fill="#bae6fd" radius={[3, 3, 0, 0]} barSize={22} /></BarChart>
+          <BarChart data={chartData}><CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" stroke={C.axis} fontSize={11} /><YAxis stroke={C.axis} fontSize={11} /><Tooltip contentStyle={TOOLTIP} /><Bar dataKey="cost" name="비용(만원)" fill="#bae6fd" radius={[3, 3, 0, 0]} barSize={22} /></BarChart>
         </ResponsiveContainer>
       </Card>
       <Card>

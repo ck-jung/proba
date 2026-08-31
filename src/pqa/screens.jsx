@@ -5,6 +5,7 @@
 // ============================================================
 import { useState, useEffect } from "react";
 import { useApp } from "../common/context.js";
+import { C, SERIES, TOOLTIP } from "../common/theme.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 import { Card, PageToolbar, Badge, Btn, Field, Input, Select, Toggle, Toast, useToast, nowStamp, RunTime, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
@@ -80,7 +81,7 @@ export function PqaTargetScreen() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-2">
           <Btn kind="primary" icon={Plus} className="w-full" onClick={() => { setNf({ name: "", pkg: "" }); setModal(true); }}>대상 앱 추가</Btn>
-          {perfApps.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 대상 앱이 없습니다.</div>}
+          {perfApps.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-500">등록된 대상 앱이 없습니다.</div>}
           {perfApps.map((a, i) => (
             <Card key={a.id} className={cardCls(sel === i)}>
               <div onClick={() => selectApp(i)}>
@@ -122,7 +123,7 @@ export function PqaTargetScreen() {
                   <Field label="벤치마크 테스트 APK URL" hint="Macrobenchmark 모듈의 androidTest 산출물"><Input value={draft.benchApkUrl || ""} onChange={(e) => setD({ benchApkUrl: e.target.value })} placeholder="https://ci.example.io/artifacts/macrobenchmark-1.0.0.apk" className="font-mono text-xs" /></Field>
                   <Field label="인증 토큰 (변수 참조)"><VarRefInput value={draft.tokenRef || ""} onChange={(v) => setD({ tokenRef: v })} placeholder="${ci_token}" /></Field>
                   <Field label="배포 웹훅 (CI가 호출)"><div className="flex items-center gap-2"><div className="flex-1 truncate rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 font-mono text-xs text-slate-700" title={deployHook}>{deployHook}</div><Btn icon={Copy} onClick={() => { if (navigator.clipboard) navigator.clipboard.writeText(deployHook); toast("웹훅 URL 복사됨", "ok"); }}>복사</Btn></div></Field>
-                  <Field label="웹훅 서명 시크릿 (CI에서 HMAC 서명에 사용)"><div className="flex items-center gap-2"><div className="flex-1 truncate rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 font-mono text-xs text-slate-500">{draft.deploySecret ? "whsec_" + "•".repeat(20) + draft.deploySecret.slice(-4) : <span className="text-slate-400">미발급</span>}</div><Btn icon={Copy} onClick={() => { if (navigator.clipboard && draft.deploySecret) navigator.clipboard.writeText(draft.deploySecret); toast("서명 시크릿 복사됨", "ok"); }}>복사</Btn><Btn icon={RefreshCw} onClick={() => setD({ deploySecret: genSecret() })}>재생성</Btn></div></Field>
+                  <Field label="웹훅 서명 시크릿 (CI에서 HMAC 서명에 사용)"><div className="flex items-center gap-2"><div className="flex-1 truncate rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 font-mono text-xs text-slate-500">{draft.deploySecret ? "whsec_" + "•".repeat(20) + draft.deploySecret.slice(-4) : <span className="text-slate-500">미발급</span>}</div><Btn icon={Copy} onClick={() => { if (navigator.clipboard && draft.deploySecret) navigator.clipboard.writeText(draft.deploySecret); toast("서명 시크릿 복사됨", "ok"); }}>복사</Btn><Btn icon={RefreshCw} onClick={() => setD({ deploySecret: genSecret() })}>재생성</Btn></div></Field>
                   <div className="text-xs text-slate-500">CI 배포 잡 마지막에 이 웹훅을 <span className="text-slate-700">서명 시크릿으로 HMAC 서명</span>해 호출하면 측정 계획의 '배포 시' 이벤트가 트리거됩니다. 재생성 시 CI 설정도 갱신하세요.</div>
                 </div>
               )}
@@ -144,9 +145,9 @@ export function PqaTargetScreen() {
             <div className="mt-3">
               <div className="mb-1.5 text-xs font-semibold text-slate-500">빌드 메타 <span className="font-normal text-slate-500">· 빌드에서 자동 추출 (읽기 전용)</span></div>
               <div className="grid grid-cols-5 gap-3">
-                <Field label="버전 이름"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{draft.version && draft.version !== "-" ? draft.version : <span className="text-slate-400">미확인</span>}</div></Field>
-                <Field label="versionCode"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{draft.versionCode && draft.versionCode !== "-" ? draft.versionCode : <span className="text-slate-400">미확인</span>}</div></Field>
-                <Field label="빌드 아티팩트"><div className="truncate rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 font-mono text-xs text-slate-700" title={draft.build}>{draft.build && draft.build !== "-" ? draft.build : <span className="text-slate-400">미확인</span>}</div></Field>
+                <Field label="버전 이름"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{draft.version && draft.version !== "-" ? draft.version : <span className="text-slate-500">미확인</span>}</div></Field>
+                <Field label="versionCode"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{draft.versionCode && draft.versionCode !== "-" ? draft.versionCode : <span className="text-slate-500">미확인</span>}</div></Field>
+                <Field label="빌드 아티팩트"><div className="truncate rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 font-mono text-xs text-slate-700" title={draft.build}>{draft.build && draft.build !== "-" ? draft.build : <span className="text-slate-500">미확인</span>}</div></Field>
                 <Field label="벤치마크 APK"><div className={"truncate rounded-lg border px-2.5 py-2 font-mono text-xs " + (draft.benchApk ? "border-slate-200 bg-slate-100/50 text-slate-700" : "border-red-200 bg-red-50 text-red-700")}>{draft.benchApk || "없음 — 측정 불가"}</div></Field>
                 <Field label="서명"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2"><Badge kind={draft.signed ? "pass" : "warn"}>{draft.signed ? "서명됨" : "미서명"}</Badge></div></Field>
               </div>
@@ -214,7 +215,7 @@ export function PqaScenarioScreen() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-2">
           <Btn kind="primary" icon={Plus} className="w-full" disabled={(perfApps || []).length === 0} title={(perfApps || []).length === 0 ? "대상 앱을 먼저 등록하세요" : ""} onClick={() => { setNf({ name: "", appId: perfApps[0] ? String(perfApps[0].id) : "", scriptRef: "" }); setModal(true); }}>시나리오 추가</Btn>
-          {perfScenarios.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 시나리오가 없습니다.</div>}
+          {perfScenarios.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-500">등록된 시나리오가 없습니다.</div>}
           {perfScenarios.map((s, i) => (
             <Card key={s.id} className={cardCls(sel === i)}>
               <div onClick={() => selectScn(i)}>
@@ -237,7 +238,7 @@ export function PqaScenarioScreen() {
                 <div key={label} className="flex items-center gap-2 text-xs">
                   {ok ? <CheckCircle2 size={13} className="text-emerald-600" /> : <AlertTriangle size={13} className="text-amber-600" />}
                   <span className={ok ? "text-slate-500" : "text-amber-700"}>{label}</span>
-                  <span className="ml-auto text-slate-400">{ok ? "완료" : "필요"}</span>
+                  <span className="ml-auto text-slate-500">{ok ? "완료" : "필요"}</span>
                 </div>
               ))}
             </div>
@@ -259,9 +260,9 @@ export function PqaScenarioScreen() {
           <div>
             <div className="mb-1.5 text-xs font-semibold text-slate-500">측정에서 확정된 값 <span className="font-normal text-slate-500">· 첫 측정 결과에서 파생 (읽기 전용)</span></div>
             <div className="grid grid-cols-3 gap-3">
-              <Field label="측정 유형"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{scn.journey || <span className="text-slate-400">미인식</span>}</div></Field>
+              <Field label="측정 유형"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{scn.journey || <span className="text-slate-500">미인식</span>}</div></Field>
               {isStartup && <Field label="시작 모드"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{scn.startMode || "Cold"}</div></Field>}
-              <Field label="반복(iterations)"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{scn.iterations != null ? scn.iterations : <span className="text-slate-400">—</span>}</div></Field>
+              <Field label="반복(iterations)"><div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 text-sm text-slate-700">{scn.iterations != null ? scn.iterations : <span className="text-slate-500">—</span>}</div></Field>
             </div>
           </div>
 
@@ -284,7 +285,7 @@ export function PqaScenarioScreen() {
           ) : (
             <div>
               <div className="mb-1.5 text-xs font-semibold text-slate-500">E2E 구간 (trace) <span className="font-normal text-slate-500">· 앱 코드의 trace 구간</span></div>
-              <div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 font-mono text-sm text-slate-700">{scn.traceSection ? "trace(\"" + scn.traceSection + "\")" : <span className="text-slate-400">—</span>}</div>
+              <div className="rounded-lg border border-slate-200 bg-slate-100/50 px-2.5 py-2 font-mono text-sm text-slate-700">{scn.traceSection ? "trace(\"" + scn.traceSection + "\")" : <span className="text-slate-500">—</span>}</div>
             </div>
           )}
           <div className="text-xs text-slate-500">배터리는 사내 랩(전력 리그) 전용 · 시작(Startup) 유형은 여정 없이 콜드/웜/핫만 측정.</div>
@@ -372,7 +373,7 @@ export function PqaPlanScreen() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-2">
           <Btn kind="primary" icon={Plus} className="w-full" disabled={(perfApps || []).length === 0} title={(perfApps || []).length === 0 ? "대상 앱을 먼저 등록하세요" : ""} onClick={() => { setNf({ name: "", appId: perfApps[0] ? String(perfApps[0].id) : "" }); setModal(true); }}>계획 추가</Btn>
-          {perfPlans.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 계획이 없습니다.</div>}
+          {perfPlans.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-500">등록된 계획이 없습니다.</div>}
           {perfPlans.map((p, i) => (
             <Card key={p.id} className={cardCls(sel === i)}>
               <div onClick={() => selectPlan(i)}>
@@ -395,7 +396,7 @@ export function PqaPlanScreen() {
                 <div key={label} className="flex items-center gap-2 text-xs">
                   {ok ? <CheckCircle2 size={13} className="text-emerald-600" /> : <AlertTriangle size={13} className="text-amber-600" />}
                   <span className={ok ? "text-slate-500" : "text-amber-700"}>{label}</span>
-                  <span className="ml-auto text-slate-400">{ok ? "완료" : "필요"}</span>
+                  <span className="ml-auto text-slate-500">{ok ? "완료" : "필요"}</span>
                 </div>
               ))}
             </div>
@@ -430,10 +431,11 @@ export function PqaPlanScreen() {
                     <tr key={d.id} onClick={() => toggleDevice(d.id)} className={"cursor-pointer border-b border-slate-200 last:border-0 hover:bg-slate-100/50 " + (on ? "bg-sky-50/40" : "")}>
                       <td className="px-3 py-2"><input type="checkbox" checked={on} readOnly className="accent-sky-600" /></td>
                       <td className="text-slate-800">{d.model}</td><td className="text-xs text-slate-500">{d.os}</td>
-                      <td><Badge kind={d.tier === "저사양" ? "warn" : "info"}>{d.tier}</Badge></td>
+                      <td>{/* 티어는 분류이지 경고가 아니다 — 저사양만 warn 이면 같은 화면의 실제 경고(연결 끊김·전력 미측정)와 섞인다 */}
+                      <Badge kind="info">{d.tier}</Badge></td>
                       <td className="font-mono text-xs text-slate-500">{d.slot}</td>
                       <td><Badge kind={d.status === "온라인" ? "ok" : "warn"}>{d.status}</Badge></td>
-                      <td className="text-xs"><span className="text-slate-500">{[d.caps.trace && "trace", d.caps.fps && "frame"].filter(Boolean).join("·") || "—"}</span>{d.caps.power ? <span className="ml-1 text-sky-600">· 전력<Zap size={10} className="inline" /></span> : <span className="ml-1 text-slate-400">· 전력 X</span>}</td>
+                      <td className="text-xs"><span className="text-slate-500">{[d.caps.trace && "trace", d.caps.fps && "frame"].filter(Boolean).join("·") || "—"}</span>{d.caps.power ? <span className="ml-1 text-sky-600">· 전력<Zap size={10} className="inline" /></span> : <span className="ml-1 text-slate-500">· 전력 X</span>}</td>
                     </tr>
                   ); })}
                 </tbody>
@@ -714,11 +716,11 @@ export function PqaRunScreen() {
                   <div className="flex items-center gap-3 border-b border-slate-200 px-3 py-2 text-xs text-slate-500"><span>서브잡 <span className="text-slate-800">{pg.d}/{pg.t}</span></span><div className="h-1.5 flex-1 rounded bg-slate-100"><div className="h-1.5 rounded bg-sky-500" style={{ width: pg.pct + "%" }} /></div><span>{running ? "경과 " + fmtDur(elapsed) + " / 예상 " + fmtDur(eDur) + (((selRun.subjobs || []).some((x) => x.estIters)) ? " (추정 — 미확정 시나리오 포함)" : "") : "완료"}</span></div>
                   <div className="overflow-x-auto p-3">
                     <table className="w-full text-xs">
-                      <thead><tr className="text-left text-slate-500"><th className="px-2 py-1.5 font-medium">단말 \ 시나리오</th>{mtxScns.map((c) => <th key={c.sid} className="px-2 py-1.5 font-medium">{c.scn}<div className="font-normal text-slate-400">{c.journey}</div></th>)}</tr></thead>
+                      <thead><tr className="text-left text-slate-500"><th className="px-2 py-1.5 font-medium">단말 \ 시나리오</th>{mtxScns.map((c) => <th key={c.sid} className="px-2 py-1.5 font-medium">{c.scn}<div className="font-normal text-slate-500">{c.journey}</div></th>)}</tr></thead>
                       <tbody>
                         {mtxDevs.map((d) => (
                           <tr key={d.did} className="border-t border-slate-200">
-                            <td className="px-2 py-2 text-slate-700">{d.model}<div className="font-mono text-slate-400">{d.slot}</div></td>
+                            <td className="px-2 py-2 text-slate-700">{d.model}<div className="font-mono text-slate-500">{d.slot}</div></td>
                             {mtxScns.map((c) => { const s = cellOf(d.did, c.sid); if (!s) return <td key={c.sid} className="px-2 py-2 text-slate-700">·</td>; /* 임계가 없어 판정하지 않은 셀을 초록으로 칠하면 합격처럼 읽힌다 — 색을 나눈다 */
                               const cls = s.status === "대기" ? "bg-slate-100 text-slate-500" : s.status === "실행중" ? "bg-amber-50 text-amber-700" : s.status === "실패" ? "bg-red-50 text-red-700" : (s.verdict === "—" ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"); const txt = s.status === "대기" ? "대기" : s.status === "실행중" ? (s.iter + "/" + s.iters) : s.status === "실패" ? "✗ 불합격" : (s.verdict === "—" ? "측정됨" : "✓ 합격"); return <td key={c.sid} className="px-2 py-2"><span title={mstr(s)} className={"inline-block rounded px-2 py-1 " + cls}>{txt}</span></td>; })}
                           </tr>
@@ -761,11 +763,11 @@ export function PqaHistoryScreen() {
         <table className="w-full text-sm">
           <thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500"><th className="px-3 py-2 font-medium">실행</th><th className="font-medium">계획</th><th className="font-medium">빌드</th><th className="font-medium">트리거</th><th className="font-medium">규모</th><th className="font-medium">시각</th><th className="font-medium">판정</th><th className="pr-3 font-medium">결과</th></tr></thead>
           <tbody>
-            {shown.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-400">{runs.length === 0 ? "실행 이력이 없습니다." : "조건에 맞는 실행이 없습니다."}</td></tr> : shown.map((r) => { const failN = (r.subjobs || []).filter((s) => s.verdict === "FAIL").length; const errN = (r.subjobs || []).filter((s) => s.verdict === "ERROR").length; return (
+            {shown.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-500">{runs.length === 0 ? "실행 이력이 없습니다." : "조건에 맞는 실행이 없습니다."}</td></tr> : shown.map((r) => { const failN = (r.subjobs || []).filter((s) => s.verdict === "FAIL").length; const errN = (r.subjobs || []).filter((s) => s.verdict === "ERROR").length; return (
               <tr key={r.id} onClick={() => setDetail(r)} className="cursor-pointer border-b border-slate-200 last:border-0 text-slate-700 hover:bg-slate-100/50">
                 <td className="px-3 py-2 font-mono text-xs text-sky-600">{r.id}</td>
                 <td className="text-slate-800">{planName(r.planId)} <span className="text-xs text-slate-500">#{r.no}</span></td>
-                <td className="font-mono text-xs text-slate-500">{r.ver && r.ver !== "-" ? r.ver : "-"}{r.verCode && r.verCode !== "-" ? <span className="text-slate-400"> ({r.verCode})</span> : ""}</td>
+                <td className="font-mono text-xs text-slate-500">{r.ver && r.ver !== "-" ? r.ver : "-"}{r.verCode && r.verCode !== "-" ? <span className="text-slate-500"> ({r.verCode})</span> : ""}</td>
                 <td><Badge kind={tK[r.trig] || "info"}>{r.trig}</Badge></td>
                 <td className="text-xs text-slate-500">단말 {r.devices} · 시나리오 {r.scns}{(r.skipped || []).length > 0 ? <span className="ml-1 text-amber-600">· {(r.skipped || []).length}대 제외</span> : null}</td>
                 <td className="text-xs"><RunTime start={r.startedAt} end={r.endedAt} /></td>
@@ -815,7 +817,7 @@ function PqaResultView({ run, back, backLabel = "실행 이력" }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-slate-500"><button onClick={back} className="hover:text-sky-600">{backLabel}</button><span className="text-slate-400">/</span><span className="font-mono text-sky-600">{run.id}</span></div>
+        <div className="flex items-center gap-2 text-sm text-slate-500"><button onClick={back} className="hover:text-sky-600">{backLabel}</button><span className="text-slate-500">/</span><span className="font-mono text-sky-600">{run.id}</span></div>
         <div className="flex items-center gap-2"><Btn icon={Download} onClick={() => flash("Excel 리포트 생성됨")}>Excel</Btn><Btn icon={Download} onClick={() => flash("PDF 리포트 생성됨")}>PDF</Btn><Btn icon={ChevronLeft} onClick={back}>{backLabel}</Btn></div>
       </div>
       <Card className="p-4">
@@ -861,12 +863,12 @@ function PqaResultView({ run, back, backLabel = "실행 이력" }) {
           <div className="border-b border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-800">{sc.scn} <span className="text-xs font-normal text-slate-500">· {sc.journey}</span></div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead><tr className="text-left text-slate-500"><th className="px-3 py-2 font-medium">단말</th>{ms.map((m) => <th key={m.id} className="px-3 py-2 font-medium">{m.label}<div className="font-normal text-slate-400">{m.agg} {m.dir === "up" ? "≥" : "≤"} {m.unit}</div></th>)}<th className="px-3 py-2 font-medium">판정</th></tr></thead>
+              <thead><tr className="text-left text-slate-500"><th className="px-3 py-2 font-medium">단말</th>{ms.map((m) => <th key={m.id} className="px-3 py-2 font-medium">{m.label}<div className="font-normal text-slate-500">{m.agg} {m.dir === "up" ? "≥" : "≤"} {m.unit}</div></th>)}<th className="px-3 py-2 font-medium">판정</th></tr></thead>
               <tbody>
                 {devs.map((d) => { const s = cell(d.did, sc.sid); if (!s) return null; return (
                   <tr key={d.did} className="border-t border-slate-200">
-                    <td className="px-3 py-2 text-slate-700">{d.model}<div className="font-mono text-slate-400">{d.slot}</div>{s.batt != null && <div className={"text-slate-400 " + (s.batt < 25 ? "text-amber-600" : "")} style={{ fontSize: 10 }}>배터리 {s.batt}%{s.temp != null ? " · " + s.temp + "°C" : ""}</div>}</td>
-                    {ms.map((m) => { const v = (s.metrics || {})[m.id]; const t = thr(sc.sid, m.id); const bad = t != null && v != null && v > t; return <td key={m.id} className={"px-3 py-2 " + (bad ? "font-semibold text-red-700" : "text-slate-700")}>{v != null ? v : "-"}{t != null ? <span className="text-slate-400"> / {t}</span> : ""}</td>; })}
+                    <td className="px-3 py-2 text-slate-700">{d.model}<div className="font-mono text-slate-500">{d.slot}</div>{s.batt != null && <div className={"text-slate-500 " + (s.batt < 25 ? "text-amber-600" : "")} style={{ fontSize: 10 }}>배터리 {s.batt}%{s.temp != null ? " · " + s.temp + "°C" : ""}</div>}</td>
+                    {ms.map((m) => { const v = (s.metrics || {})[m.id]; const t = thr(sc.sid, m.id); const bad = t != null && v != null && v > t; return <td key={m.id} className={"px-3 py-2 " + (bad ? "font-semibold text-red-700" : "text-slate-700")}>{v != null ? v : "-"}{t != null ? <span className="text-slate-500"> / {t}</span> : ""}</td>; })}
                     <td className="px-3 py-2"><Badge kind={s.verdict === "FAIL" ? "fail" : s.verdict === "PASS" ? "pass" : s.verdict === "ERROR" ? "warn" : "info"}>{s.verdict === "ERROR" ? (s.errCode || "환경 오류") : s.verdict === "FAIL" ? "불합격" : s.verdict === "PASS" ? "합격" : "미판정"}</Badge></td>
                   </tr>
                 ); })}
@@ -962,7 +964,7 @@ export function PqaDashboardScreen() {
               <span className="w-[72px] shrink-0"><Badge kind={it.status === "현재 초과" ? "fail" : it.status === "회귀" ? "warn" : "draft"}>{it.status}</Badge></span>
               <div className="min-w-0 flex-1"><div className="truncate text-sm text-slate-800">{it.model} · {it.metric}</div><div className="truncate text-xs text-slate-500">{it.plan} · {it.scn} · {it.ver}</div></div>
               <div className="shrink-0 text-right text-xs">
-                <div><span className={vc}>{it.cur}{it.unit}</span>{it.thr != null && <span className="text-slate-400"> / {it.thr}{it.unit}</span>}</div>
+                <div><span className={vc}>{it.cur}{it.unit}</span>{it.thr != null && <span className="text-slate-500"> / {it.thr}{it.unit}</span>}</div>
                 <div className="text-slate-500">{it.status === "현재 초과" && it.slaOver != null ? "SLA +" + it.slaOver + "%" : it.status === "회귀" ? "▲" + it.reg + "% vs 기준" : "최근 ▲" + (it.recentWorst != null ? it.recentWorst : 0) + "% · 해소"}</div>
               </div>
             </div>
@@ -973,7 +975,7 @@ export function PqaDashboardScreen() {
           <div className="text-sm font-semibold text-slate-800">최근 실행 <span className="text-xs font-normal text-slate-500">· 최근 {Math.min(8, desc.length)}건 (행 클릭 → 실행 상세)</span></div>
           <div className="overflow-hidden rounded-lg border border-slate-200">
             <table className="w-full text-sm"><thead><tr className="border-b border-slate-200 text-xs text-slate-500"><th className="px-3 py-2 text-left">계획</th><th className="px-3 py-2 text-left">빌드</th><th className="px-3 py-2 text-left">시각</th><th className="px-3 py-2 text-left">규모</th><th className="px-3 py-2 text-left">결과</th><th className="px-3 py-2 text-center">판정</th></tr></thead>
-            <tbody>{desc.length === 0 ? <tr><td colSpan={6} className="px-3 py-6 text-center text-xs text-slate-400">실행 이력이 없습니다.</td></tr> : desc.slice(0, 8).map((r) => { const failN = (r.subjobs || []).filter((s) => s.verdict === "FAIL").length; const errN = (r.subjobs || []).filter((s) => s.verdict === "ERROR").length; return (
+            <tbody>{desc.length === 0 ? <tr><td colSpan={6} className="px-3 py-6 text-center text-xs text-slate-500">실행 이력이 없습니다.</td></tr> : desc.slice(0, 8).map((r) => { const failN = (r.subjobs || []).filter((s) => s.verdict === "FAIL").length; const errN = (r.subjobs || []).filter((s) => s.verdict === "ERROR").length; return (
               <tr key={r.id} onClick={() => setDetail(r)} className="cursor-pointer border-b border-slate-200 last:border-0 hover:bg-slate-100/50">
                 <td className="px-3 py-2 text-slate-700">{planName(r.planId)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-slate-500">{r.ver && r.ver !== "-" ? r.ver : "-"}</td>
@@ -990,7 +992,9 @@ export function PqaDashboardScreen() {
 }
 
 /* ═══════════ 성능 추이 (빌드별 지표 회귀) ═══════════ */
-const TREND_COLORS = ["#0ea5e9", "#d97706", "#dc2626", "#0284c7", "#7c3aed", "#059669"];
+/* 단말별 라인 색은 공통 SERIES(sky 명도 단계)를 쓴다.
+   예전에는 [sky, amber, red, sky, violet, emerald] 였는데, 같은 화면에서
+   빨강이 "Galaxy A15"·"불합격"·"SLA 기준선" 세 가지를 동시에 뜻했다. */
 export function PqaTrendScreen() {
   const { perfPlans, perfRuns } = useApp();
   const plans = perfPlans || [];
@@ -1038,13 +1042,13 @@ export function PqaTrendScreen() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={data} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e2e8f0" vertical={false} />
-              <XAxis dataKey="build" stroke="#94a3b8" fontSize={11} />
-              <YAxis stroke="#94a3b8" fontSize={11} width={46} domain={yDomain} allowDecimals={false} />
-              <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, color: "#334155", fontSize: 12 }} />
+              <CartesianGrid stroke={C.grid} vertical={false} />
+              <XAxis dataKey="build" stroke={C.axis} fontSize={11} />
+              <YAxis stroke={C.axis} fontSize={11} width={46} domain={yDomain} allowDecimals={false} />
+              <Tooltip contentStyle={{ ...TOOLTIP, fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              {thr != null && <ReferenceLine y={thr} stroke="#dc2626" strokeDasharray="5 4" ifOverflow="extendDomain" label={{ value: "SLA", fill: "#dc2626", fontSize: 10, position: "insideTopRight" }} />}
-              {devs.map((d, i) => <Line key={d.did} type="monotone" dataKey={d.did} name={d.model} stroke={TREND_COLORS[i % TREND_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} connectNulls />)}
+              {thr != null && <ReferenceLine y={thr} stroke={C.err} strokeDasharray="5 4" ifOverflow="extendDomain" label={{ value: "SLA", fill: C.err, fontSize: 10, position: "insideTopRight" }} />}
+              {devs.map((d, i) => <Line key={d.did} type="monotone" dataKey={d.did} name={d.model} stroke={SERIES[i % SERIES.length]} strokeWidth={2} dot={{ r: 3 }} connectNulls />)}
             </LineChart>
           </ResponsiveContainer>
         </Card>
@@ -1052,11 +1056,11 @@ export function PqaTrendScreen() {
           <div className="border-b border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-800">빌드별 {metricDef.label} <span className="text-xs font-normal text-slate-500">· 값 / 마지막 합격 빌드 대비(±{REG_PCT}% 회귀) · 임계 초과 빨강 · 행 클릭 → 실행 상세</span></div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead><tr className="text-left text-slate-500"><th className="px-3 py-2 font-medium">빌드</th><th className="px-3 py-2 font-medium">계획 판정</th>{devs.map((d) => <th key={d.did} className="px-3 py-2 font-medium">{d.model}<div className="font-mono font-normal text-slate-400">{d.slot}</div></th>)}</tr></thead>
+              <thead><tr className="text-left text-slate-500"><th className="px-3 py-2 font-medium">빌드</th><th className="px-3 py-2 font-medium">계획 판정</th>{devs.map((d) => <th key={d.did} className="px-3 py-2 font-medium">{d.model}<div className="font-mono font-normal text-slate-500">{d.slot}</div></th>)}</tr></thead>
               <tbody>
                 {rows.map((pt, ri) => { const ai = data.length - 1 - ri; const base = baseIdx[ai] >= 0 ? data[baseIdx[ai]] : null; const run = runs.find((r) => r.id === pt.runId); return (
                   <tr key={pt.build} onClick={() => run && setDetail(run)} className="cursor-pointer border-t border-slate-200 hover:bg-slate-100/50">
-                    <td className="px-3 py-2 text-slate-700">{pt.build}<div className="text-slate-400">{pt.date}</div></td>
+                    <td className="px-3 py-2 text-slate-700">{pt.build}<div className="text-slate-500">{pt.date}</div></td>
                     <td className="px-3 py-2"><Badge kind={vK[pt.verdict] || "info"}>{pt.verdict}</Badge>
                       {/* 지표 구성이 직전 회차와 다르면 비교 축이 달라진 것이다 — 판정을 뒤집지 않고 사실만 알린다(F7·F8 원칙) */}
                       {(() => { const prev = data[ai - 1]; return pt.__sig && prev && prev.__sig && pt.__sig !== prev.__sig ? <div className="mt-0.5 text-amber-600" style={{ fontSize: 10 }} title={"직전 회차와 수집 지표가 다릅니다 — 비교 축이 달라졌습니다"}>지표 구성 변경</div> : null; })()}

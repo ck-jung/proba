@@ -7,7 +7,7 @@ import { AlertTriangle, ChevronLeft, Bug, Calendar, Copy, CheckCircle2, ChevronR
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useApp } from "../common/context.js";
 import { VarRefInput } from "../common/VarRefInput.jsx";
-import { C, CL, vKind, KIND } from "../common/theme.js";
+import { C, CL, vKind, KIND, TOOLTIP } from "../common/theme.js";
 import { Badge, ScoreBar, Card, Field, Btn, Input, Select, Toggle, PageToolbar, EmptyState, SearchInput, RunTime, nowStamp, Portal, SEL_CARD, SEL_IDLE, SEL_ROW } from "../common/ui.jsx";
 import { ScheduleConfig } from "../common/ScheduleConfig.jsx";
 // 이벤트 트리거는 정보성(읽기전용) — 감지 방식은 챗봇 연결 "모델·배포 소스"에서 정의된 값을 상속만 표시.
@@ -68,7 +68,7 @@ export function NewPlanForm({ close, data }) {
       <Field label="대상 챗봇"><Select value={bot} onChange={(e) => setBot(e.target.value)}>{[...new Set(chatbots.map((c) => c.name))].map((n) => <option key={n}>{n}</option>)}</Select></Field>
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-xs font-semibold text-slate-500">테스트케이스 선택 <span className="text-sky-600">{picked.size}/{approved.length}</span> <span className="text-slate-400">· 승인 케이스만</span></div>
+          <div className="text-xs font-semibold text-slate-500">테스트케이스 선택 <span className="text-sky-600">{picked.size}/{approved.length}</span> <span className="text-slate-500">· 승인 케이스만</span></div>
           <button onClick={toggleAll} className="text-xs text-sky-600">{allOn ? "전체 해제" : "전체 선택"}</button>
         </div>
         <div className="rounded-lg border border-slate-300 bg-slate-100 overflow-y-auto" style={{ maxHeight: 176 }}>
@@ -509,7 +509,7 @@ export function JiraConfigForm({ close }) {
         <div className="space-y-1.5">
           {["Critical", "Major", "Minor"].map((sv) => (
             <div key={sv} className="flex items-center gap-2">
-              <span className="w-20 text-xs text-slate-500">{sv}</span><span className="text-slate-400 text-xs">→</span>
+              <span className="w-20 text-xs text-slate-500">{sv}</span><span className="text-slate-500 text-xs">→</span>
               <Select value={sevMap[sv]} onChange={(e) => setSevMap({ ...sevMap, [sv]: e.target.value })}>{PRIOS.map((p) => <option key={p}>{p}</option>)}</Select>
             </div>
           ))}
@@ -564,7 +564,7 @@ export function AddChatbotForm({ close, data }) {
       <Field label="채널 유형">
         <div className="grid grid-cols-3 gap-2">
           {chTabs.map(([ch, ok]) => (
-            <button key={ch} disabled={!ok} onClick={() => ok && setChannel(ch)} className={"rounded-lg border px-2 py-2 text-sm " + (channel === ch ? "border-sky-500 bg-sky-100 text-sky-700" : ok ? "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200" : "border-slate-200 bg-white text-slate-400 cursor-not-allowed")}>
+            <button key={ch} disabled={!ok} onClick={() => ok && setChannel(ch)} className={"rounded-lg border px-2 py-2 text-sm " + (channel === ch ? "border-sky-500 bg-sky-100 text-sky-700" : ok ? "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200" : "border-slate-200 bg-white text-slate-500 cursor-not-allowed")}>
               {ch}{!ok && <span className="block font-normal" style={{ fontSize: 9 }}>Stage 3</span>}
             </button>
           ))}
@@ -847,7 +847,7 @@ export function Dashboard() {
         <span className="text-slate-500">~</span>
         <input type="date" value={to} min={from} max={today} onChange={(e) => setRange(from, e.target.value)} className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-800 outline-none focus:border-sky-500" />
       </PageToolbar>
-      {filtered && <div className="flex items-center gap-2 text-xs text-slate-400"><Badge kind="teal">필터</Badge><span>{planF === "전체" ? "전체 계획" : planF} · {from} ~ {to} — 실행 {fruns.length}건</span><button onClick={() => { setPlanF("전체"); setFrom(defFrom); setTo(today); }} className="text-slate-500 hover:text-sky-700">초기화</button></div>}
+      {filtered && <div className="flex items-center gap-2 text-xs text-slate-500"><Badge kind="teal">필터</Badge><span>{planF === "전체" ? "전체 계획" : planF} · {from} ~ {to} — 실행 {fruns.length}건</span><button onClick={() => { setPlanF("전체"); setFrom(defFrom); setTo(today); }} className="text-slate-500 hover:text-sky-700">초기화</button></div>}
       <div className="grid grid-cols-4 gap-4">
         {kpis.map((k) => (
           <Card key={k.label} className="p-4">
@@ -864,7 +864,7 @@ export function Dashboard() {
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={chartData}>
               <CartesianGrid stroke={CL.grid} vertical={false} /><XAxis dataKey="d" stroke={CL.axis} fontSize={11} /><YAxis stroke={CL.axis} fontSize={11} domain={[50, 100]} />
-              <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, color: "#475569", boxShadow: "0 4px 12px rgba(0,0,0,.08)" }} /><Legend wrapperStyle={{ fontSize: 11 }} />
+              <Tooltip contentStyle={{ ...TOOLTIP, boxShadow: "0 4px 12px rgba(0,0,0,.08)" }} /><Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="score" name="종합 점수" stroke={CL.teal} strokeWidth={2} dot={{ r: 2 }} />
               <Line type="monotone" dataKey="pass" name="PASS율" stroke={CL.blue} strokeWidth={2} dot={{ r: 2 }} />
             </LineChart>
@@ -902,7 +902,7 @@ export function Dashboard() {
         <div className="flex items-center justify-between mb-3"><div className="text-sm font-semibold text-slate-800">최근 평가 실행</div><Btn icon={History} onClick={() => goto("history")}>실행 이력으로</Btn></div>
         <table className="w-full text-sm">
           <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2 font-medium">평가 계획</th><th className="font-medium">트리거</th><th className="font-medium">TC</th><th className="font-medium">종합</th><th className="font-medium">상태</th><th className="font-medium">시각</th></tr></thead>
-          <tbody className="text-slate-400">
+          <tbody className="text-slate-500">
             {fruns.slice(0, 5).map((r) => (
               <tr key={r.id} onClick={() => { if (r.status !== "완료") { toast(r.id + " 오류로 종료 — 상세 결과 없음", "info"); return; } setRunIntent({ type: "view", runId: r.id }); goto("lqa-result"); }} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"><td className="py-2.5 font-medium text-slate-800">{r.planName}</td><td><Badge kind={trigKind[r.trigger]}>{r.trigger}</Badge></td><td>{r.cases}</td><td className="font-semibold">{r.score != null ? r.score : "—"}</td><td><Badge kind={stKind[r.status]}>{r.status}</Badge></td><td className="text-slate-500">{r.startedAt}</td></tr>
             ))}
@@ -1008,7 +1008,7 @@ export function Plans() {
       <div className="grid grid-cols-12 gap-4">
       <div className="col-span-3 space-y-3">
         <Btn kind="primary" icon={Plus} className="w-full" onClick={() => openModal("newPlan")} disabled={!okBot || !okCase} title={!okBot ? "평가 대상 챗봇을 먼저 등록하세요" : !okCase ? "승인된 테스트케이스가 필요합니다" : ""}>새 평가 계획</Btn>
-        {plans.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">등록된 계획이 없습니다.</div>}
+        {plans.length === 0 && <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-500">등록된 계획이 없습니다.</div>}
         {plans.map((p) => (
           <Card key={p.id} className={"p-4 cursor-pointer " + (cur.id === p.id ? SEL_CARD : SEL_IDLE)}>
             <div onClick={() => chooseSel(p)}>
@@ -1018,7 +1018,7 @@ export function Plans() {
                 <div><div className="text-lg font-bold text-slate-900">{(p.judgeList || []).length || p.judges}</div><div className="text-xs text-slate-500">Judge</div></div>
               </div>
               <div className="mt-2 text-xs text-slate-500">{p.sched}</div>
-              <div className="mt-0.5 text-xs text-slate-400">수정 {p.updatedBy || "—"} · {p.updatedAt || "—"}</div>
+              <div className="mt-0.5 text-xs text-slate-500">수정 {p.updatedBy || "—"} · {p.updatedAt || "—"}</div>
             </div>
           </Card>
         ))}
@@ -1034,7 +1034,7 @@ export function Plans() {
                 <div key={label} className="flex items-center gap-2 text-xs">
                   {ok ? <CheckCircle2 size={13} className="text-emerald-600" /> : <AlertTriangle size={13} className="text-amber-600" />}
                   <span className={ok ? "text-slate-500" : "text-amber-700"}>{label}</span>
-                  <span className="ml-auto text-slate-400">{ok ? "완료" : "필요"}</span>
+                  <span className="ml-auto text-slate-500">{ok ? "완료" : "필요"}</span>
                 </div>
               ))}
             </div>
@@ -1046,7 +1046,7 @@ export function Plans() {
           <div className="min-w-0 max-w-sm flex-1"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="계획 이름" /></div>
           <div className="flex shrink-0 items-center gap-3"><div className="flex items-center gap-2 text-sm text-slate-700"><span>{planStatus === "활성" ? "활성" : "초안"}</span><Toggle on={planStatus === "활성"} onClick={() => setPlanStatus(planStatus === "활성" ? "초안" : "활성")} /></div>{dirty && <span className="text-xs text-amber-700">미저장 변경</span>}<Btn kind="primary" icon={RefreshCw} onClick={saveCfg} disabled={!dirty}>설정 저장</Btn></div>
         </div>
-        <div className="mb-4 flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-500">{cur.createdBy || "—"}</span> · {cur.createdAt || "—"}</span><span className="text-slate-400">·</span><span>수정 <span className="text-slate-500">{cur.updatedBy || "—"}</span> · {cur.updatedAt || "—"}</span></div>
+        <div className="mb-4 flex items-center gap-3 text-xs text-slate-500"><span>생성 <span className="text-slate-500">{cur.createdBy || "—"}</span> · {cur.createdAt || "—"}</span><span className="text-slate-500">·</span><span>수정 <span className="text-slate-500">{cur.updatedBy || "—"}</span> · {cur.updatedAt || "—"}</span></div>
         <div className="grid grid-cols-2 gap-5">
           <div className="space-y-4">
             <Field label="대상 챗봇"><Select value={bot} onChange={(e) => setBot(e.target.value)}>{[...new Set(chatbots.map((c) => c.name))].map((n) => <option key={n}>{n}</option>)}</Select></Field>
@@ -1082,7 +1082,7 @@ export function Plans() {
             <Select value={tpl} onChange={(e) => setTpl(e.target.value)}>{prompts.map((p) => <option key={p.name}>{p.name}</option>)}</Select>
             <div className="mt-1 text-xs text-slate-500">변수: {(tplObj && (tplObj.vars || []).map((v) => "{{" + v + "}}").join(" ")) || "—"}</div>
             <div className="text-sm font-semibold text-slate-800 mb-1 mt-4">채점 기준 가중치 <span className="text-xs font-normal text-slate-500">· 템플릿에서 정의</span></div>
-            <div className="text-xs mb-3" style={{ color: wsum === 100 ? "#059669" : "#d97706" }}>합계 {wsum}% {wsum === 100 ? "✓" : "(100% 권장)"}</div>
+            <div className="text-xs mb-3" style={{ color: wsum === 100 ? C.ok : C.warn }}>합계 {wsum}% {wsum === 100 ? "✓" : "(100% 권장)"}</div>
             {dims.map((d) => (
               <div key={d} className="mb-3">
                 <div className="flex justify-between text-xs mb-1"><span className="text-slate-700">{d}</span><span className="text-sky-600 font-semibold">{weights[d] || 0}%</span></div>
@@ -1107,7 +1107,7 @@ export function Plans() {
             <div className="flex items-center gap-2 text-xs text-slate-500">이 계획 재정의 <Toggle on={!!jira.override} onClick={() => enableJira(!jira.override)} /></div>
           </div>
           {!jira.override ? (
-            <div className="mt-2 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">전역 Jira 설정 사용 · 프로젝트 <span className="text-slate-700">{jgc.project || "—"}</span> · 이슈유형 {jgc.issueType || "—"} · 담당자 {jgc.assignee || "—"} <span className="text-slate-400">(결함 화면의 Jira 연동에서 관리)</span></div>
+            <div className="mt-2 rounded-lg bg-slate-100 p-3 text-xs text-slate-500">전역 Jira 설정 사용 · 프로젝트 <span className="text-slate-700">{jgc.project || "—"}</span> · 이슈유형 {jgc.issueType || "—"} · 담당자 {jgc.assignee || "—"} <span className="text-slate-500">(결함 화면의 Jira 연동에서 관리)</span></div>
           ) : (
             <div className="mt-3 space-y-3">
               <div className="text-xs text-slate-500">연결(URL·인증)은 전역을 그대로 쓰고, 이 계획의 결함 라우팅만 재정의합니다.</div>
@@ -1248,7 +1248,7 @@ export function ImportCasesForm({ close }) {
                     <td className="px-2 py-1"><input value={r.q} onChange={(e) => setCell(i, "q", e.target.value)} className={"w-full bg-transparent outline-none " + (r.q.trim() ? "text-slate-800" : "text-red-600")} /></td>
                     <td><span className="flex items-center gap-1">{r.cat}{r.cat && !categories.includes(r.cat) && <Badge kind="info">신규</Badge>}</span></td>
                     <td className="text-slate-500">{r.pri}</td>
-                    <td className="pr-2 text-right"><button onClick={() => del(i)} className="text-slate-400 hover:text-red-600"><X size={13} /></button></td>
+                    <td className="pr-2 text-right"><button onClick={() => del(i)} className="text-slate-500 hover:text-red-600"><X size={13} /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -1298,7 +1298,7 @@ export function PlanCasesForm({ close, data }) {
         </div>
       </Card>
       <div className="flex items-center justify-between pt-1">
-        <div className="text-xs text-slate-500">선택 <span className="text-slate-900 font-semibold">{picked.size}</span>건 <span className="text-slate-400">·</span> 실행 대상(승인) <span className="text-sky-600 font-semibold">{approvedPicked}</span>건</div>
+        <div className="text-xs text-slate-500">선택 <span className="text-slate-900 font-semibold">{picked.size}</span>건 <span className="text-slate-500">·</span> 실행 대상(승인) <span className="text-sky-600 font-semibold">{approvedPicked}</span>건</div>
         <div className="flex gap-2"><Btn onClick={close}>취소</Btn><Btn kind="primary" icon={CheckCircle2} onClick={save}>반영</Btn></div>
       </div>
     </div>
@@ -1486,7 +1486,7 @@ export function Run() {
   return (
     <div className="space-y-4">
       {fromHistory && activeRun ? (
-        <PageToolbar desc={<span><button onClick={() => goto("history")} className="text-sky-600 hover:underline">실행 이력</button> <span className="text-slate-400">›</span> <span className="text-slate-700 font-medium">{activeRun.id} 결과</span></span>}>
+        <PageToolbar desc={<span><button onClick={() => goto("history")} className="text-sky-600 hover:underline">실행 이력</button> <span className="text-slate-500">›</span> <span className="text-slate-700 font-medium">{activeRun.id} 결과</span></span>}>
           <Btn icon={FileDown} onClick={() => toast("Excel 다운로드 — 케이스별 판정·점수·근거", "ok")}>Excel</Btn>
           <Btn icon={FileDown} onClick={() => toast("PDF 리포트 다운로드", "ok")}>PDF</Btn>
           <Btn icon={ChevronLeft} onClick={() => goto("history")}>실행 이력으로</Btn>
@@ -1495,7 +1495,7 @@ export function Run() {
         <PageToolbar desc="평가 실행 및 HITL 검토 · 예외 케이스 중심" />
       )}
       {fromHistory && activeRun && (
-        <Card className="flex flex-wrap items-center gap-3 p-3 text-xs text-slate-500"><span className="font-mono text-sky-600">{activeRun.id}</span><span className="text-sm font-medium text-slate-800">{activeRun.planName}</span><Badge kind="info">{activeRun.trigger}</Badge><span>{activeRun.startedAt}</span><span className="text-slate-400">·</span><span>모델 {activeRun.snapshot.model} · 프롬프트 {activeRun.snapshot.promptVer} · 케이스 {activeRun.snapshot.caseVer}</span><span className="text-slate-400">·</span><span>점수 <span className="font-semibold text-sky-600">{activeRun.score != null ? activeRun.score : "—"}</span></span></Card>
+        <Card className="flex flex-wrap items-center gap-3 p-3 text-xs text-slate-500"><span className="font-mono text-sky-600">{activeRun.id}</span><span className="text-sm font-medium text-slate-800">{activeRun.planName}</span><Badge kind="info">{activeRun.trigger}</Badge><span>{activeRun.startedAt}</span><span className="text-slate-500">·</span><span>모델 {activeRun.snapshot.model} · 프롬프트 {activeRun.snapshot.promptVer} · 케이스 {activeRun.snapshot.caseVer}</span><span className="text-slate-500">·</span><span>점수 <span className="font-semibold text-sky-600">{activeRun.score != null ? activeRun.score : "—"}</span></span></Card>
       )}
       {!fromHistory && (<Card className="p-4">
         <div className="flex items-center justify-between">
@@ -1504,9 +1504,9 @@ export function Run() {
               <select value={planId} onChange={(e) => setPlanId(+e.target.value)} disabled={!runnablePlans.length} className="bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 text-sm">{runnablePlans.length ? runnablePlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>) : <option value="">활성 계획 없음</option>}</select>
             </div>
             {!runnablePlans.length && <span className="text-xs text-amber-600">활성 상태의 평가 계획이 없습니다 — 계획을 활성화하세요</span>}
-            <span className="text-slate-400">·</span>
+            <span className="text-slate-500">·</span>
             <div><span className="text-slate-500">Judge</span> <span className="text-slate-800 font-medium">{(curPlan && curPlan.judgeList && curPlan.judgeList.join(", ")) || "—"}</span></div>
-            <span className="text-slate-400">·</span>
+            <span className="text-slate-500">·</span>
             <div><span className="text-slate-500">대상</span> <span className="text-slate-800 font-medium">TC {planCases(cases, curPlan).length}건</span> <span className="text-xs text-slate-500">(계획 선택)</span></div>
           </div>
           <Btn kind="primary" icon={Play} disabled={!runnablePlans.length} onClick={() => enqueue(curPlan, "수동")}>평가 실행</Btn>
@@ -1570,9 +1570,9 @@ export function Run() {
                     <Block label="실제 챗봇 응답" tone={sel.verdict === "FAIL" ? "err" : "plain"}>{sel.actual}</Block>
                     {sel.scores && Object.keys(sel.scores).length > 0 && (<div><div className="text-xs text-slate-500 mb-2">LLM Judge 다차원 채점</div><div className="grid grid-cols-2 gap-x-5">{Object.entries(sel.scores).map(([k, v]) => (<ScoreBar key={k} label={k} value={v} color={v >= 80 ? C.teal : v >= 60 ? C.warn : C.err} />))}</div></div>)}
                     <Block label="Judge 평가 근거" tone="plain"><span className="text-slate-500">{sel.judge}</span></Block>
-                    <div className="flex items-center gap-2 flex-wrap"><span className="text-xs text-slate-500">안전 게이트:</span>{[["환각", sel.safety.환각], ["PII 노출", sel.safety.PII], ["정책 위반", sel.safety.정책]].filter(([, v]) => v && v !== "미검사").map(([k, v]) => <Badge key={k} kind={vKind(v)}>{k} {v}</Badge>)}{[sel.safety.환각, sel.safety.PII, sel.safety.정책].every((v) => !v || v === "미검사") && <span className="text-xs text-slate-400">활성 게이트 없음</span>}</div>
+                    <div className="flex items-center gap-2 flex-wrap"><span className="text-xs text-slate-500">안전 게이트:</span>{[["환각", sel.safety.환각], ["PII 노출", sel.safety.PII], ["정책 위반", sel.safety.정책]].filter(([, v]) => v && v !== "미검사").map(([k, v]) => <Badge key={k} kind={vKind(v)}>{k} {v}</Badge>)}{[sel.safety.환각, sel.safety.PII, sel.safety.정책].every((v) => !v || v === "미검사") && <span className="text-xs text-slate-500">활성 게이트 없음</span>}</div>
                     <div className="pt-2 border-t border-slate-200">
-                      <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-500">결과 판정 <span className="text-slate-400">· Judge {sel.verdict} (기본)</span>{sel.final && sel.final !== sel.verdict && <Badge kind="warn">정정됨</Badge>}</div>
+                      <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-500">결과 판정 <span className="text-slate-500">· Judge {sel.verdict} (기본)</span>{sel.final && sel.final !== sel.verdict && <Badge kind="warn">정정됨</Badge>}</div>
                       <div className="flex items-center gap-2">
                         {["PASS", "WARN", "FAIL"].map((v) => (
                           <button key={v} onClick={() => { setFinal(sel.id, v); toast(sel.id + (v === sel.verdict ? " · Judge 판정 유지" : " → " + v + " 정정"), v === "FAIL" && v !== sel.verdict ? "warn" : "ok"); }} className={"inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm " + ((sel.final || sel.verdict) === v ? (v === "FAIL" ? "bg-red-600 text-white" : v === "WARN" ? "bg-amber-600 text-white" : "bg-emerald-700 text-white") : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{v}{v === sel.verdict ? " · Judge" : ""}</button>
@@ -1582,7 +1582,7 @@ export function Run() {
                           ? <Btn icon={Bug} onClick={() => { setPendingSelect({ kind: "defect", key: openDefectOf(sel.id, runBot).key }); goto("defects"); }}>결함 보기 · {openDefectOf(sel.id, runBot).key}</Btn>
                           : <Btn kind="danger" icon={Bug} onClick={() => openModal("jira", { tc: sel.id, target: runBot, sev: "Critical", title: (isRegression(sel.id, runBot) ? "[재발] " : "") + sel.id + " 평가 실패", q: sel.q, pre: sel.pre, golden: sel.golden, actual: sel.actual, judge: sel.judge, score: sel.score, safety: sel.safety, env: activeRun ? (activeRun.snapshot.model + " / 프롬프트 " + activeRun.snapshot.promptVer + " / 케이스 " + activeRun.snapshot.caseVer) : "" })}>{isRegression(sel.id, runBot) ? "재발 결함 등록" : "결함 등록"}</Btn>)}
                       </div>
-                      <div className="mt-1.5 text-xs text-slate-400">손대지 않으면 Judge 판정이 그대로 최종 · 이견 있는 예외만 정정하세요.</div>
+                      <div className="mt-1.5 text-xs text-slate-500">손대지 않으면 Judge 판정이 그대로 최종 · 이견 있는 예외만 정정하세요.</div>
                     </div>
                   </div>
                 </>
@@ -1688,7 +1688,7 @@ export function Compare() {
           <tbody>
             {reg.map((r) => { const v = cls(r.aV, r.bV); return (
               <tr key={r.id} className={"border-b border-slate-200 text-slate-700 " + (v.k === "퇴행" ? "bg-red-50" : "")}>
-                <td className="py-2.5 px-4 font-mono text-sky-600">{r.id}</td><td className="max-w-xs truncate text-slate-700">{r.q}</td><td><Badge kind={vKind(r.aV)}>{r.aV}</Badge></td><td className="text-slate-400">→</td><td><Badge kind={vKind(r.bV)}>{r.bV}</Badge></td><td className={"font-semibold " + v.c}>{v.k}</td>
+                <td className="py-2.5 px-4 font-mono text-sky-600">{r.id}</td><td className="max-w-xs truncate text-slate-700">{r.q}</td><td><Badge kind={vKind(r.aV)}>{r.aV}</Badge></td><td className="text-slate-500">→</td><td><Badge kind={vKind(r.bV)}>{r.bV}</Badge></td><td className={"font-semibold " + v.c}>{v.k}</td>
               </tr>
             ); })}
             {reg.length === 0 && <tr><td colSpan={6}><EmptyState icon={FileText} title="선택한 실행에 케이스 결과가 없습니다" /></td></tr>}
@@ -1704,7 +1704,7 @@ export function Compare() {
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <div className="text-xs text-slate-500">판정 요약 · {aId} → {bId}</div>
                 <div className="mt-1 text-slate-800">점수 {delta != null ? (delta >= 0 ? "+" + delta : "" + delta) : "—"} · 유의미 회귀 <span className="font-semibold text-red-700">{sig["회귀"].length}</span>건 · 점수 하락 관찰 <span className="font-semibold text-amber-700">{sig["점수하락"].length}</span>건 · 개선 <span className="font-semibold text-emerald-700">{sig["개선"].length}</span>건</div>
-                <div className="mt-1 text-xs text-slate-400">±{NOISE}점 미만 변동은 평가자(LLM) 채점 노이즈로 간주해 회귀에서 제외 · 판정 임계 교차만 회귀로 집계</div>
+                <div className="mt-1 text-xs text-slate-500">±{NOISE}점 미만 변동은 평가자(LLM) 채점 노이즈로 간주해 회귀에서 제외 · 판정 임계 교차만 회귀로 집계</div>
               </div>
               <div>
                 <div className="mb-1.5 text-xs font-semibold text-slate-500">무엇이 바뀌었나 (스냅샷)</div>
@@ -1726,7 +1726,7 @@ export function Compare() {
                 <ul className="space-y-1.5">{recs.map((c, i) => (<li key={i} className="flex gap-2 text-xs text-slate-700"><CheckCircle2 size={13} className="mt-0.5 shrink-0 text-emerald-600" />{c}</li>))}</ul>
               </div>
               {regressed.length > 0 && <Btn kind="primary" icon={Bug} onClick={regAllLQA}>유의미 회귀 {regressed.length}건 결함 등록</Btn>}
-              <div className="text-xs text-slate-400">＊ 결정적 분석은 저장된 결과의 계산이며, AI 추정 항목은 참고용(원인·권고)입니다.</div>
+              <div className="text-xs text-slate-500">＊ 결정적 분석은 저장된 결과의 계산이며, AI 추정 항목은 참고용(원인·권고)입니다.</div>
             </div>
           </div>
         </div></Portal>
@@ -1773,8 +1773,8 @@ export function Defects() {
         <Btn icon={SlidersHorizontal} onClick={() => openModal("jiraConfig")}>Jira 연동</Btn>
         <Btn kind="primary" icon={Bug} onClick={() => openModal("jira", { tc: "수동", sev: "Major", title: "" })}>이슈 등록</Btn>
       </PageToolbar>
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">{jc.connected ? <><Badge kind="active">Jira 연결됨</Badge><span className="font-mono text-slate-700">{jc.url || "—"}</span><span className="text-slate-400">·</span><span>기본 프로젝트 <span className="text-slate-700">{jc.project || "—"}</span> · 이슈유형 {jc.issueType || "—"}</span><span className="text-slate-400">·</span><span>계획별로 재정의 가능</span></> : <><Badge kind="draft">Jira 미연동</Badge><span>결함은 내부에만 기록됩니다 — <span className="text-sky-600 cursor-pointer" onClick={() => openModal("jiraConfig")}>Jira 연동 설정</span>에서 연결하세요.</span></>}</div>
-      <div className="flex items-center gap-3 text-sm text-slate-500"><span>미해결 <span className="font-semibold text-red-700">{openN}</span></span><span className="text-slate-400">·</span><span>해결 <span className="font-semibold text-emerald-700">{resN}</span></span><span className="text-slate-400">·</span><span className="text-slate-500">총 {list.length}건</span></div>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">{jc.connected ? <><Badge kind="active">Jira 연결됨</Badge><span className="font-mono text-slate-700">{jc.url || "—"}</span><span className="text-slate-500">·</span><span>기본 프로젝트 <span className="text-slate-700">{jc.project || "—"}</span> · 이슈유형 {jc.issueType || "—"}</span><span className="text-slate-500">·</span><span>계획별로 재정의 가능</span></> : <><Badge kind="draft">Jira 미연동</Badge><span>결함은 내부에만 기록됩니다 — <span className="text-sky-600 cursor-pointer" onClick={() => openModal("jiraConfig")}>Jira 연동 설정</span>에서 연결하세요.</span></>}</div>
+      <div className="flex items-center gap-3 text-sm text-slate-500"><span>미해결 <span className="font-semibold text-red-700">{openN}</span></span><span className="text-slate-500">·</span><span>해결 <span className="font-semibold text-emerald-700">{resN}</span></span><span className="text-slate-500">·</span><span className="text-slate-500">총 {list.length}건</span></div>
       <Card>
       <table className="w-full text-sm">
         <thead><tr className="text-slate-500 text-left border-b border-slate-200"><th className="py-2.5 px-4 font-medium">이슈</th><th className="font-medium">영역</th><th className="font-medium">대상</th><th className="font-medium">TC</th><th className="font-medium">심각도</th><th className="font-medium">제목</th><th className="font-medium">상태</th><th className="font-medium">담당자</th><th className="font-medium">보고 / 수정</th><th></th></tr></thead>
@@ -1783,7 +1783,7 @@ export function Defects() {
             <tr key={d.key} onClick={() => { setEdit(false); setSel(d); }} className={"cursor-pointer border-b border-slate-200 hover:bg-slate-100 " + (d.status === "Resolved" ? "opacity-60" : "")}>
               <td className="py-3 px-4 font-mono text-sky-600">{d.key}</td><td><Badge kind={domKind[d.domain || "LQA"] || "info"}>{domLabel[d.domain || "LQA"]}</Badge></td><td className="text-xs text-slate-500">{d.target || "—"}</td><td className="font-mono text-slate-500">{d.tc}{Array.isArray(d.rows) && d.rows.length > 0 && <span className="ml-1.5 rounded bg-slate-200 px-1.5 py-0.5 text-slate-700" style={{ fontSize: 10 }} title={d.rows.map((r) => r.i + "행 · " + Object.entries(r.data || {}).map(([k, v]) => k + "=" + v).join(" · ")).join("\n")}>{d.rows.map((r) => r.i).join(",")}행</span>}</td><td><Badge kind={sev[d.sev]}>{d.sev}</Badge></td><td className="max-w-sm text-slate-800">{d.title}</td>
               <td><Badge kind={st[d.status] || "info"}>{d.status || "Open"}</Badge></td>
-              <td className="text-slate-500">{d.assignee || <span className="text-slate-400">미지정</span>}</td>
+              <td className="text-slate-500">{d.assignee || <span className="text-slate-500">미지정</span>}</td>
               <td className="pr-2 text-xs leading-tight text-slate-500"><div>{d.createdBy || "—"} · {d.createdAt || "—"}</div>{d.updatedAt && d.updatedAt !== d.createdAt && <div className="text-slate-500">수정 {d.updatedBy} · {d.updatedAt}</div>}</td>
               <td className="pr-4" onClick={(e) => e.stopPropagation()}><div className="flex items-center gap-2">{jc.connected && <button onClick={() => toast(d.key + " 이슈 트래커로 이동 (데모)", "info")} className="text-slate-500 hover:text-sky-600" title="이슈 트래커"><ExternalLink size={15} /></button>}</div></td>
             </tr>
@@ -1809,7 +1809,7 @@ export function Defects() {
                   <div><div className="mb-1 text-xs text-slate-500">실제 결과</div><textarea rows={2} value={ef.actual} onChange={(e) => setEf({ ...ef, actual: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-slate-100 p-2.5 text-sm text-slate-800 focus:border-sky-500 focus:outline-none" placeholder="실제 결과" /></div>
                   <div>
                     <div className="mb-1 text-xs text-slate-500">증적</div>
-                    {ef.evidence && ef.evidence.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{ef.evidence.map((e, i) => <span key={i} className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-800">{e}<button onClick={() => setEf({ ...ef, evidence: ef.evidence.filter((_, j) => j !== i) })} className="text-slate-500 hover:text-rose-600"><X size={12} /></button></span>)}</div>}
+                    {ef.evidence && ef.evidence.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{ef.evidence.map((e, i) => <span key={i} className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-800">{e}<button onClick={() => setEf({ ...ef, evidence: ef.evidence.filter((_, j) => j !== i) })} className="text-slate-500 hover:text-red-600"><X size={12} /></button></span>)}</div>}
                     <div className="flex gap-2">
                       <input value={evAdd} onChange={(e) => setEvAdd(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEv(evAdd); } }} placeholder="링크·로그 등 입력 후 추가" className="flex-1 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-sm text-slate-800 focus:border-sky-500 focus:outline-none" />
                       <Btn icon={Plus} kind="ghost" onClick={() => addEv(evAdd)}>추가</Btn>
@@ -1928,7 +1928,7 @@ export function Report() {
               </div>
               {rsched.freq === "monthly" && <Field label="일(day)"><Input type="number" value={rsched.dom} onChange={(e) => setRsched({ ...rsched, dom: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })} /></Field>}
               {rsched.freq === "weekly" && <div><div className="mb-1.5 text-xs font-semibold text-slate-500">요일</div><div className="flex gap-1.5">{dowK.map((d, i) => <button key={i} onClick={() => setRsched({ ...rsched, dow: i })} className={"h-8 w-8 rounded-lg text-sm " + (rsched.dow === i ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{d}</button>)}</div></div>}
-              <div className="rounded-lg bg-slate-100 p-3 text-sm"><span className="text-slate-500">다음 발송 </span><span className="font-medium text-sky-600">{nextRun()}</span> <span className="text-slate-400">· 활성 채널로 push</span></div>
+              <div className="rounded-lg bg-slate-100 p-3 text-sm"><span className="text-slate-500">다음 발송 </span><span className="font-medium text-sky-600">{nextRun()}</span> <span className="text-slate-500">· 활성 채널로 push</span></div>
             </div>
           )}
         </Card>
@@ -1983,7 +1983,7 @@ export function Settings() {
             const usedBy = (plans || []).filter((pl) => pl.promptTpl === p.name);
             return (
             <div key={p.name} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2.5">
-              <div><div className="text-sm text-slate-900">{p.name} <span className="text-xs text-slate-500">v{p.ver}</span></div><div className="text-xs text-slate-500">채점 기준: {(p.rubric || []).join(", ")}</div><div className="text-xs text-slate-500">변수: {(p.vars || []).map((v) => "{{" + v + "}}").join(" ")}</div><div className="text-xs mt-0.5">{usedBy.length ? <span className="text-sky-600">사용 중: {usedBy.map((pl) => pl.name).join(" · ")}</span> : <span className="text-slate-400">사용 계획 없음</span>}</div></div>
+              <div><div className="text-sm text-slate-900">{p.name} <span className="text-xs text-slate-500">v{p.ver}</span></div><div className="text-xs text-slate-500">채점 기준: {(p.rubric || []).join(", ")}</div><div className="text-xs text-slate-500">변수: {(p.vars || []).map((v) => "{{" + v + "}}").join(" ")}</div><div className="text-xs mt-0.5">{usedBy.length ? <span className="text-sky-600">사용 중: {usedBy.map((pl) => pl.name).join(" · ")}</span> : <span className="text-slate-500">사용 계획 없음</span>}</div></div>
               <div className="flex items-center gap-3"><button onClick={() => openModal("addPrompt", { name: p.name, system: p.system, rubric: p.rubric, vars: p.vars, ver: p.ver })} className="text-xs text-slate-500 hover:text-sky-600">편집</button><button onClick={() => { if (usedBy.length) { toast("사용 중인 계획이 있어 삭제할 수 없습니다 — " + usedBy.map((pl) => pl.name).join(", "), "warn"); return; } if (window.confirm(p.name + " 템플릿을 삭제할까요?")) { removePrompt(p.name); toast(p.name + " 삭제됨", "ok"); } }} className="text-xs text-slate-500 hover:text-red-600">삭제</button></div>
             </div>
             );
@@ -2072,9 +2072,9 @@ export function MembersView() {
               <tr key={u.id} className="border-b border-slate-200 hover:bg-slate-100">
                 <td className="py-2.5"><span className="text-slate-900 font-medium">{u.name}</span> <span className="text-xs text-slate-500">{u.email}</span></td>
                 <td>{currentUser && u.name === currentUser
-                  ? <span className="text-slate-700">{u.role} <span className="text-xs text-slate-400">(본인)</span></span>
+                  ? <span className="text-slate-700">{u.role} <span className="text-xs text-slate-500">(본인)</span></span>
                   : <select value={u.role} onChange={(e) => changeRole(u, e.target.value)} className="rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-800 outline-none focus:border-sky-500">{ROLES.map((r) => <option key={r}>{r}</option>)}</select>}</td><td><Badge kind={stK[u.status]}>{u.status}</Badge></td><td className="text-slate-500 text-xs">{u.last}</td>
-                <td>{u.role === "Owner" ? <span className="text-xs text-slate-400">—</span> : (
+                <td>{u.role === "Owner" ? <span className="text-xs text-slate-500">—</span> : (
                   <div className="flex gap-1.5">
                     {u.status === "차단"
                       ? <button onClick={() => { setUserStatus(u.id, "활성"); toast(u.name + " 차단 해제", "ok"); }} className="text-xs rounded-lg px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700">해제</button>
